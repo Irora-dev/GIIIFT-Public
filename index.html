@@ -1,0 +1,196 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>GIIIFT — coming soon</title>
+  <meta name="description" content="GIIIFT — the gift that keeps giving. Launching soon." />
+  <meta name="theme-color" content="#02040a" />
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <meta property="og:title" content="GIIIFT — coming soon" />
+  <meta property="og:description" content="The gift that keeps giving. Launching soon." />
+  <meta property="og:type" content="website" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Bowlby+One&family=VT323&family=Inter:wght@400;600;700&display=swap" rel="stylesheet" />
+
+  <style>
+    :root {
+      --pkg1: #7c3aed; --pkg2: #ec4899; --pkg-accent: #fde68a;
+      --font-logo: 'Bowlby One', sans-serif;
+      --font-mono: 'VT323', ui-monospace, monospace;
+      --font-ui: 'Inter', system-ui, sans-serif;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; -webkit-font-smoothing: antialiased; }
+    html, body { width: 100%; height: 100%; }
+    body { background: #02040a; overflow: hidden; color: #fff; font-family: var(--font-ui); }
+
+    /* full-bleed aurora — backmost */
+    #aurora { position: fixed; inset: 0; width: 100%; height: 100%; z-index: 0; display: block; background: #02040a; }
+    .vig { position: fixed; inset: 0; z-index: 1; pointer-events: none;
+      background: radial-gradient(120% 90% at 50% 42%, transparent 55%, rgba(0,0,0,0.55) 100%); }
+
+    /* CRT telemetry HUD recoloured to the live borealis accent (--crt-accent, set per-frame) */
+    .crt-tl, .crt-tr { top: 18px !important; }            /* no nav here → pull the HUD to the top corners */
+    .crt-bk.tl, .crt-bk.tr { top: 10px !important; }
+    .crt-hud { color: color-mix(in srgb, var(--crt-accent, #8fe3ff) 70%, #eef) !important; }
+    .crt-tl { border-left-color: var(--crt-accent, #44ccff) !important; }
+    .crt-tl .lead { color: color-mix(in srgb, var(--crt-accent, #8fe3ff) 45%, #fff) !important; }
+    .crt-dot { background: var(--crt-accent, #00f3ff) !important; box-shadow: 0 0 10px var(--crt-accent, #00f3ff) !important; }
+    .crt-div { background: color-mix(in srgb, var(--crt-accent, #44ccff) 55%, transparent) !important; }
+    .crt-bk { border-color: color-mix(in srgb, var(--crt-accent, #b6e6ff) 55%, transparent) !important; }
+    .crt-hud .pe { text-shadow: 0 0 7px color-mix(in srgb, var(--crt-accent, #00c8ff) 60%, transparent) !important; }
+
+    /* centre content */
+    .wrap { position: relative; z-index: 3; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: clamp(18px, 3vh, 38px); padding: 40px 20px; text-align: center; }
+
+    /* GIIIFT wordmark (G + colour bars + FT.) */
+    .logo { display: inline-flex; align-items: baseline; gap: 3px; font-family: var(--font-logo); font-size: clamp(34px, 6vw, 64px); letter-spacing: -0.04em; line-height: 1; color: #fff; text-shadow: 0 4px 30px rgba(0,0,0,0.5); transform: rotate(-2deg); }
+    .logo .bars { display: inline-flex; gap: 3px; align-items: flex-end; margin: 0 1px; }
+    .logo .bars i { width: clamp(7px, 1.1vw, 11px); height: clamp(30px, 5.2vw, 56px); border-radius: 2px; display: block; }
+    .logo .bars i:nth-child(1) { background: #FF3B6F; } .logo .bars i:nth-child(2) { background: #FFD93D; } .logo .bars i:nth-child(3) { background: #4ECDC4; }
+    .logo .dot { width: clamp(7px,1vw,10px); height: clamp(7px,1vw,10px); background: #fff; border-radius: 50%; align-self: flex-end; margin-left: 3px; margin-bottom: clamp(4px,.7vw,7px); }
+
+    /* the spinning box */
+    .stage-wrap { perspective: 1300px; perspective-origin: 50% 44%; width: min(86vw, 480px); height: min(60vh, 480px); display: flex; align-items: center; justify-content: center; }
+    #spin { transform-style: preserve-3d; animation: spin 20s linear infinite; will-change: transform; }
+    @keyframes spin { from { transform: rotateX(-18deg) rotateY(0deg); } to { transform: rotateX(-18deg) rotateY(360deg); } }
+    /* the engine box rides on the spinner — neutralise its own resting tilt so #spin owns rotation.
+       NB: do NOT put `filter` on any 3D ancestor — it flattens preserve-3d and collapses the cube. */
+    #box-host .gbx-box { transform: none !important; }
+    #box-host, #box-host .gbx-scene { transform-style: preserve-3d; }
+    /* soft grounding glow behind the box (separate layer, never on the 3D container) */
+    .stage-wrap::after { content: ""; position: absolute; left: 50%; top: 58%; width: 60%; height: 22%; transform: translate(-50%, -50%); border-radius: 50%; background: radial-gradient(ellipse, rgba(0,0,0,0.5), transparent 70%); filter: blur(14px); z-index: -1; }
+
+    /* "Coming soon" pinned to the bottom of the screen */
+    .tagline { position: fixed; left: 50%; bottom: clamp(26px, 6vh, 60px); transform: translateX(-50%); z-index: 4; white-space: nowrap;
+      font-family: var(--font-mono); font-size: clamp(15px, 2.4vw, 22px); letter-spacing: 0.34em; text-transform: uppercase; color: rgba(255,255,255,0.88); text-shadow: 0 2px 16px rgba(0,0,0,0.6); }
+    .tagline .pip { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--pkg-accent, #fde68a); box-shadow: 0 0 12px var(--pkg-accent, #fde68a); margin-right: 10px; vertical-align: middle; animation: pip 1.7s ease-in-out infinite; }
+    @keyframes pip { 0%,100% { opacity: 1; } 50% { opacity: 0.35; } }
+
+    @media (prefers-reduced-motion: reduce) { #spin { animation: none; transform: rotateX(-13deg) rotateY(-26deg); } }
+  </style>
+</head>
+<body>
+  <canvas id="aurora" aria-hidden="true"></canvas>
+  <div class="vig" aria-hidden="true"></div>
+
+  <main class="wrap">
+    <div class="logo" aria-label="GIIIFT">G<span class="bars"><i></i><i></i><i></i></span>FT<span class="dot"></span></div>
+    <div class="stage-wrap">
+      <div id="spin"><div id="box-host"></div></div>
+    </div>
+  </main>
+
+  <div class="tagline"><span class="pip"></span>Coming soon</div>
+
+  <script defer src="/crt-overlay.js"></script>
+  <script src="/box-stickers.js"></script>
+  <script src="/box-panels.js"></script>
+  <script src="/box-engine.js"></script>
+  <script>
+  (function () {
+    /* ---------- the rotating "cool box" cycle. Each entry = a panel design + its colours.
+       The aurora is derived from these colours and glides between them. The FIRST entry
+       matches the wrap screen's default box (violet → pink, gold accent). ---------- */
+    var CYCLE = [
+      { front: "holo",          side: "holo-side",      c1: "#7c3aed", c2: "#ec4899", ac: "#fde68a" }, // wrap default
+      { front: "explorer-front",side: "explorer-side",  c1: "#c79a5e", c2: "#7a5226", ac: "#e7c98a" }, // expedition / amber
+      { front: "pkmn-front",    side: "pkmn-side",       c1: "#19b6ff", c2: "#0b5fd6", ac: "#ffd23f" }, // volt / electric
+      { front: "blueprint",     side: "blueprint-side",  c1: "#2f6aaa", c2: "#0d2b4e", ac: "#9cd4ff" }, // blueprint / blue
+      { front: "cel-crate",     side: "cel-side",        c1: "#5a6470", c2: "#22262a", ac: "#ffcc00" }, // cel crate / industrial
+      { front: "kraft",         side: "kraft-side",      c1: "#caa472", c2: "#a87a48", ac: "#b0473a" }  // kraft / paper
+    ];
+
+    /* ---------- colour helpers ---------- */
+    function hx(h) { h = String(h).replace("#", ""); if (h.length === 3) h = h.split("").map(function (c) { return c + c; }).join(""); var n = parseInt(h, 16) || 0; return [((n >> 16) & 255) / 255, ((n >> 8) & 255) / 255, (n & 255) / 255]; }
+    var scc = function (c, f) { return [Math.min(1, c[0] * f), Math.min(1, c[1] * f), Math.min(1, c[2] * f)]; };
+    var mxc = function (a, b, t) { return [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t]; };
+    var toHex = function (c) { return "#" + c.map(function (v) { return Math.round(Math.max(0, Math.min(1, v)) * 255).toString(16).padStart(2, "0"); }).join(""); };
+    // a box's three colours → the 5 aurora uniform colours (same model as the borealis page)
+    function palFor(e) { var a = hx(e.c1), b = hx(e.c2), g = hx(e.ac); return { a1: a, a2: b, glow: g, sky0: scc(a, 0.12), sky1: scc(mxc(a, b, 0.5), 0.22) }; }
+
+    /* ---------- render a dressed panel box into #box-host ---------- */
+    function renderBox(e) {
+      var doc = {
+        shape: "mailer",
+        palette: { c1: e.c1, c2: e.c2, accent: e.ac, angle: 135, finish: "gradient" },
+        faces: {
+          front: { panel: e.front, layers: [] },
+          left: { panel: e.side, layers: [] },
+          right: { panel: e.side, layers: [] },
+          back: { panel: e.side, layers: [] },
+          top: { layers: [] },
+          bottom: { layers: [] }
+        },
+        meta: { brand: "GIIIFT" }
+      };
+      try { window.GIIIFTBox.render(document.getElementById("box-host"), doc, { mode: "view", burst: false, size: "clamp(210px, 30vw, 340px)" }); }
+      catch (err) { console.error("[GIIIFT-Public] box render failed:", err); }
+    }
+
+    /* ---------- aurora shader (one program, palette lerps between boxes) ---------- */
+    var startIdx = Math.floor(Math.random() * CYCLE.length);  // a different box each reload
+    var cur = palFor(CYCLE[startIdx]), tgt = cur;             // aurora starts already matched to it
+    function setBrandVars(e) { var r = document.documentElement.style; r.setProperty("--pkg1", e.c1); r.setProperty("--pkg2", e.c2); r.setProperty("--pkg-accent", e.ac); }
+
+    function startAurora() {
+      var canvas = document.getElementById("aurora");
+      var gl = canvas.getContext("webgl") || canvas.getContext("experimental-webgl");
+      if (!gl) { document.body.style.background = "radial-gradient(120% 80% at 50% 100%, " + CYCLE[0].c1 + "33, #02040a 70%)"; return; }
+      var vs = "attribute vec4 p;void main(){gl_Position=p;}";
+      var fs =
+        "precision highp float;uniform vec2 u_resolution;uniform float u_time;uniform vec3 u_sky0;uniform vec3 u_sky1;uniform vec3 u_aurora1;uniform vec3 u_aurora2;uniform vec3 u_glow;" +
+        "float hash(float n){return fract(sin(n)*1e4);}float hash(vec2 p){return fract(1e4*sin(17.0*p.x+p.y*0.1)*(0.1+abs(sin(p.y*13.0+p.x))));}" +
+        "float noise(vec3 x){const vec3 step=vec3(110,241,171);vec3 i=floor(x);vec3 f=fract(x);float n=dot(i,step);vec3 u=f*f*(3.0-2.0*f);return mix(mix(mix(hash(n+dot(step,vec3(0,0,0))),hash(n+dot(step,vec3(1,0,0))),u.x),mix(hash(n+dot(step,vec3(0,1,0))),hash(n+dot(step,vec3(1,1,0))),u.x),u.y),mix(mix(hash(n+dot(step,vec3(0,0,1))),hash(n+dot(step,vec3(1,0,1))),u.x),mix(hash(n+dot(step,vec3(0,1,1))),hash(n+dot(step,vec3(1,1,1))),u.x),u.y),u.z);}" +
+        "float fbm(vec3 p){float f=0.0;float w=0.5;for(int i=0;i<5;i++){f+=w*noise(p);p*=2.0;w*=0.5;}return f;}" +
+        "float grain(vec2 uv,float t){float m=dot(uv,vec2(12.9898,78.233));return fract(sin(m+t)*43758.5453)*0.15;}" +
+        "float makeStars(vec2 uv){float n=hash(uv*200.0);float s=smoothstep(0.99,1.0,n);s*=(sin(u_time*2.0+n*100.0)*0.5+0.5);return s;}" +
+        "void main(){vec2 uv=gl_FragCoord.xy/u_resolution.xy;vec2 st=uv;st.x*=u_resolution.x/u_resolution.y;float t=u_time*0.15;vec3 skyColor=mix(u_sky0,u_sky1,uv.y);skyColor+=vec3(makeStars(st))*0.5;vec2 warp=st;warp.x+=sin(warp.y*3.0+t)*0.1;warp.y+=cos(warp.x*2.0-t*0.5)*0.1;vec3 p=vec3(warp.x*3.0,warp.y*0.5-t*0.8,t*0.5);float n1=fbm(p);float band1=smoothstep(0.2,0.7,n1);vec3 p2=vec3(warp.x*4.0-t,warp.y*0.6-t*1.2,t*0.7);float n2=fbm(p2);float band2=smoothstep(0.3,0.8,n2);vec3 auroraColor=mix(u_aurora1*0.3,u_aurora1,band1);auroraColor=mix(auroraColor,u_aurora2,band2*0.8);float hl=distance(uv,vec2(0.5,0.62));hl=smoothstep(1.0,0.0,hl);auroraColor=mix(auroraColor,u_glow,hl*band1*0.6);float edge=smoothstep(0.6,0.8,n1)*smoothstep(0.8,0.6,n1);auroraColor+=u_glow*edge*0.5;float alphaMask=smoothstep(-0.2,0.9,uv.y)*0.85;vec3 finalColor=skyColor+(auroraColor*alphaMask);float vig=uv.x*uv.y*(1.0-uv.x)*(1.0-uv.y);vig=clamp(pow(16.0*vig,0.25),0.0,1.0);finalColor*=vig;finalColor+=vec3(grain(uv,u_time))*0.55;finalColor=smoothstep(0.0,1.0,finalColor);gl_FragColor=vec4(finalColor,1.0);}";
+      function mk(ty, src) { var o = gl.createShader(ty); gl.shaderSource(o, src); gl.compileShader(o); if (!gl.getShaderParameter(o, gl.COMPILE_STATUS)) { console.error(gl.getShaderInfoLog(o)); return null; } return o; }
+      var v = mk(gl.VERTEX_SHADER, vs), f = mk(gl.FRAGMENT_SHADER, fs); if (!v || !f) return;
+      var prog = gl.createProgram(); gl.attachShader(prog, v); gl.attachShader(prog, f); gl.linkProgram(prog);
+      if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) { console.error(gl.getProgramInfoLog(prog)); return; }
+      var lp = gl.getAttribLocation(prog, "p"), L = {};
+      ["u_resolution", "u_time", "u_sky0", "u_sky1", "u_aurora1", "u_aurora2", "u_glow"].forEach(function (n) { L[n] = gl.getUniformLocation(prog, n); });
+      var buf = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, buf); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, 1, 1, 1, -1, -1, 1, -1]), gl.STATIC_DRAW);
+      var start = Date.now(), dpr = Math.min(window.devicePixelRatio || 1, 2);
+      function lerp(a, b, k) { return [a[0] + (b[0] - a[0]) * k, a[1] + (b[1] - a[1]) * k, a[2] + (b[2] - a[2]) * k]; }
+      function frame() {
+        // ease the live palette toward the target (slow transition between box colours)
+        var k = 0.02;
+        cur = { a1: lerp(cur.a1, tgt.a1, k), a2: lerp(cur.a2, tgt.a2, k), glow: lerp(cur.glow, tgt.glow, k), sky0: lerp(cur.sky0, tgt.sky0, k), sky1: lerp(cur.sky1, tgt.sky1, k) };
+        document.documentElement.style.setProperty("--crt-accent", toHex(cur.glow));  // CRT HUD tracks the live aurora
+        var w = Math.round(canvas.clientWidth * dpr), h = Math.round(canvas.clientHeight * dpr);
+        if (w && h && (canvas.width !== w || canvas.height !== h)) { canvas.width = w; canvas.height = h; gl.viewport(0, 0, w, h); }
+        gl.useProgram(prog); gl.bindBuffer(gl.ARRAY_BUFFER, buf); gl.vertexAttribPointer(lp, 2, gl.FLOAT, false, 0, 0); gl.enableVertexAttribArray(lp);
+        gl.uniform2f(L.u_resolution, canvas.width || 1, canvas.height || 1); gl.uniform1f(L.u_time, (Date.now() - start) / 1000.0);
+        gl.uniform3f(L.u_sky0, cur.sky0[0], cur.sky0[1], cur.sky0[2]); gl.uniform3f(L.u_sky1, cur.sky1[0], cur.sky1[1], cur.sky1[2]);
+        gl.uniform3f(L.u_aurora1, cur.a1[0], cur.a1[1], cur.a1[2]); gl.uniform3f(L.u_aurora2, cur.a2[0], cur.a2[1], cur.a2[2]); gl.uniform3f(L.u_glow, cur.glow[0], cur.glow[1], cur.glow[2]);
+        gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4); requestAnimationFrame(frame);
+      }
+      frame();
+    }
+
+    /* ---------- boot + cycle ---------- */
+    function boot() {
+      var i = startIdx;
+      setBrandVars(CYCLE[i]);
+      renderBox(CYCLE[i]);
+      startAurora();
+      // every 5s: jump to a RANDOM (non-repeating) box and glide the aurora to its colours
+      setInterval(function () {
+        var n; do { n = Math.floor(Math.random() * CYCLE.length); } while (n === i && CYCLE.length > 1);
+        i = n;
+        var e = CYCLE[i];
+        tgt = palFor(e);          // borealis bg transitions to the new box's colours
+        setBrandVars(e);
+        renderBox(e);             // swap the box design (#spin keeps rotating)
+      }, 5000);
+    }
+    if (window.GIIIFTBox) boot(); else window.addEventListener("load", boot);
+  })();
+  </script>
+</body>
+</html>
