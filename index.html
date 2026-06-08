@@ -96,16 +96,41 @@
   <script src="/box-engine.js"></script>
   <script>
   (function () {
-    /* ---------- the rotating "cool box" cycle. Each entry = a panel design + its colours.
-       The aurora is derived from these colours and glides between them. The FIRST entry
-       matches the wrap screen's default box (violet → pink, gold accent). ---------- */
+    /* ---------- the rotating box cycle. Entries are either a simple generated panel design
+       {front,side,colours} or a saved GIIIFT Engine Lab preset embedded as a full per-face
+       box doc {name,doc}. The aurora is derived from each box's palette and glides between
+       them as the page cross-fades from one design to the next. ---------- */
     var CYCLE = [
-      { front: "holo",          side: "holo-side",      c1: "#7c3aed", c2: "#ec4899", ac: "#fde68a" }, // wrap default
-      { front: "explorer-front",side: "explorer-side",  c1: "#c79a5e", c2: "#7a5226", ac: "#e7c98a" }, // expedition / amber
-      { front: "pkmn-front",    side: "pkmn-side",       c1: "#19b6ff", c2: "#0b5fd6", ac: "#ffd23f" }, // volt / electric
-      { front: "blueprint",     side: "blueprint-side",  c1: "#2f6aaa", c2: "#0d2b4e", ac: "#9cd4ff" }, // blueprint / blue
-      { front: "cel-crate",     side: "cel-side",        c1: "#5a6470", c2: "#22262a", ac: "#ffcc00" }, // cel crate / industrial
-      { front: "kraft",         side: "kraft-side",      c1: "#caa472", c2: "#a87a48", ac: "#b0473a" }  // kraft / paper
+      { front: "holo",       side: "holo-side",      c1: "#7c3aed", c2: "#ec4899", ac: "#fde68a" }, // wrap default
+      { name: "Expedition", doc: {                                                                  // saved preset
+        v: 2, shape: "mailer",
+        palette: { c1: "#7c3aed", c2: "#ec4899", accent: "#fde68a", angle: 135, finish: "gradient" },
+        faces: {
+          front:  { pos: "front",  pattern: "dots", layers: [], panel: "explorer-msg" },
+          back:   { pos: "back",   pattern: "dots", layers: [], panel: "explorer-side" },
+          left:   { pos: "left",   pattern: "dots", layers: [], panel: "explorer-scan", panelText: { id: "SPECIMEN" } },
+          right:  { pos: "right",  pattern: "dots", layers: [], panel: "explorer-front" },
+          top:    { pos: "top",    pattern: "dots", layers: [], panel: "explorer-side" },
+          bottom: { pos: "bottom", pattern: "dots", layers: [], panel: "explorer-side" }
+        },
+        features: {}, items: [{ ticker: "ETH" }], meta: { brand: "Your Gift", serial: "" }
+      } },
+      { front: "pkmn-front", side: "pkmn-side",      c1: "#19b6ff", c2: "#0b5fd6", ac: "#ffd23f" }, // volt / electric
+      { front: "blueprint",  side: "blueprint-side", c1: "#2f6aaa", c2: "#0d2b4e", ac: "#9cd4ff" }, // blueprint / blue
+      { name: "Contamination", doc: {                                                               // saved preset
+        v: 2, shape: "mailer",
+        palette: { c1: "#7c3aed", c2: "#ec4899", accent: "#fde68a", angle: 135, finish: "gradient" },
+        faces: {
+          front:  { pos: "front",  pattern: "dots", layers: [], panel: "cel-msg", panelText: { message: "DON'T OPEN" } },
+          back:   { pos: "back",   pattern: "dots", layers: [], panel: "cel-octo" },
+          left:   { pos: "left",   pattern: "dots", layers: [], panel: "cel-banner" },
+          right:  { pos: "right",  pattern: "dots", layers: [], panel: "cel-crate" },
+          top:    { pos: "top",    pattern: "dots", layers: [], panel: "cel-side" },
+          bottom: { pos: "bottom", pattern: "dots", layers: [], panel: "cel-side" }
+        },
+        features: {}, items: [{ ticker: "ETH" }], meta: { brand: "Your Gift", serial: "" }
+      } },
+      { front: "kraft",      side: "kraft-side",     c1: "#caa472", c2: "#a87a48", ac: "#b0473a" }  // kraft / paper
     ];
 
     /* ---------- colour helpers ---------- */
@@ -113,37 +138,41 @@
     var scc = function (c, f) { return [Math.min(1, c[0] * f), Math.min(1, c[1] * f), Math.min(1, c[2] * f)]; };
     var mxc = function (a, b, t) { return [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t]; };
     var toHex = function (c) { return "#" + c.map(function (v) { return Math.round(Math.max(0, Math.min(1, v)) * 255).toString(16).padStart(2, "0"); }).join(""); };
-    // a box's three colours → the 5 aurora uniform colours (same model as the borealis page)
-    function palFor(e) { var a = hx(e.c1), b = hx(e.c2), g = hx(e.ac); return { a1: a, a2: b, glow: g, sky0: scc(a, 0.12), sky1: scc(mxc(a, b, 0.5), 0.22) }; }
-
-    /* ---------- render a dressed panel box into #box-host ---------- */
-    function renderBox(e, host) {
-      var doc = {
+    // a CYCLE entry is either a simple descriptor {front,side,c1,c2,ac} or a saved preset {name,doc}
+    function entryPal(e) { return e.doc ? e.doc.palette : { c1: e.c1, c2: e.c2, accent: e.ac }; }
+    function entryDoc(e) {
+      if (e.doc) return e.doc;  // full saved preset doc
+      return {                  // simple descriptor → dressed mailer (hero front, side panel on the rest incl. top)
         shape: "mailer",
         palette: { c1: e.c1, c2: e.c2, accent: e.ac, angle: 135, finish: "gradient" },
         faces: {
-          front: { panel: e.front, layers: [] },
-          left: { panel: e.side, layers: [] },
-          right: { panel: e.side, layers: [] },
-          back: { panel: e.side, layers: [] },
-          top: { layers: [] },
-          bottom: { layers: [] }
+          front: { panel: e.front, layers: [] }, left: { panel: e.side, layers: [] },
+          right: { panel: e.side, layers: [] }, back: { panel: e.side, layers: [] },
+          top: { panel: e.side, layers: [] }, bottom: { layers: [] }
         },
         meta: { brand: "GIIIFT" }
       };
-      try { window.GIIIFTBox.render(host, doc, { mode: "view", burst: false, size: "clamp(210px, 30vw, 340px)" }); }
-      catch (err) { console.error("[GIIIFT-Public] box render failed:", err); }
+    }
+    // a box's three colours → the 5 aurora uniform colours (same model as the borealis page)
+    function palFor(e) { var p = entryPal(e); var a = hx(p.c1), b = hx(p.c2), g = hx(p.accent); return { a1: a, a2: b, glow: g, sky0: scc(a, 0.12), sky1: scc(mxc(a, b, 0.5), 0.22) }; }
+
+    /* ---------- render a dressed panel box into #box-host ---------- */
+    function renderBox(e, host) {
+      try {
+        var doc = window.GIIIFTBox.normalize ? window.GIIIFTBox.normalize(entryDoc(e)) : entryDoc(e);
+        window.GIIIFTBox.render(host, doc, { mode: "view", burst: false, size: "clamp(210px, 30vw, 340px)" });
+      } catch (err) { console.error("[GIIIFT-Public] box render failed:", err); }
     }
 
     /* ---------- aurora shader (one program, palette lerps between boxes) ---------- */
     var startIdx = Math.floor(Math.random() * CYCLE.length);  // a different box each reload
     var cur = palFor(CYCLE[startIdx]), tgt = cur;             // aurora starts already matched to it
-    function setBrandVars(e) { var r = document.documentElement.style; r.setProperty("--pkg1", e.c1); r.setProperty("--pkg2", e.c2); r.setProperty("--pkg-accent", e.ac); }
+    function setBrandVars(e) { var p = entryPal(e); var r = document.documentElement.style; r.setProperty("--pkg1", p.c1); r.setProperty("--pkg2", p.c2); r.setProperty("--pkg-accent", p.accent); }
 
     function startAurora() {
       var canvas = document.getElementById("aurora");
       var gl = canvas.getContext("webgl") || canvas.getContext("experimental-webgl");
-      if (!gl) { document.body.style.background = "radial-gradient(120% 80% at 50% 100%, " + CYCLE[0].c1 + "33, #02040a 70%)"; return; }
+      if (!gl) { document.body.style.background = "radial-gradient(120% 80% at 50% 100%, " + entryPal(CYCLE[0]).c1 + "33, #02040a 70%)"; return; }
       var vs = "attribute vec4 p;void main(){gl_Position=p;}";
       var fs =
         "precision highp float;uniform vec2 u_resolution;uniform float u_time;uniform vec3 u_sky0;uniform vec3 u_sky1;uniform vec3 u_aurora1;uniform vec3 u_aurora2;uniform vec3 u_glow;" +

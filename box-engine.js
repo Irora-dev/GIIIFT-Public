@@ -260,6 +260,9 @@
     ".gbx-decal svg{width:100%;height:100%;display:block;overflow:visible}",
     ".gbx-panel{position:absolute;inset:0;z-index:1;pointer-events:none;overflow:hidden}",
     ".gbx-panel svg{width:100%;height:100%;display:block}",
+    ".gbx-lid-panel{transform:translateZ(1.2px);border-radius:7px;transition:opacity .4s;z-index:0}",
+    ".gbx-tape{z-index:3}",
+    ".gbx-box.gbx-opened .gbx-lid-panel{opacity:0}",
     /* patterns (overlay per face) */
     ".gbx-pattern{position:absolute;inset:0;z-index:1;pointer-events:none;opacity:.9}",
     ".gbx-pat-stripes{background-image:repeating-linear-gradient(45deg,rgba(255,255,255,0.10) 0 7px,transparent 7px 16px)}",
@@ -379,11 +382,13 @@
     }
     return svg;
   }
+  // dark neutral used behind a full-coverage panel, so the bright palette can't bleed at the rounded 3D seams/edges
+  var NEUTRAL_BASE = { c1: "#202227", c2: "#141619", angle: 135, finish: "gradient" };
   function buildFace(pos, face, palette, cls) {
     var el = document.createElement("div");
     el.className = "gbx-face gbx-" + cls;
     el.dataset.pos = pos;
-    var fill = face.fill || palette;
+    var fill = (face.panel && PANELS[face.panel]) ? NEUTRAL_BASE : (face.fill || palette);
     var bg = faceBackground(fill, pos);
     el.style.background = bg.bg;
     el.style.setProperty("--gbx-bg-size", bg.size);
@@ -449,7 +454,7 @@
 
     // lid (top face content rides on the flaps + a tape seam)
     var lid = document.createElement("div"); lid.className = "gbx-lid";
-    var topFill = doc.faces.top.fill || doc.palette;
+    var topFill = (doc.faces.top.panel && PANELS[doc.faces.top.panel]) ? NEUTRAL_BASE : (doc.faces.top.fill || doc.palette);
     var topBg = faceBackground(topFill, "top");
     ["fl-left", "fl-right", "fl-back", "fl-front"].forEach(function (f) {
       var fl = document.createElement("div"); fl.className = "gbx-flap gbx-" + f;
@@ -457,6 +462,11 @@
       if (doc.faces.top.pattern && doc.faces.top.pattern !== "none") { var p = document.createElement("div"); p.className = "gbx-pattern gbx-pat-" + doc.faces.top.pattern; fl.appendChild(p); }
       lid.appendChild(fl);
     });
+    if (doc.faces.top.panel && PANELS[doc.faces.top.panel]) {
+      var lp = document.createElement("div"); lp.className = "gbx-panel gbx-lid-panel";
+      lp.innerHTML = panelSVG(doc.faces.top.panel, doc.faces.top.panelText);
+      lid.appendChild(lp);
+    }
     var tape = document.createElement("div"); tape.className = "gbx-tape"; lid.appendChild(tape);
     box.appendChild(lid);
 
