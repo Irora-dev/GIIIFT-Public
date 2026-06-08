@@ -53,13 +53,17 @@
     .logo .dot { width: clamp(7px,1vw,10px); height: clamp(7px,1vw,10px); background: #fff; border-radius: 50%; align-self: flex-end; margin-left: 3px; margin-bottom: clamp(4px,.7vw,7px); }
 
     /* the spinning box */
-    .stage-wrap { perspective: 1300px; perspective-origin: 50% 44%; width: min(86vw, 480px); height: min(60vh, 480px); display: flex; align-items: center; justify-content: center; }
-    #spin { transform-style: preserve-3d; animation: spin 20s linear infinite; will-change: transform; }
+    .stage-wrap { position: relative; width: min(86vw, 480px); height: min(60vh, 480px); }
+    /* TWO stacked box layers cross-fade on change. Each is its own 3D root (perspective here),
+       so opacity fades the COMPOSITED 3D box without flattening it. Both spin in sync. */
+    .box-layer { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; perspective: 1300px; perspective-origin: 50% 44%; opacity: 0; transition: opacity 1.2s ease; }
+    .box-layer.show { opacity: 1; }
+    .spin { transform-style: preserve-3d; animation: spin 20s linear infinite; will-change: transform; }
     @keyframes spin { from { transform: rotateX(-18deg) rotateY(0deg); } to { transform: rotateX(-18deg) rotateY(360deg); } }
-    /* the engine box rides on the spinner — neutralise its own resting tilt so #spin owns rotation.
-       NB: do NOT put `filter` on any 3D ancestor — it flattens preserve-3d and collapses the cube. */
-    #box-host .gbx-box { transform: none !important; }
-    #box-host, #box-host .gbx-scene { transform-style: preserve-3d; }
+    /* the engine box rides on the spinner — neutralise its resting tilt so .spin owns rotation.
+       NB: do NOT put `filter` on a 3D ancestor — it flattens preserve-3d and collapses the cube. */
+    .box-host .gbx-box { transform: none !important; }
+    .box-host, .box-host .gbx-scene { transform-style: preserve-3d; }
     /* soft grounding glow behind the box (separate layer, never on the 3D container) */
     .stage-wrap::after { content: ""; position: absolute; left: 50%; top: 58%; width: 60%; height: 22%; transform: translate(-50%, -50%); border-radius: 50%; background: radial-gradient(ellipse, rgba(0,0,0,0.5), transparent 70%); filter: blur(14px); z-index: -1; }
 
@@ -69,7 +73,7 @@
     .tagline .pip { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--pkg-accent, #fde68a); box-shadow: 0 0 12px var(--pkg-accent, #fde68a); margin-right: 10px; vertical-align: middle; animation: pip 1.7s ease-in-out infinite; }
     @keyframes pip { 0%,100% { opacity: 1; } 50% { opacity: 0.35; } }
 
-    @media (prefers-reduced-motion: reduce) { #spin { animation: none; transform: rotateX(-13deg) rotateY(-26deg); } }
+    @media (prefers-reduced-motion: reduce) { .spin { animation: none; transform: rotateX(-13deg) rotateY(-26deg); } }
   </style>
 </head>
 <body>
@@ -79,7 +83,8 @@
   <main class="wrap">
     <div class="logo" aria-label="GIIIFT">G<span class="bars"><i></i><i></i><i></i></span>FT<span class="dot"></span></div>
     <div class="stage-wrap">
-      <div id="spin"><div id="box-host"></div></div>
+      <div class="box-layer"><div class="spin"><div class="box-host"></div></div></div>
+      <div class="box-layer"><div class="spin"><div class="box-host"></div></div></div>
     </div>
   </main>
 
@@ -112,7 +117,7 @@
     function palFor(e) { var a = hx(e.c1), b = hx(e.c2), g = hx(e.ac); return { a1: a, a2: b, glow: g, sky0: scc(a, 0.12), sky1: scc(mxc(a, b, 0.5), 0.22) }; }
 
     /* ---------- render a dressed panel box into #box-host ---------- */
-    function renderBox(e) {
+    function renderBox(e, host) {
       var doc = {
         shape: "mailer",
         palette: { c1: e.c1, c2: e.c2, accent: e.ac, angle: 135, finish: "gradient" },
@@ -126,7 +131,7 @@
         },
         meta: { brand: "GIIIFT" }
       };
-      try { window.GIIIFTBox.render(document.getElementById("box-host"), doc, { mode: "view", burst: false, size: "clamp(210px, 30vw, 340px)" }); }
+      try { window.GIIIFTBox.render(host, doc, { mode: "view", burst: false, size: "clamp(210px, 30vw, 340px)" }); }
       catch (err) { console.error("[GIIIFT-Public] box render failed:", err); }
     }
 
@@ -175,18 +180,25 @@
 
     /* ---------- boot + cycle ---------- */
     function boot() {
-      var i = startIdx;
+      var layers = document.querySelectorAll(".box-layer");
+      var hosts = document.querySelectorAll(".box-host");
+      var active = 0, i = startIdx;
       setBrandVars(CYCLE[i]);
-      renderBox(CYCLE[i]);
+      renderBox(CYCLE[i], hosts[active]);
+      layers[active].classList.add("show");
       startAurora();
-      // every 5s: jump to a RANDOM (non-repeating) box and glide the aurora to its colours
+      // every 5s: pick a RANDOM (non-repeating) box and CROSS-FADE to it; aurora glides too
       setInterval(function () {
         var n; do { n = Math.floor(Math.random() * CYCLE.length); } while (n === i && CYCLE.length > 1);
         i = n;
         var e = CYCLE[i];
-        tgt = palFor(e);          // borealis bg transitions to the new box's colours
+        tgt = palFor(e);                      // borealis bg transitions to the new box's colours
         setBrandVars(e);
-        renderBox(e);             // swap the box design (#spin keeps rotating)
+        var nx = 1 - active;
+        renderBox(e, hosts[nx]);              // render the new design into the hidden layer…
+        layers[nx].classList.add("show");     // …then slowly cross-fade it in
+        layers[active].classList.remove("show");
+        active = nx;
       }, 5000);
     }
     if (window.GIIIFTBox) boot(); else window.addEventListener("load", boot);
