@@ -58,7 +58,10 @@
        so opacity fades the COMPOSITED 3D box without flattening it. Both spin in sync. */
     .box-layer { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; perspective: 1300px; perspective-origin: 50% 44%; opacity: 0; transition: opacity 1.2s ease; }
     .box-layer.show { opacity: 1; }
-    .spin { transform-style: preserve-3d; animation: spin 20s linear infinite; will-change: transform; }
+    /* static 3/4 resting transform so the box is ALWAYS a 3D cube even if the spin animation
+       doesn't run (iOS Low Power Mode, reduce-motion, throttled/backgrounded tab). The keyframes
+       override this while animating. Without it, no-animation collapsed the box to one flat face. */
+    .spin { transform-style: preserve-3d; transform: rotateX(-18deg) rotateY(-26deg); animation: spin 20s linear infinite; will-change: transform; }
     @keyframes spin { from { transform: rotateX(-18deg) rotateY(0deg); } to { transform: rotateX(-18deg) rotateY(360deg); } }
     /* the engine box rides on the spinner — neutralise its resting tilt so .spin owns rotation.
        NB: do NOT put `filter` on a 3D ancestor — it flattens preserve-3d and collapses the cube. */
