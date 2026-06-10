@@ -3,6 +3,7 @@
 <head>
 <script>/* public showcase mirror: always demo mode */try{localStorage.setItem("giiift-demo","1");localStorage.setItem("giiift-authed","1");}catch(e){}</script>
 <meta name="robots" content="noindex, nofollow, noarchive">
+<style>/* mirror-only: shrink the whole surface on desktop */@media (min-width: 900px){ html{ zoom: 0.82; } }</style>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>You've got a gift - GIIIFT</title>
@@ -32,6 +33,7 @@
   <script src="/showcase/box-stickers.js"></script>
   <script src="/showcase/box-panels.js"></script>
   <script src="/showcase/box-engine.js"></script>
+  <script src="/showcase/box-templates.js"></script>
   <!-- curated catalog: powers the post-claim "what your credit becomes" strip -->
   <script src="/showcase/catalog.js"></script>
   <script defer src="/showcase/brand.js"></script>
@@ -724,6 +726,9 @@
           angle: (typeof d.a === "number" && d.a >= 0 && d.a <= 360) ? d.a : DEF.angle,
           pattern: PATS.has(d.p) ? d.p : DEF.pattern,
           sublabel: d.s || DEF.sublabel, model: d.md || DEF.model,
+          // box template (the wrap "Box designs" gallery); validated like the
+          // vertical slug — it becomes a registry lookup, never markup
+          tp: (typeof d.tp === "string" && /^[a-z0-9-]{1,24}$/.test(d.tp)) ? d.tp : "",
         },
       };
     }
@@ -864,9 +869,19 @@
     // Render the box via the shared engine — it migrates the legacy design+items
     // into a box document, clears #scene, and injects the 3D box (per-face layers)
     // plus the open-reveal burst (assets fly out on open).
+    // Template gifts (d.tp from the wrap "Box designs" gallery) rebuild the
+    // designed box as a full engine doc; everything else takes the legacy
+    // pattern-box migration path.
+    const tplDoc = (design.tp && window.GIIIFTBoxTemplates)
+      ? GIIIFTBoxTemplates.doc(design.tp, {
+          c1: design.cardboard, c2: design.cardboard2, accent: design.accent,
+          to: String(design.labelTo || gift.to || "").replace(/^to:\s*/i, "").trim(),
+          from: design.from || gift.from, note: design.note || gift.msg,
+        })
+      : null;
     const engine = GIIIFTBox.render(
       document.getElementById("scene"),
-      GIIIFTBox.fromLegacy(Object.assign({}, design, { items: items, to: gift.to, msg: gift.msg, from: design.from || gift.from })),
+      tplDoc || GIIIFTBox.fromLegacy(Object.assign({}, design, { items: items, to: gift.to, msg: gift.msg, from: design.from || gift.from })),
       { mode: "view", burst: false }   // assets float ABOVE the box (below), not popping on its face
     );
     const box = engine.box;
@@ -1191,6 +1206,17 @@
       if (!INTENT) return;
       const IC = window.GIIIFTIntent;
       const senderName = (INTENT.sender_name || (gift.from || "").replace(/^from:\s*/i, "").trim() || "the sender");
+      // M2 claim lock: the redacted GET exposes the lock target (the refusal copy
+      // needs it, spec §4) and the sign-in pre-selects the matching provider.
+      const LOCK_METHODS = { email: "email", twitter: "twitter", discord: "discord", telegram: "telegram", farcaster: "farcaster" };
+      const lockType = INTENT.restriction_type || "";
+      const lockValue = INTENT.restriction_value || "";
+      const lockLabel = !lockType ? ""
+        : lockType === "twitter" ? "@" + lockValue + " on X"
+        : lockType === "discord" ? lockValue + " on Discord"
+        : lockType === "email" ? lockValue
+        : lockValue + " on " + lockType;
+      const loginOpts = LOCK_METHODS[lockType] ? { loginMethods: [LOCK_METHODS[lockType]] } : undefined;
 
       const st = document.createElement("style");
       st.textContent =
@@ -1219,7 +1245,7 @@
       function itsMeButton(host) {
         const b = document.createElement("button");
         b.type = "button"; b.className = "intent-itsme"; b.textContent = "It's me — sign in →";
-        b.onclick = async () => { b.textContent = "Opening sign-in…"; const ok = await IC.ensureLogin(); if (ok) location.reload(); else b.textContent = "It's me — sign in →"; };
+        b.onclick = async () => { b.textContent = "Opening sign-in…"; const ok = await IC.ensureLogin(0, loginOpts); if (ok) location.reload(); else b.textContent = "It's me — sign in →"; };
         host.insertAdjacentElement("afterend", b);
       }
 
@@ -1268,11 +1294,12 @@
         consumeTap = async () => {
           consumeTap = null;
           cta.disabled = true; cta.textContent = "Waiting for sign-in…";
-          const ok = await IC.ensureLogin();
+          const ok = await IC.ensureLogin(0, loginOpts);
           if (!ok) { cta.disabled = false; cta.textContent = "Sign in to open →"; return showKnock(); }
           cta.hidden = true;
           const p = panel('<div class="ir-eyebrow">Handshake</div>' +
             '<div class="ir-h">Let ' + esc(senderName) + ' know you\'re here</div>' +
+            (lockType ? '<div class="ir-sub">🔒 Locked to <b>' + esc(lockLabel) + '</b> — we check that\'s the account you signed in with.</div>' : '') +
             '<div class="ir-sub">This gift hands over once they approve. Add a note so they know it\'s you.</div>' +
             '<input class="ir-note" id="ir-note" maxlength="200" placeholder="It\'s me — Sarah from league!">' +
             '<button type="button" class="ir-btn" id="ir-claim">Request this gift →</button>');
@@ -1282,13 +1309,25 @@
             const note = (p.querySelector("#ir-note") || {}).value || "";
             const r = await IC.claim(INTENT.id, { note: note.trim() || undefined, claimant_wallet: window.giiiftWalletAddress || undefined });
             if (r.ok) {
-              if (window.giiift && window.giiift.track) window.giiift.track("claim_requested", { restricted_match: false });
+              if (window.giiift && window.giiift.track) window.giiift.track("claim_requested", { restricted_match: !!lockType });
               INTENT.status = "claim_requested"; INTENT.you_claimed = true;
               showWaiting();
             } else if (r.status === 409) {
               const g = await IC.get(INTENT.id); if (g.ok && g.data) { INTENT = g.data; }
               if (INTENT.you_claimed) showWaiting();
               else { panel('<div class="ir-eyebrow">Handshake</div><div class="ir-h">Someone else just knocked.</div><div class="ir-sub">' + esc(senderName) + ' is deciding who this gift is for.</div>'); }
+            } else if (r.status === 403 && r.data && r.data.error === "restricted") {
+              // the verified account doesn't match the lock (spec §4 refusal state)
+              const p2 = panel('<div class="ir-eyebrow">Handshake</div>' +
+                '<div class="ir-h">This gift is for ' + esc(lockLabel || r.data.restriction_value || "someone else") + '.</div>' +
+                '<div class="ir-sub">' + (r.data.you ? 'You\'re signed in as <b>' + esc(r.data.you) + '</b>. ' : '') + 'If that\'s you on another account, switch and knock again.</div>' +
+                '<button type="button" class="ir-btn" id="ir-switch">Switch account →</button>');
+              const sw = p2.querySelector("#ir-switch");
+              if (sw) sw.onclick = async () => {
+                sw.disabled = true; sw.textContent = "Signing out…";
+                try { if (window.giiiftLogout) await window.giiiftLogout(); } catch (e2) {}
+                location.reload();
+              };
             } else {
               btn.disabled = false; btn.textContent = "Try again →";
             }
@@ -1305,6 +1344,13 @@
       // dispatch on the loaded status
       switch (INTENT.status) {
         case "created":
+          // restricted invitations say who they're for up front, so the right
+          // person picks the right account before knocking
+          if (lockType) {
+            panel('<div class="ir-eyebrow">Invitation</div>' +
+              '<div class="ir-h">🔒 For ' + esc(lockLabel) + '</div>' +
+              '<div class="ir-sub">Sign in with that account to knock — we verify it matches before ' + esc(senderName) + ' hears about it.</div>');
+          }
           showKnock();
           break;
         case "claim_requested":

@@ -88,7 +88,7 @@
     smokum: { name: "Smokum", gf: "Smokum", cat: "dark", vibe: ["western", "vintage"] },
   };
   var ALIGN = { left: 1, center: 1, right: 1 };
-  var ELTYPES = { text: 1, stamp: 1, note: 1, graffiti: 1, label: 1, barcode: 1, seal: 1, postmark: 1, sticker: 1, art: 1, decal: 1 };
+  var ELTYPES = { text: 1, stamp: 1, note: 1, graffiti: 1, label: 1, barcode: 1, seal: 1, postmark: 1, sticker: 1, art: 1, decal: 1, fade: 1 };
   // curated flat-SVG decal/sticker library (defined in box-stickers.js, loaded before this file)
   var STICKERS = (typeof window !== "undefined" && window.GIIIFTBoxStickers) || {};
   // full-face panel/wrap library (defined in box-panels.js, loaded before this file)
@@ -171,6 +171,9 @@
           : (typeof e.src === "string" && /^data:image\/svg\+xml/i.test(e.src) ? e.src.slice(0, 4000) : "");
         base.fit = e.fit === "contain" ? "contain" : "cover";
         base.w = num(e.w, 0.6, 0.1, 1); base.h = num(e.h, 0.6, 0.1, 1); base.radius = num(e.radius, 0.03, 0, 0.5); base.zoom = num(e.zoom, 1, 1, 4);
+        if (e.noShadow) base.noShadow = true;                  // transparent cutouts opt out of the .gbx-art drop shadow
+        base.opacity = num(e.opacity, 1, 0, 1);
+        if (e.flipX) base.flipX = true; if (e.flipY) base.flipY = true;
         break;
       case "sticker":
         base.value = str(e.value, 8); base.size = num(e.size, 0.12, 0.04, 0.3);
@@ -181,6 +184,13 @@
         break;
       case "barcode": base.color = hex(e.color, palette.accent); base.w = num(e.w, 0.5, 0.1, 1); break;
       case "seal": case "postmark": base.value = str(e.value, 40); base.color = hex(e.color, palette.accent); base.size = num(e.size, 0.22, 0.08, 0.5); break;
+      case "fade":                                       // gradient scrim layer: colour -> transparent, stackable between layers
+        base.color = hex(e.color, "#000000");
+        base.kind = e.kind === "radial" ? "radial" : "linear";
+        base.angle = num(e.angle, 0, 0, 360);
+        base.opacity = num(e.opacity, 1, 0, 1);
+        base.w = num(e.w, 1, 0.05, 1); base.h = num(e.h, 0.6, 0.05, 1);
+        break;
     }
     return base;
   }
@@ -318,7 +328,7 @@
     ".gbx-tape::after{right:0;transform-origin:right center;transform:rotateY(-90deg) translateZ(-1.5px)}",
     ".gbx-box.gbx-opened .gbx-tape{opacity:0}",
     /* layered content elements */
-    ".gbx-layer{position:absolute;transform:translate(-50%,-50%) rotate(var(--rot,0deg)) scale(var(--gbx-zoom,1));transform-origin:center;z-index:3}",
+    ".gbx-layer{position:absolute;transform:translate(-50%,-50%) rotate(var(--rot,0deg)) scale(var(--gbx-zoom,1)) scale(var(--gbx-fx,1),var(--gbx-fy,1));transform-origin:center;z-index:3}",
     ".gbx-text{line-height:1.05;overflow-wrap:break-word;text-shadow:0 1px 2px rgba(0,0,0,0.25)}",
     ".gbx-graffiti{line-height:1;text-shadow:0 1px 3px rgba(0,0,0,0.3)}",
     ".gbx-stamp{border:calc(var(--gbx-size)*0.006) solid currentColor;border-radius:6px;padding:.28em .5em;font-family:var(--font-mono,'VT323',monospace);text-transform:uppercase;letter-spacing:.08em;font-weight:700;line-height:1;text-align:center}",
@@ -336,6 +346,7 @@
     ".gbx-postmark span{font-family:var(--font-mono,monospace);font-size:.34em;letter-spacing:.08em;line-height:1.25}",
     ".gbx-barcode{height:calc(var(--gbx-size)*0.1);background:repeating-linear-gradient(90deg,currentColor 0 2px,transparent 2px 5px);opacity:.6}",
     ".gbx-art{display:block;border-radius:calc(var(--gbx-size)*var(--gbx-art-r,0.03));box-shadow:0 6px 20px rgba(0,0,0,0.5)}",
+    ".gbx-fade{display:block}",
     ".gbx-decal{display:grid;place-items:center;filter:drop-shadow(0 5px 12px rgba(0,0,0,0.45))}",
     ".gbx-decal svg{width:100%;height:100%;display:block;overflow:visible}",
     ".gbx-panel{position:absolute;inset:0;z-index:1;pointer-events:none;overflow:hidden}",
@@ -429,7 +440,7 @@
     node.classList.add("gbx-layer");
     node.style.left = (e.x * 100) + "%";
     node.style.top = (e.y * 100) + "%";
-    if (e.w != null && e.t !== "sticker" && e.t !== "seal" && e.t !== "postmark" && e.t !== "decal") node.style.width = (e.w * 100) + "%";
+    if (e.w != null && e.t !== "sticker" && e.t !== "seal" && e.t !== "postmark" && e.t !== "decal" && e.t !== "fade") node.style.width = (e.w * 100) + "%";
     node.style.setProperty("--rot", (e.rotate || 0) + "deg");
   }
   function renderElement(e, palette) {
@@ -483,6 +494,10 @@
           n = document.createElement("img"); n.className = "gbx-art"; n.src = e.src; n.alt = ""; n.loading = "lazy";
           n.style.objectFit = e.fit; n.style.width = px(e.w); n.style.height = px(e.h);
           n.style.setProperty("--gbx-art-r", e.radius); n.style.setProperty("--gbx-zoom", e.zoom || 1);
+          if (e.noShadow) n.style.boxShadow = "none";          // cutout art (alpha subjects): the rectangular drop shadow gives the box away
+          if (e.opacity != null && e.opacity < 1) n.style.opacity = e.opacity;
+          if (e.flipX) n.style.setProperty("--gbx-fx", -1);
+          if (e.flipY) n.style.setProperty("--gbx-fy", -1);
           n.addEventListener("error", function () { n.remove(); });
         } else {
           n = document.createElement("div"); n.className = "gbx-art";
@@ -498,6 +513,17 @@
         var ds = STICKERS[e.id];
         if (ds && ds.svg) { n.innerHTML = ds.svg; }
         else { n.style.background = "linear-gradient(135deg," + palette.c1 + "," + palette.c2 + ")"; n.style.borderRadius = "14%"; }
+        break;
+      case "fade":
+        n = document.createElement("div"); n.className = "gbx-fade";
+        n.style.width = px(e.w); n.style.height = px(e.h);
+        var fr = parseInt(String(e.color || "#000000").slice(1), 16);
+        var fparts = ((fr >> 16) & 255) + "," + ((fr >> 8) & 255) + "," + (fr & 255);
+        var fo = e.opacity != null ? e.opacity : 1;
+        var fOn = "rgba(" + fparts + "," + fo + ")", fOff = "rgba(" + fparts + ",0)";   // fade to the SAME colour at 0 alpha (keyword transparent greys mid-ramp)
+        n.style.background = (e.kind === "radial")
+          ? "radial-gradient(circle at center, " + fOff + " 0%, " + fOn + " 100%)"
+          : "linear-gradient(" + (e.angle != null ? e.angle : 0) + "deg, " + fOn + ", " + fOff + ")";
         break;
       default: return null;
     }

@@ -3,6 +3,7 @@
 <head>
 <script>/* public showcase mirror: always demo mode */try{localStorage.setItem("giiift-demo","1");localStorage.setItem("giiift-authed","1");}catch(e){}</script>
 <meta name="robots" content="noindex, nofollow, noarchive">
+<style>/* mirror-only: shrink the whole surface on desktop */@media (min-width: 900px){ html{ zoom: 0.82; } }</style>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <meta name="robots" content="noindex, nofollow" />
@@ -16,28 +17,31 @@
     --base:#0b0d0c; --ink:#f3f4f2; --accent:#00FF9D;
     --pink:#FF3B6F; --yellow:#FFD93D; --teal:#4ECDC4; --partner:#4ECDC4;
     --muted:rgba(243,244,242,.64); --faint:rgba(243,244,242,.42);
-    --line:rgba(255,255,255,.11); --card:rgba(255,255,255,.045); --card-2:rgba(255,255,255,.03);
+    --line:rgba(255,255,255,.11); --card:rgba(13,16,15,.55); --card-2:rgba(13,16,15,.42);
   }
   *{ box-sizing:border-box; }
   html,body{ margin:0; padding:0; background:var(--base); color:var(--ink);
     font-family:Inter,-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,sans-serif;
     -webkit-font-smoothing:antialiased; letter-spacing:.004em; }
 
-  .bg{ position:fixed; inset:0; z-index:-2;
+  /* The borealis (injected by borealis-set.js) lives at z 0–2; this veil sits
+     above it so the aurora reads as a gentle glow, not a light show; content
+     sits above the veil. */
+  .bset-aurora{ opacity:.58; }
+  .veil{ position:fixed; inset:0; z-index:3; pointer-events:none;
     background:
-      radial-gradient(1100px 820px at 8% 4%, hsla(152,88%,58%,.20), transparent 60%),
-      radial-gradient(1200px 920px at 94% 14%, hsla(190,86%,57%,.14), transparent 62%),
-      radial-gradient(1040px 800px at 76% 99%, hsla(265,80%,64%,.16), transparent 60%),
-      var(--base); }
-  .bg::before{ content:""; position:fixed; inset:0; z-index:-1; pointer-events:none;
+      radial-gradient(1100px 820px at 8% 4%, hsla(152,88%,58%,.07), transparent 60%),
+      radial-gradient(1040px 800px at 76% 99%, hsla(265,80%,64%,.07), transparent 60%),
+      linear-gradient(rgba(8,10,9,.55), rgba(8,10,9,.62)); }
+  .veil::before{ content:""; position:absolute; inset:0; pointer-events:none;
     background-image:
-      linear-gradient(rgba(255,255,255,.022) 1px,transparent 1px),
-      linear-gradient(90deg,rgba(255,255,255,.022) 1px,transparent 1px);
+      linear-gradient(rgba(255,255,255,.02) 1px,transparent 1px),
+      linear-gradient(90deg,rgba(255,255,255,.02) 1px,transparent 1px);
     background-size:48px 48px;
     -webkit-mask-image:radial-gradient(circle at 66% 30%,#000 0%,transparent 76%);
             mask-image:radial-gradient(circle at 66% 30%,#000 0%,transparent 76%); }
 
-  .wrap{ max-width:1080px; margin:0 auto; padding:36px 28px 90px; }
+  .wrap{ position:relative; z-index:4; max-width:1080px; margin:0 auto; padding:36px 28px 90px; }
 
   /* lockup */
   .word{ font-weight:900; letter-spacing:-.012em; }
@@ -64,13 +68,14 @@
   @media (max-width:840px){ .demos{ grid-template-columns:1fr; } }
   .demo{ display:block; text-decoration:none; color:inherit; background:var(--card);
     border:1px solid var(--line); border-radius:16px; padding:22px 22px 20px; position:relative;
+    -webkit-backdrop-filter:blur(8px); backdrop-filter:blur(8px);
     transition:border-color .15s ease, transform .15s ease; }
   .demo:hover{ border-color:rgba(0,255,157,.45); transform:translateY(-2px); }
   .demo .n{ font-family:"JetBrains Mono",monospace; font-size:10px; color:var(--accent); letter-spacing:.14em; text-transform:uppercase; }
   .demo .t{ font-size:19px; font-weight:800; letter-spacing:-.01em; margin-top:9px; }
   .demo .d{ font-size:13.5px; color:var(--muted); line-height:1.5; margin-top:7px; min-height:60px; }
   .demo .go{ margin-top:12px; font-size:13.5px; font-weight:700; color:var(--accent); }
-  .demo.hero{ border-color:rgba(0,255,157,.35); background:var(--card); }
+  .demo.hero{ border-color:rgba(0,255,157,.35); }
   .demo.hero::after{ content:"start here"; position:absolute; top:-11px; right:14px;
     font-family:"JetBrains Mono",monospace; font-size:9px; font-weight:700; letter-spacing:.16em;
     text-transform:uppercase; color:#0b0d0c; background:var(--accent); border-radius:6px; padding:4px 8px; }
@@ -80,23 +85,36 @@
   h2{ font-size:26px; font-weight:900; letter-spacing:-.02em; margin:0 0 18px; }
   h2 .g{ color:var(--accent); }
 
-  /* loop strip */
-  .flow{ display:grid; grid-template-columns:repeat(4,1fr); gap:12px; }
-  @media (max-width:840px){ .flow{ grid-template-columns:1fr 1fr; } }
-  .flow .step{ background:var(--card); border:1px solid var(--line); border-radius:13px; padding:14px 16px; }
+  /* journey strip — the five beats */
+  .flow{ display:grid; grid-template-columns:repeat(5,1fr); gap:12px; }
+  @media (max-width:920px){ .flow{ grid-template-columns:1fr 1fr; } }
+  .flow .step{ background:var(--card); border:1px solid var(--line); border-radius:13px; padding:14px 16px;
+    -webkit-backdrop-filter:blur(8px); backdrop-filter:blur(8px); }
   .flow .step .hd{ display:flex; align-items:flex-start; justify-content:space-between; }
   .flow .step .hd svg{ width:26px; height:26px; flex-shrink:0; margin:-2px -2px 0 0; }
   .flow .step .n{ font-family:"JetBrains Mono",monospace; font-size:10px; color:var(--accent); letter-spacing:.12em; padding-top:3px; }
   .flow .step .t{ font-size:14.5px; font-weight:700; margin-top:5px; }
   .flow .step .d{ font-size:11.5px; color:var(--muted); margin-top:4px; line-height:1.4; }
+  .flow .step .try{ display:inline-block; margin-top:8px; font-size:11.5px; font-weight:700;
+    color:var(--accent); text-decoration:none; }
 
   /* tiers */
   .tiers{ display:grid; grid-template-columns:repeat(3,1fr); gap:14px; }
   @media (max-width:840px){ .tiers{ grid-template-columns:1fr; } }
-  .tier{ background:var(--card-2); border:1px solid var(--line); border-radius:13px; padding:16px; position:relative; }
+  .tier{ background:var(--card-2); border:1px solid var(--line); border-radius:13px; padding:16px; position:relative;
+    -webkit-backdrop-filter:blur(8px); backdrop-filter:blur(8px); }
   .tier .num{ font-family:"JetBrains Mono",monospace; font-weight:700; font-size:14px; color:var(--accent); }
   .tier .t{ font-size:15px; font-weight:800; margin-top:6px; letter-spacing:-.01em; }
   .tier .x{ font-size:13px; line-height:1.45; margin-top:7px; color:rgba(243,244,242,.9); }
+
+  /* vertical aside — the themed funnels, one slim row */
+  .vert{ margin-top:26px; display:flex; align-items:center; justify-content:space-between; gap:18px;
+    background:var(--card-2); border:1px solid var(--line); border-radius:13px; padding:14px 18px;
+    -webkit-backdrop-filter:blur(8px); backdrop-filter:blur(8px); }
+  .vert .vx{ font-size:13px; color:var(--muted); line-height:1.5; }
+  .vert .vx b{ color:var(--ink); }
+  .vert a{ flex-shrink:0; font-size:13px; font-weight:700; color:var(--accent); text-decoration:none; }
+  @media (max-width:840px){ .vert{ flex-direction:column; align-items:flex-start; } }
 
   /* contact + footnote */
   .cta{ margin-top:74px; display:flex; align-items:center; gap:20px; flex-wrap:wrap; }
@@ -108,7 +126,7 @@
 </style>
 </head>
 <body>
-<div class="bg"></div>
+<div class="veil"></div>
 <div class="wrap">
 
   <div class="topbar">
@@ -120,67 +138,82 @@
   </div>
 
   <p class="kicker">The gifting experience, live</p>
-  <h1>Open a gift the way <span class="g">your collectors will.</span></h1>
-  <p class="sub">Everything on this page runs the <b>real product</b>. The links open in a new tab, in your browser, with nothing to install. Start with the gift: that is the moment we manufacture, and the moment that ends on your inventory.</p>
+  <h1>Open a gift the way <span class="g">your people will.</span></h1>
+  <p class="sub">Everything on this page runs the <b>real product</b>, in your browser, nothing to install. Walk it the way a gift does: <b>customize the box</b>, add a note, send it, then open it like the recipient and see what they walk away with.</p>
   <div class="for" id="for-line" hidden>Prepared for <b id="for-name"></b></div>
 
   <div class="demos">
-    <a class="demo hero" id="open-demo" href="/showcase/box.html?g=eyJ0IjoieW91IiwiZiI6InRoZSBHSUlJRlQgdGVhbSIsIm0iOiJSaXAgc29tZXRoaW5nIHJhcmUiLCJuIjoiVGhpcyBpcyB0aGUgbW9tZW50IHlvdXIgY29sbGVjdG9ycyBnZXQuIEEgcmVhbCBwYWNrLCBhIHJlYWwgd2FsbGV0LCBubyBzZWVkIHBocmFzZS4iLCJpIjpbWyJVU0RDIiwiNTAiXV0sImQiOnsiZiI6ImhvbG8iLCJjIjoiIzEyMzU1YiIsImsiOiIjN2IyZmY3IiwieCI6IiNGRkQ5M0QiLCJhIjoxMzUsInAiOiJyaW5ncyIsInMiOiJBIFBBQ0sgRk9SIFlPVSIsIm1kIjoiTW9kZWw6IEdGLVRDRyJ9LCJ2IjoidGNnIiwibyI6InNob3djYXNlIn0" target="_blank" rel="noopener">
-      <div class="n">01 · Receive</div>
-      <div class="t">Open a gift</div>
-      <div class="d">You just got a GIIIFT link from a friend. The parcel, the reveal, the funded wallet. This is the whole pitch in ninety seconds.</div>
-      <div class="go">Open your gift →</div>
-    </a>
-    <a class="demo" href="/showcase/wrap.html" target="_blank" rel="noopener">
-      <div class="n">02 · Send</div>
-      <div class="t">Wrap one yourself</div>
-      <div class="d">The sender side: pick a value, design the box, address it to an email or phone. No wallet needed on either end.</div>
+    <a class="demo hero" id="wrap-demo" href="/showcase/wrap.html" target="_blank" rel="noopener">
+      <div class="n">01 · The send side</div>
+      <div class="t">Build &amp; send a gift</div>
+      <div class="d">Put their name on the box, pick a design, drop a note and the assets inside, address it to an email or phone. The whole sender flow in two minutes.</div>
       <div class="go">Start wrapping →</div>
     </a>
-    <a class="demo" href="/showcase/vertical.html?v=tcg" target="_blank" rel="noopener">
-      <div class="n">03 · Spend</div>
-      <div class="t">The TCG storefront</div>
-      <div class="d">Where gift credit becomes a card pick. This is the shelf your inventory would sit on, themed to the collector's world.</div>
-      <div class="go">See the funnel →</div>
+    <a class="demo" id="open-demo" href="/showcase/box.html?g=eyJ0IjoieW91IiwiZiI6ImEgZnJpZW5kIiwibSI6IkNyYWNrIGl0IG9wZW4iLCJuIjoiVGhpcyBpcyB0aGUgbW9tZW50IEdJSUlGVCBtYW51ZmFjdHVyZXMuIEEgcmVhbCByZXZlYWwsIGEgcmVhbCBub3RlLCBhIHJlYWwgd2FsbGV0LiBObyBhcHAsIG5vIHNlZWQgcGhyYXNlLiIsImkiOltbIlVTREMiLCI1MCJdXSwiZCI6eyJmIjoiaG9sbyIsImMiOiIjMTIzYzViIiwiayI6IiM3YjJmZjciLCJ4IjoiI0ZGRDkzRCIsInAiOiJyaW5ncyIsInMiOiJBIEdJRlQgRk9SIFlPVSJ9LCJvIjoic2hvd2Nhc2UifQ" target="_blank" rel="noopener">
+      <div class="n">02 · The claim</div>
+      <div class="t">Open one like a recipient</div>
+      <div class="d">You just got a GIIIFT link. The parcel over the night town, the rip, the note pinned to the box. This is the moment that gets forwarded.</div>
+      <div class="go">Open your gift →</div>
+    </a>
+    <a class="demo" href="/showcase/box.html?g=eyJ0IjoieW91IiwiZiI6InRoZSBHSUlJRlQgdGVhbSIsIm0iOiJBIGxpdHRsZSBwb3J0Zm9saW8iLCJuIjoiVGhyZWUgYXNzZXRzLCBvbmUgYm94LiBFdmVyeXRoaW5nIGxhbmRzIGluIGEgd2FsbGV0IHRoZXkgaG9sZCBmcm9tIHRoZSBzZWNvbmQgaXQgb3BlbnMuIFJlYWR5IHRvIHNwZW5kLCBvciBrZWVwLiIsImkiOltbIlVTREMiLCI3NSJdLFsiRVRIIiwiMC4wNSJdLFsiU09MIiwiMSJdXSwiZCI6eyJmIjoiZ3JhZGllbnQiLCJjIjoiIzBlNzQ5MCIsImsiOiIjN2MzYWVkIiwieCI6IiNmZGU2OGEiLCJwIjoicGx1cyIsInMiOiJUSEUgVU5MT0NLIn0sIm8iOiJzaG93Y2FzZSJ9" target="_blank" rel="noopener">
+      <div class="n">03 · The unlock</div>
+      <div class="t">What they walk away with</div>
+      <div class="d">A funded wallet they hold from the second it opens: real assets, a note from someone they know, and somewhere to spend it. No app, no seed phrase.</div>
+      <div class="go">See the unlock →</div>
     </a>
   </div>
 
   <section>
-    <h2>What you just walked through</h2>
+    <h2>The journey, beat by beat</h2>
     <div class="flow">
       <div class="step">
         <div class="hd"><span class="n">01</span>
-          <svg viewBox="0 0 32 32" aria-hidden="true"><rect x="7" y="14" width="5.4" height="13" rx="1.2" fill="#FF3B6F"/><rect x="13.3" y="14" width="5.4" height="13" rx="1.2" fill="#FFD93D"/><rect x="19.6" y="14" width="5.4" height="13" rx="1.2" fill="#4ECDC4"/><rect x="5.4" y="13" width="21.2" height="3.7" rx="1.4" fill="#f3f4f2"/><ellipse cx="11.4" cy="7.4" rx="5.5" ry="3.5" transform="rotate(-16 11.4 7.4)" fill="#FF3B6F"/><ellipse cx="20.6" cy="7.4" rx="5.5" ry="3.5" transform="rotate(16 20.6 7.4)" fill="#4ECDC4"/><rect x="14.2" y="4.4" width="3.6" height="7.6" rx="1.1" fill="#FFD93D"/></svg>
+          <svg viewBox="0 0 32 32" aria-hidden="true"><rect x="6" y="10" width="20" height="16" rx="2.4" fill="rgba(255,255,255,.06)" stroke="#4ECDC4" stroke-width="1.6"/><path d="M6 15h20" stroke="#4ECDC4" stroke-width="1.4"/><path d="M11 5.5l3 4.5M21 5.5l-3 4.5" stroke="#FF3B6F" stroke-width="1.8" stroke-linecap="round"/><circle cx="22" cy="21" r="2.6" fill="#FFD93D"/></svg>
         </div>
-        <div class="t">The gift</div><div class="d">Delivered to their email or phone. No app, no signup.</div>
+        <div class="t">Customize the box</div><div class="d">Their name on it, a designed box: crates, manga wraps, holo foil, your colours.</div>
+        <a class="try" href="/showcase/wrap.html" target="_blank" rel="noopener">try it →</a>
       </div>
       <div class="step">
         <div class="hd"><span class="n">02</span>
-          <svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="10.5" cy="6.8" r="3.6" fill="#FFD93D"/><circle cx="10.5" cy="6.8" r="2" fill="none" stroke="#0b0d0c" stroke-width="1.1"/><rect x="4" y="10.5" width="24" height="16.5" rx="3.5" fill="rgba(255,255,255,.06)" stroke="#4ECDC4" stroke-width="1.6"/><rect x="19.5" y="15.5" width="8.5" height="6.5" rx="2" fill="#4ECDC4"/><circle cx="23.2" cy="18.8" r="1.5" fill="#0b0d0c"/></svg>
+          <svg viewBox="0 0 32 32" aria-hidden="true"><rect x="7" y="6" width="18" height="20" rx="2" fill="rgba(255,255,255,.06)" stroke="#FFD93D" stroke-width="1.6"/><path d="M11 12h10M11 16.5h10M11 21h6" stroke="#FFD93D" stroke-width="1.6" stroke-linecap="round"/><circle cx="24.5" cy="7.5" r="3" fill="#FF3B6F"/></svg>
         </div>
-        <div class="t">A funded wallet</div><div class="d">The rarest asset in crypto: a funded account held by a non-buyer.</div>
+        <div class="t">Add a note</div><div class="d">The personal layer that rides the box. It's the part recipients screenshot.</div>
+        <a class="try" href="/showcase/wrap.html" target="_blank" rel="noopener">try it →</a>
       </div>
       <div class="step">
         <div class="hd"><span class="n">03</span>
-          <svg viewBox="0 0 32 32" aria-hidden="true"><rect x="8.5" y="4" width="15" height="24" rx="2.4" fill="rgba(255,255,255,.06)" stroke="#FFD93D" stroke-width="1.6"/><rect x="11.2" y="6.8" width="9.6" height="9.4" rx="1.4" fill="#4ECDC4"/><path d="M16 8.6l1 2 2.2.3-1.6 1.5.4 2.2-2-1-2 1 .4-2.2-1.6-1.5 2.2-.3z" fill="#FFD93D"/><rect x="11.2" y="19" width="9.6" height="1.8" rx=".9" fill="rgba(243,244,242,.55)"/><rect x="11.2" y="22.4" width="6.6" height="1.8" rx=".9" fill="rgba(243,244,242,.3)"/></svg>
+          <svg viewBox="0 0 32 32" aria-hidden="true"><path d="M5 16h16" stroke="#4ECDC4" stroke-width="2" stroke-linecap="round"/><path d="M15 9l7 7-7 7" stroke="#4ECDC4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/><circle cx="26.5" cy="16" r="2.4" fill="#FFD93D"/></svg>
         </div>
-        <div class="t">The spend</div><div class="d">They buy a real card with the value. From your catalog.</div>
+        <div class="t">Send it</div><div class="d">To an email, a phone, a wallet. No wallet needed on either end to start.</div>
+        <a class="try" href="/showcase/wrap.html" target="_blank" rel="noopener">try it →</a>
       </div>
       <div class="step">
         <div class="hd"><span class="n">04</span>
-          <svg viewBox="0 0 32 32" aria-hidden="true"><path d="M25.4 13.2a9.5 9.5 0 0 0-17.3-2.4" fill="none" stroke="#00FF9D" stroke-width="2.2" stroke-linecap="round"/><path d="M7.2 6.2l.7 5 5-.7" fill="none" stroke="#00FF9D" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/><path d="M6.6 18.8a9.5 9.5 0 0 0 17.3 2.4" fill="none" stroke="#FF3B6F" stroke-width="2.2" stroke-linecap="round"/><path d="M24.8 25.8l-.7-5-5 .7" fill="none" stroke="#FF3B6F" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <svg viewBox="0 0 32 32" aria-hidden="true"><rect x="7" y="14" width="5.4" height="13" rx="1.2" fill="#FF3B6F"/><rect x="13.3" y="14" width="5.4" height="13" rx="1.2" fill="#FFD93D"/><rect x="19.6" y="14" width="5.4" height="13" rx="1.2" fill="#4ECDC4"/><rect x="5.4" y="13" width="21.2" height="3.7" rx="1.4" fill="#f3f4f2"/><ellipse cx="11.4" cy="7.4" rx="5.5" ry="3.5" transform="rotate(-16 11.4 7.4)" fill="#FF3B6F"/><ellipse cx="20.6" cy="7.4" rx="5.5" ry="3.5" transform="rotate(16 20.6 7.4)" fill="#4ECDC4"/><rect x="14.2" y="4.4" width="3.6" height="7.6" rx="1.1" fill="#FFD93D"/></svg>
         </div>
-        <div class="t">The loop</div><div class="d">Reciprocity and rewrap spawn the next gift.</div>
+        <div class="t">The claim</div><div class="d">The parcel arrives, they tap, the box rips open. No signup before the magic.</div>
+        <a class="try" id="try-claim" href="#" target="_blank" rel="noopener">try it →</a>
+      </div>
+      <div class="step">
+        <div class="hd"><span class="n">05</span>
+          <svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="10.5" cy="6.8" r="3.6" fill="#FFD93D"/><circle cx="10.5" cy="6.8" r="2" fill="none" stroke="#0b0d0c" stroke-width="1.1"/><rect x="4" y="10.5" width="24" height="16.5" rx="3.5" fill="rgba(255,255,255,.06)" stroke="#4ECDC4" stroke-width="1.6"/><rect x="19.5" y="15.5" width="8.5" height="6.5" rx="2" fill="#4ECDC4"/><circle cx="23.2" cy="18.8" r="1.5" fill="#0b0d0c"/></svg>
+        </div>
+        <div class="t">The unlock</div><div class="d">Real assets in a wallet they hold, and somewhere to spend them. The loop starts here.</div>
+        <a class="try" id="try-unlock" href="#" target="_blank" rel="noopener">try it →</a>
       </div>
     </div>
   </section>
 
   <section>
-    <h2>The ask: <span class="g">open your catalog, we point gifts at it</span></h2>
+    <h2>The ask: <span class="g">put your goods at the end of the journey</span></h2>
     <div class="tiers">
-      <div class="tier"><div class="num">NOW</div><div class="t">Catalog in the gift flow</div><div class="x">Senders gift your packs; recipients spend their credit on them. We normalize on our side; you change nothing.</div></div>
-      <div class="tier"><div class="num">NEXT</div><div class="t">Rips, live on GIIIFT</div><div class="x">The future potential: the open happens inside our reveal instead of a link-out. Your pack, our stage.</div></div>
-      <div class="tier"><div class="num">ALWAYS</div><div class="t">Physical stays yours</div><div class="x">We link out for exactly one thing: redeeming the card to ship. Your vault, your rails.</div></div>
+      <div class="tier"><div class="num">NOW</div><div class="t">Your goods in the gift flow</div><div class="x">Senders wrap value around what you sell; recipients spend it with you. We normalize on our side; you change nothing.</div></div>
+      <div class="tier"><div class="num">NEXT</div><div class="t">Your moment on our stage</div><div class="x">The unwrap happens inside our reveal: your brand on the box, your goods in the cavity, our stagecraft around it.</div></div>
+      <div class="tier"><div class="num">ALWAYS</div><div class="t">Fulfilment stays yours</div><div class="x">We link out for exactly one thing: redeeming with you. Your inventory, your rails, your customer in the end.</div></div>
+    </div>
+    <div class="vert">
+      <div class="vx"><b>Building for collectors?</b> The same flow speaks a collector's language end to end: themed boxes, pack-credit gifts, a card shelf at the unlock.</div>
+      <a href="/showcase/vertical.html?v=tcg" target="_blank" rel="noopener">See the TCG vertical →</a>
     </div>
   </section>
 
@@ -190,21 +223,30 @@
   </div>
 
   <div class="footnote">
-    This page is for partner teams and is not linked from the public site. The demos above are the real product
-    surfaces running in demo mode on a sealed mirror: no accounts, no telemetry. The gift in step 01 is a
-    display gift: it opens the real reveal flow with sample contents and creates nothing on chain.
+    This page is for partner teams and is not linked from the public site. The demos run the real product
+    surfaces in demo mode: the gifts are display gifts with sample contents, and nothing here touches a chain.
   </div>
 
 </div>
 
 <script>
-  // Sessions that start on the showcase are demo traffic; telemetry.js reads
-  // this flag (localStorage "giiift-demo") and marks every event it sends.
+  // Sessions that start on the showcase are demo traffic; telemetry.js (private
+  // deploy only) reads this flag and marks every event it sends.
   try { localStorage.setItem("giiift-demo", "1"); } catch (e) {}
 
-  // Partner personalization. The gate sets a readable `giiift_show_p` cookie
-  // with the partner slug after PIN entry; ?p=<slug> is the local-dev override.
-  // Cosmetic only: name, accent color, recommended tier.
+  // The journey strip's claim/unlock beats deep-link the same demo gifts as
+  // doors 02/03 (kept in one place so the tokens never drift apart).
+  (function wireBeats() {
+    const claim = document.getElementById("open-demo");
+    const unlock = document.querySelector('.demos .demo:nth-child(3)');
+    const tc = document.getElementById("try-claim"), tu = document.getElementById("try-unlock");
+    if (claim && tc) tc.href = claim.getAttribute("href");
+    if (unlock && tu) tu.href = unlock.getAttribute("href");
+  })();
+
+  // Partner personalization. The private deploy's gate sets a readable
+  // `giiift_show_p` cookie after PIN entry; ?p=<slug> is the override the
+  // public mirror's shared-key gate relies on. Cosmetic only.
   const SHOWCASE_PARTNERS = {
     courtyard:         { name: "Courtyard",       color: "#8C5CF6" },
     "collector-crypt": { name: "Collector Crypt", color: "#FF7C01" },
@@ -219,7 +261,24 @@
     document.documentElement.style.setProperty("--partner", p.color);
     document.getElementById("for-name").textContent = p.name;
     document.getElementById("for-line").hidden = false;
+    // let the aurora drift toward their colour, gently
+    (function tint(tries) {
+      if (window.GIIIFTSet) { window.GIIIFTSet.setColors(p.color, "#1d6ed8", "#00FF9D"); return; }
+      if (tries > 0) setTimeout(function () { tint(tries - 1); }, 250);
+    })(12);
   })();
 </script>
+
+<!-- Borealis, gently: aurora only (the "town" is a transparent pixel so no
+     skyline/bloom paints), brand-tinted, dimmed by the .veil above it. -->
+<script>
+  window.GIIIFT_SET = {
+    towns: [{ src: "data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==",
+              bottom: "0", height: "1px", vanBottom: "0px", bloom: false, bgSize: "cover" }],
+    colors: { c1: "#0fb380", c2: "#1d6ed8", accent: "#FFD93D" },
+    setPalette: false
+  };
+</script>
+<script defer src="/showcase/borealis-set.js"></script>
 </body>
 </html>

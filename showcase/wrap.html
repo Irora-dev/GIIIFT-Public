@@ -3,6 +3,7 @@
 <head>
 <script>/* public showcase mirror: always demo mode */try{localStorage.setItem("giiift-demo","1");localStorage.setItem("giiift-authed","1");}catch(e){}</script>
 <meta name="robots" content="noindex, nofollow, noarchive">
+<style>/* mirror-only: shrink the whole surface on desktop */@media (min-width: 900px){ html{ zoom: 0.82; } }</style>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>GIIIFT - Wrap a box</title>
@@ -18,6 +19,12 @@
        read copy/theme synchronously. /tcg-style entries re-skin this whole page. -->
   <script src="/showcase/vertical-engine.js"></script>
   <script src="/showcase/verticals/tcg.js"></script>
+  <!-- box engine + panel/sticker/template registries: BLOCKING — the design step's
+       "Box designs" gallery and face skinning read GIIIFTBox.panelSVG synchronously -->
+  <script src="/showcase/box-stickers.js"></script>
+  <script src="/showcase/box-panels.js"></script>
+  <script src="/showcase/box-engine.js"></script>
+  <script src="/showcase/box-templates.js"></script>
   <script defer src="/showcase/brand.js"></script>
   <script defer src="/showcase/site-nav.js"></script>
   <script defer src="/showcase/intent-client.js"></script><!-- link-gifting: invitation-link delivery mode -->
@@ -606,6 +613,12 @@
     .fp-hint > span { grid-area: 1 / 1; font-size: 16px; font-weight: 300; line-height: 1.6; color: rgba(255,255,255,0.45); text-align: center; visibility: hidden; }
     .fp-hint > span.on { visibility: visible; }
     .fp-hint b { color: rgba(255,255,255,0.7); font-weight: 500; }
+    /* Link mode: optional claim lock (M2 restrictions — email / X / Discord) */
+    .fp-lock { display: flex; flex-direction: column; align-items: center; gap: 14px; }
+    .fp-lock-label { font-family: var(--font-mono); font-size: 13px; letter-spacing: 0.14em; text-transform: uppercase; color: rgba(255,255,255,0.45); margin: 0; }
+    .fp-lock-seg { margin-bottom: 0; }
+    .fp-lock-seg button { font-size: 13px; padding: 9px 16px; }
+    .fp-lock input { max-width: 420px; font-size: 17px; padding: 15px 20px; }
     .fp-sent { display: flex; align-items: flex-start; gap: 14px; padding: 18px; border-radius: 18px; background: rgba(0,255,157,0.06); border: 1px solid rgba(0,255,157,0.22); }
     .fp-sent-ic { flex: 0 0 auto; width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; background: rgba(0,255,157,0.16); color: #6fe6c0; font-weight: 700; }
     .fp-sent-h { font-weight: 600; font-size: 16px; color: #fff; }
@@ -752,6 +765,45 @@
       .steps-card { gap: 6px; padding: 9px 14px; }
       .step .bar { width: 16px; }
     }
+
+    /* ---------- box-design templates (design step gallery) ---------- */
+    .tpl-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+    .tpl { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px;
+      padding: 8px 8px 7px; cursor: pointer; text-align: center; transition: border-color .15s, transform .15s; }
+    .tpl:hover { border-color: rgba(255,255,255,0.28); transform: translateY(-1px); }
+    .tpl.sel { border-color: var(--accent, #fde68a); box-shadow: 0 0 0 1px var(--accent, #fde68a) inset; }
+    .tpl-thumb { display: block; aspect-ratio: 1; border-radius: 8px; overflow: hidden; background: rgba(0,0,0,0.3); }
+    .tpl-thumb svg { width: 100%; height: 100%; display: block; }
+    .tpl-custom { display: block; width: 100%; height: 100%;
+      background: linear-gradient(135deg, #7c3aed, #ec4899);
+      -webkit-mask-image: radial-gradient(circle at 30% 30%, #000 55%, rgba(0,0,0,.55) 100%);
+              mask-image: radial-gradient(circle at 30% 30%, #000 55%, rgba(0,0,0,.55) 100%); }
+    .tpl-nm { display: block; margin-top: 6px; font-size: 11px; font-weight: 600; color: rgba(255,255,255,0.78);
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+    /* template skins: a panel SVG wraps the face and the legacy face furniture
+       hides under it. Faces a template leaves panel-less (e.g. the right face of
+       the single-panel templates) keep their normal furniture, so the shipping
+       label stays visible exactly when the template has no to/from slots. */
+    .face .panel-skin { position: absolute; inset: 0; z-index: 1; pointer-events: none; }
+    .face .panel-skin svg { width: 100%; height: 100%; display: block; }
+    .face.has-panel .brandwrap, .face.has-panel .specs, .face.has-panel .front-note,
+    .face.has-panel .stamp, .face.has-panel .side-stack, .face.has-panel .back-grid,
+    .face.has-panel .bottom-stack, .face.has-panel .side-stamps,
+    .face.has-panel [data-role="pattern"], .face.has-panel [data-role="patternR"],
+    .face.has-panel .label { display: none; }
+
+    /* ---------- fill step: value first, then a horizontal asset rail ---------- */
+    .asset-pick-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+    .asset-pick-head h4 { flex-shrink: 0; }
+    .search-row.search-mini { flex: 1; min-width: 0; margin: 0; }
+    .search-row.search-mini input { font-size: 13px; padding-top: 8px; padding-bottom: 8px; }
+    .asset-scroll.asset-rail { max-height: none; overflow-x: auto; overflow-y: hidden; margin-top: 10px;
+      scrollbar-width: thin; }
+    .asset-rail .asset-grid { display: flex; gap: 8px; padding-bottom: 8px; }
+    .asset-rail .asset-btn { flex: 0 0 auto; width: 74px; }
+    .inside-head { display: flex; align-items: baseline; justify-content: space-between; }
+    .inside-count { font-family: "VT323", monospace; font-size: 15px; color: var(--accent, #fde68a); opacity: .9; }
   </style>
 </head>
 <body>
@@ -763,23 +815,18 @@
     <!-- LEFT: one sleek card, swaps between step panes -->
     <aside class="control-card" id="control-card">
 
-      <!-- STEP 1 - fill -->
-      <div class="pane pane-enter" id="pane-fill">
+      <!-- STEP 3 - fill (value first, then the asset rail, then what's inside) -->
+      <div class="pane" id="pane-fill" hidden>
         <div class="card-head">
-          <div class="eyebrow">// step 1</div>
+          <div class="eyebrow">// step 3</div>
           <h2>Fill the box</h2>
-          <p>Search a coin or token, set an amount, and drop it into the open box.</p>
+          <p>Set an amount, pick the asset, drop it in. Stack as many as you like.</p>
         </div>
         <!-- one-tap suggestions from the active vertical (e.g. "$50 · Booster Box" on /tcg) -->
         <div class="suggest-row" id="suggest-row" hidden>
           <div class="suggest-title" id="suggest-title"></div>
           <div class="suggest-chips" id="suggest-chips"></div>
         </div>
-        <div class="search-row">
-          <span class="si">⌕</span>
-          <input type="text" id="asset-search" placeholder="Search assets - BTC, Solana…" autocomplete="off">
-        </div>
-        <div class="asset-scroll"><div class="asset-grid" id="asset-grid"></div></div>
 
         <div class="deposit">
           <div class="deposit-label">How much?</div>
@@ -790,49 +837,70 @@
           </div>
           <div class="quick-amounts" id="quick-amounts"></div>
           <div class="value-guide" id="value-guide" hidden></div>
-          <button class="add-btn" id="add-asset">Drop it in <span class="ab-arrow">↓</span></button>
         </div>
 
+        <div class="group asset-pick-head"><h4>Of what?</h4>
+          <div class="search-row search-mini">
+            <span class="si">⌕</span>
+            <input type="text" id="asset-search" placeholder="Search - BTC, Solana…" autocomplete="off">
+          </div>
+        </div>
+        <div class="asset-scroll asset-rail"><div class="asset-grid" id="asset-grid"></div></div>
+
+        <button class="add-btn" id="add-asset">Drop it in <span class="ab-arrow">↓</span></button>
+
         <div>
-          <div class="group"><h4>Inside the box</h4></div>
+          <div class="group inside-head"><h4>Inside the box</h4><span class="inside-count" id="inside-count" hidden></span></div>
           <div class="contents" id="contents"></div>
         </div>
       </div>
 
-      <!-- STEPS 3 & 4 - make it yours: text first, then design (hidden until sealed) -->
-      <div class="pane" id="pane-customize" hidden>
+      <!-- STEPS 1, 2 & 4 - name, design, note (one form so data-field binding spans all three) -->
+      <div class="pane pane-enter" id="pane-customize">
         <form id="editor" autocomplete="off">
 
-          <!-- 3 · TEXT -->
-          <div class="sub-pane pane-enter" id="sub-text">
+          <!-- 1 · NAME -->
+          <div class="sub-pane pane-enter" id="sub-name">
             <div class="card-head">
-              <div class="eyebrow">// step 3 · text</div>
-              <h2>Make it yours</h2>
-              <p>Write the words that go on the box - they appear live as you type.</p>
+              <div class="eyebrow">// step 1 · name</div>
+              <h2>Who's it for?</h2>
+              <p>Their name goes on the box - everything you design next is dressed for them.</p>
             </div>
             <div class="tfields">
               <div class="tfield tfield-hero">
-                <div class="tfield-top"><label>Front text</label><span class="tcount" data-count-for="brand"></span></div>
-                <input type="text" data-field="brand" maxlength="20" placeholder="Name Here">
-                <div class="tfield-hint">The big name across the front of the box</div>
+                <div class="tfield-top"><label>Their name</label></div>
+                <input type="text" id="to-name" maxlength="20" placeholder="Alex" autocomplete="off">
+                <div class="tfield-hint">Lands on the front of the box and the shipping label</div>
               </div>
               <div class="tfield">
-                <div class="tfield-top"><label>Sub-label</label><span class="tcount" data-count-for="sublabel"></span></div>
-                <input type="text" data-field="sublabel" maxlength="26" placeholder="A GIFT FOR YOU">
+                <div class="tfield-top"><label>From</label><span class="tcount" data-count-for="from"></span></div>
+                <input type="text" data-field="from" maxlength="22" placeholder="From: you">
               </div>
-              <div class="tfield">
-                <div class="tfield-top"><label>Note below</label><span class="tcount" data-count-for="note"></span></div>
+            </div>
+          </div>
+
+          <!-- 4 · NOTE -->
+          <div class="sub-pane" id="sub-text" hidden>
+            <div class="card-head">
+              <div class="eyebrow">// step 4 · note</div>
+              <h2>Add a note</h2>
+              <p>The words that ride the box - they appear live as you type.</p>
+            </div>
+            <div class="tfields">
+              <div class="tfield tfield-hero">
+                <div class="tfield-top"><label>Note</label><span class="tcount" data-count-for="note"></span></div>
                 <input type="text" data-field="note" maxlength="38" placeholder="with love">
                 <!-- vertical message starters: one tap fills the note ("go pull something rare") -->
                 <div class="vchip-row" id="note-prompts" hidden></div>
               </div>
               <div class="tfield">
-                <div class="tfield-top"><label>To (on the receipt)</label><span class="tcount" data-count-for="labelTo"></span></div>
-                <input type="text" data-field="labelTo" maxlength="22" placeholder="To: Alex">
+                <div class="tfield-top"><label>Front text</label><span class="tcount" data-count-for="brand"></span></div>
+                <input type="text" data-field="brand" maxlength="20" placeholder="Name Here">
+                <div class="tfield-hint">Prefilled with their name - overwrite it if the box should say something else</div>
               </div>
               <div class="tfield">
-                <div class="tfield-top"><label>From (on the sticker)</label><span class="tcount" data-count-for="from"></span></div>
-                <input type="text" data-field="from" maxlength="22" placeholder="From: you">
+                <div class="tfield-top"><label>Sub-label</label><span class="tcount" data-count-for="sublabel"></span></div>
+                <input type="text" data-field="sublabel" maxlength="26" placeholder="A GIFT FOR YOU">
               </div>
               <!-- occasion (optional): travels with the gift and shapes the shop they land in -->
               <div class="tfield" id="occasion-field" hidden>
@@ -843,13 +911,17 @@
             </div>
           </div>
 
-          <!-- 4 · DESIGN -->
+          <!-- 2 · DESIGN -->
           <div class="sub-pane" id="sub-design" hidden>
             <div class="card-head">
-              <button type="button" class="back-link" id="to-text">← Back to text</button>
-              <div class="eyebrow">// step 4 · design</div>
+              <button type="button" class="back-link" id="to-text">← Back to name</button>
+              <div class="eyebrow">// step 2 · design</div>
               <h2>Design the box</h2>
-              <p>Finish, colours and a sticker.</p>
+              <p>A designed box, or your own colours and pattern.</p>
+            </div>
+            <div class="group">
+              <h4>Box designs</h4>
+              <div class="tpl-grid" id="tpl-grid"></div>
             </div>
             <div class="group">
               <h4>Theme</h4>
@@ -902,13 +974,13 @@
     <!-- RIGHT: step tracker + big box + action -->
     <section class="stage-right">
       <div class="steps-card" id="steps">
-        <div class="step active" data-step="fill"><span class="num">1</span><span class="lbl">Fill</span></div>
+        <div class="step active" data-step="name"><span class="num">1</span><span class="lbl">Name</span></div>
         <span class="bar"></span>
-        <div class="step" data-step="seal"><span class="num">2</span><span class="lbl">Seal</span></div>
+        <div class="step" data-step="design"><span class="num">2</span><span class="lbl">Design</span></div>
         <span class="bar"></span>
-        <div class="step" data-step="text"><span class="num">3</span><span class="lbl">Text</span></div>
+        <div class="step" data-step="fill"><span class="num">3</span><span class="lbl">Fill</span></div>
         <span class="bar"></span>
-        <div class="step" data-step="design"><span class="num">4</span><span class="lbl">Design</span></div>
+        <div class="step" data-step="text"><span class="num">4</span><span class="lbl">Note</span></div>
         <span class="bar"></span>
         <div class="step" data-step="send"><span class="num">5</span><span class="lbl">Send</span></div>
       </div>
@@ -1063,6 +1135,17 @@
                   <span data-hint="wallet">Already on-chain? We send the gift straight to their wallet and share a link to open it.</span>
                   <span data-hint="link">We mint an <b>invitation link</b> you can share anywhere. It carries no funds: when someone taps it and signs in, <b>you approve the hand-over</b> from your Vault. Links rest after 14 days.</span>
                 </div>
+                <!-- Link mode only: optionally lock the claim to one verified identity (M2) -->
+                <div class="fp-lock" id="fp-lock" hidden>
+                  <p class="fp-lock-label">Who can claim it</p>
+                  <div class="fp-seg fp-lock-seg" id="fp-lock-seg" role="tablist" aria-label="Who can claim">
+                    <button type="button" class="on" data-lock="">Anyone</button>
+                    <button type="button" data-lock="email">Email</button>
+                    <button type="button" data-lock="twitter">X</button>
+                    <button type="button" data-lock="discord">Discord</button>
+                  </div>
+                  <input type="text" id="fp-lock-value" autocomplete="off" hidden>
+                </div>
                 <button type="submit" class="fp-send">Send →</button>
               </form>
             </div>
@@ -1160,9 +1243,10 @@
       finish: 'gradient', cardboard: '#7c3aed', cardboard2: '#ec4899', angle: 135,
       pattern: 'dots', sheen: true, accent: '#fde68a',
       fragile: false, fragileText: 'Fragile', fragileColor: '#d94f2a',
+      template: null,   // a GIIIFTBoxTemplates id ("expedition", …) or null = pattern box
     };
 
-    let stage = 'fill';
+    let stage = 'name';
 
     // ---------- vertical funnel engine (per-audience skin: /tcg, /pokemon, …) ----------
     // The engine resolved from URL/path/session at load; here we re-apply theme and
@@ -1408,7 +1492,102 @@
 
       // keep the borealis backdrop matched to the box — eases to the new colours
       if (window.GIIIFTSet && window.GIIIFTSet.setColors) window.GIIIFTSet.setColors(cfg.cardboard, cfg.cardboard2, cfg.accent);
+
+      skinFaces();   // template faces re-render with the live name/note in their slots
     }
+
+    // ---------- box-design templates (the lab boxes) ----------
+    // Picking one skins the stage box's faces with the template's panels (via
+    // GIIIFTBox.panelSVG) and adopts its palette; the colour pickers keep
+    // working on top. The receive page rebuilds the same design from d.tp.
+    const TPLS = window.GIIIFTBoxTemplates || null;
+    let syncTpl = () => {};
+
+    function tplName() { return (cfg.labelTo || '').replace(/^to:\s*/i, '').replace(/^someone$/i, '').trim(); }
+    function tplFrom() { return (cfg.from || '').replace(/^from:\s*/i, '').replace(/^you$/i, '').trim(); }
+
+    function skinFaces() {
+      const liveDoc = (cfg.template && TPLS && window.GIIIFTBox)
+        ? TPLS.doc(cfg.template, { to: tplName(), from: tplFrom(), note: cfg.note })
+        : null;
+      ['front', 'right', 'left', 'back', 'bottom'].forEach(f => {
+        const faceEl = box.querySelector('.face.' + f);
+        if (!faceEl) return;
+        let skin = faceEl.querySelector(':scope > .panel-skin');
+        const src = liveDoc && liveDoc.faces[f];
+        if (!src || !src.panel) {
+          if (skin) skin.remove();
+          faceEl.classList.remove('has-panel');
+          return;
+        }
+        if (!skin) { skin = document.createElement('div'); skin.className = 'panel-skin'; faceEl.appendChild(skin); }
+        const svg = GIIIFTBox.panelSVG(src.panel, src.panelText || {});
+        if (skin.dataset.k !== src.panel + JSON.stringify(src.panelText || {})) {
+          skin.dataset.k = src.panel + JSON.stringify(src.panelText || {});
+          skin.innerHTML = svg;
+        }
+        faceEl.classList.add('has-panel');
+      });
+    }
+
+    function selectTemplate(id) {
+      cfg.template = id || null;
+      if (cfg.template && TPLS) {
+        const t = TPLS.get(cfg.template);
+        if (t) {
+          cfg.cardboard = t.palette.c1; cfg.cardboard2 = t.palette.c2;
+          cfg.accent = t.palette.accent; cfg.finish = t.palette.finish;
+        }
+      }
+      paint(); syncForm(); syncPresets(); syncTpl();
+    }
+
+    (function buildTemplateGallery() {
+      const grid = document.getElementById('tpl-grid');
+      if (!grid || !TPLS || !window.GIIIFTBox) { if (grid) grid.closest('.group').hidden = true; return; }
+      const cards = [];
+      const mkCard = (id, label, thumbHtml, title) => {
+        const b = document.createElement('button');
+        b.type = 'button'; b.className = 'tpl'; b.dataset.tpl = id || '';
+        if (title) b.title = title;
+        b.innerHTML = '<span class="tpl-thumb">' + thumbHtml + '</span><span class="tpl-nm"></span>';
+        b.querySelector('.tpl-nm').textContent = label;
+        b.addEventListener('click', () => selectTemplate(id));
+        grid.appendChild(b); cards.push(b);
+      };
+      mkCard(null, 'Custom', '<span class="tpl-custom"></span>', 'Your own colours + pattern');
+      TPLS.list.forEach(t => mkCard(t.id, t.name, GIIIFTBox.panelSVG(t.faces.front.panel, (t.faces.front.panelText || {})), t.desc));
+      syncTpl = () => cards.forEach(b => b.classList.toggle('sel', (b.dataset.tpl || null) === (cfg.template || null)));
+      syncTpl();
+    })();
+
+    // ---------- step 1: the name drives the label AND the front of the box ----------
+    // cfg.brand follows the name until the sender overrides Front text themselves.
+    let brandTouched = false;
+    (function wireName() {
+      const ti = document.getElementById('to-name');
+      if (!ti) return;
+      const brandInput = document.querySelector('[data-field="brand"]');
+      if (brandInput) brandInput.addEventListener('input', () => { brandTouched = brandInput.value.trim().length > 0; });
+      ti.addEventListener('input', () => {
+        const v = ti.value.trim().slice(0, 20);
+        cfg.labelTo = v ? 'To: ' + v : 'To: someone';
+        if (!brandTouched) {
+          cfg.brand = v || 'Name Here';
+          if (brandInput) brandInput.value = v;
+        }
+        paint();
+      });
+      // landing handoffs (?to=) and reciprocity links may have seeded cfg.labelTo
+      window.__seedToName = () => {
+        const cur = (cfg.labelTo || '').replace(/^to:\s*/i, '').trim();
+        if (cur && cur.toLowerCase() !== 'someone' && !ti.value) {
+          ti.value = cur.slice(0, 20);
+          if (!brandTouched) { cfg.brand = cur.slice(0, 20); if (brandInput) brandInput.value = cfg.brand; }
+          paint();
+        }
+      };
+    })();
 
     // ---------- asset grid + search ----------
     const assetGrid = document.getElementById('asset-grid');
@@ -1466,6 +1645,11 @@
     });
 
     function renderContents() {
+      const counter = document.getElementById('inside-count');
+      if (counter) {
+        counter.hidden = contents.length === 0;
+        counter.textContent = contents.length + ' item' + (contents.length === 1 ? '' : 's');
+      }
       contentsEl.innerHTML = '';
       if (!contents.length) {
         const en = document.createElement('div');
@@ -1576,7 +1760,15 @@
     }
 
     function updatePrimary() {
-      if (stage === 'fill') {
+      if (stage === 'name') {
+        primary.disabled = false;
+        primary.textContent = vtxt('nameBtn', null, 'Design the box →');
+        hint.textContent = vtxt('nameHint', null, 'Tell us who it’s for, then dress the box for them.');
+      } else if (stage === 'design') {
+        primary.disabled = false;
+        primary.textContent = vtxt('designBtn', null, 'Fill the box →');
+        hint.textContent = vtxt('designHint', null, 'Pick a box design or your own colours, then fill it.');
+      } else if (stage === 'fill') {
         primary.disabled = contents.length === 0;
         primary.textContent = vtxt('sealBtn', null, 'Seal the box →');
         hint.textContent = contents.length
@@ -1585,10 +1777,28 @@
       }
     }
 
+    function goName() {
+      stage = 'name';
+      setSteps(['name'], []);
+      controlCard.classList.remove('busy');
+      showPane('customize');
+      showSub('name');
+      updatePrimary();
+      const ti = document.getElementById('to-name');
+      if (ti) setTimeout(() => ti.focus(), 60);
+    }
+
+    function goFill() {
+      stage = 'fill';
+      setSteps(['fill'], ['name', 'design']);
+      showPane('fill');
+      updatePrimary();
+    }
+
     function goSeal() {
       if (contents.length === 0) return;
       stage = 'sealing';
-      setSteps(['seal'], ['fill']);
+      setSteps([], ['name', 'design', 'fill']);
       primary.disabled = true; primary.textContent = vtxt('sealingBtn', null, 'Sealing…'); hint.textContent = '';
       controlCard.classList.add('busy');
       box.classList.remove('is-open');          // lid closes
@@ -1597,33 +1807,36 @@
       setTimeout(() => goText(), 1700);
     }
 
-    // swap between the text and design sub-steps inside "make it yours"
+    // swap between the name / design / note sub-steps inside the editor card
     function showSub(which) {
-      const txt = document.getElementById('sub-text');
-      const dsn = document.getElementById('sub-design');
-      const showText = which === 'text';
-      txt.hidden = !showText; dsn.hidden = showText;
-      const shown = showText ? txt : dsn;
-      shown.classList.remove('pane-enter'); void shown.offsetWidth; shown.classList.add('pane-enter');
+      const subs = { name: 'sub-name', text: 'sub-text', design: 'sub-design' };
+      let shown = null;
+      Object.keys(subs).forEach(k => {
+        const el = document.getElementById(subs[k]);
+        if (!el) return;
+        el.hidden = k !== which;
+        if (k === which) shown = el;
+      });
+      if (shown) { shown.classList.remove('pane-enter'); void shown.offsetWidth; shown.classList.add('pane-enter'); }
     }
 
     function goText() {
       stage = 'text';
-      setSteps(['text'], ['fill','seal']);
+      setSteps(['text'], ['name', 'design', 'fill']);
       controlCard.classList.remove('busy');
-      showPane('customize');                      // the card switches to "make it yours"
+      showPane('customize');                      // the card switches to the note
       showSub('text');
       boxStage.classList.add('can-drag');
-      primary.style.display = ''; primary.disabled = false; primary.textContent = vtxt('continueBtn', null, 'Continue to design →');
-      hint.textContent = vtxt('textHint', null, 'Add your message, then continue to design.');
+      primary.style.display = ''; primary.disabled = false; primary.textContent = vtxt('finalizeBtn', null, 'Finalize →');
+      hint.textContent = vtxt('textHint', null, 'Add your note, then finalize your gift.');
     }
 
     function goDesign() {
       stage = 'design';
-      setSteps(['design'], ['fill','seal','text']);
+      setSteps(['design'], ['name']);
+      showPane('customize');
       showSub('design');
-      primary.disabled = false; primary.textContent = vtxt('finalizeBtn', null, 'Finalize →');
-      hint.textContent = vtxt('designHint', null, 'Dress up the box, then finalize your gift.');
+      updatePrimary();
     }
 
     // ---------- short links via Supabase (optional; falls back to the self-contained link) ----------
@@ -1654,7 +1867,7 @@
     let lastCompact = null;   // the compact payload of the finalized gift (Link delivery posts it to /api/intent)
     function goSend() {
       stage = 'send';
-      setSteps(['send'], ['fill','seal','text','design']);
+      setSteps(['send'], ['name','design','fill','text']);
       // Compact, self-contained link: short keys, omit any design field left at its
       // default, derive each asset's name/colour/icon from its ticker on the receive
       // side. Keeps the URL short without a backend (works on static / IPFS hosting).
@@ -1670,6 +1883,7 @@
       if (lc(cfg.accent) !== DEF.accent) d.x = cfg.accent;
       if (cfg.sublabel && cfg.sublabel !== DEF.sublabel) d.s = cfg.sublabel;
       if (cfg.model && cfg.model !== DEF.model) d.md = cfg.model;
+      if (cfg.template) d.tp = cfg.template;   // box-design template: the receive page rebuilds it via GIIIFTBoxTemplates
       const compact = {
         t: strip(cfg.labelTo, /^to:\s*/i),
         f: strip(cfg.from, /^from:\s*/i),
@@ -1878,11 +2092,12 @@
     }
 
     primary.addEventListener('click', () => {
-      if (stage === 'fill') goSeal();
-      else if (stage === 'text') goDesign();
-      else if (stage === 'design') goSend();
+      if (stage === 'name') goDesign();
+      else if (stage === 'design') goFill();
+      else if (stage === 'fill') goSeal();
+      else if (stage === 'text') goSend();
     });
-    document.getElementById('to-text').addEventListener('click', goText);
+    document.getElementById('to-text').addEventListener('click', goName);   // "← Back to name" on the design step
 
     document.getElementById('copy-link').addEventListener('click', async (e) => {
       try { await navigator.clipboard.writeText(document.getElementById('lk-url').textContent); e.target.textContent = '✓ Copied'; setTimeout(()=>e.target.textContent='⧉ Copy link', 1800); } catch(err) {}
@@ -1915,10 +2130,43 @@
         // Link mode needs no recipient field: the claimant identifies themself at claim time.
         input.style.display = m === 'link' ? 'none' : '';
         input.required = m !== 'link';
+        if (lockWrap) lockWrap.hidden = m !== 'link';
         if (sendBtn) sendBtn.textContent = m === 'link' ? 'Create the link →' : 'Send →';
         if (hint) [].forEach.call(hint.children, function (s) { s.classList.toggle('on', s.dataset.hint === m); });
       }
       seg.addEventListener('click', e => { const b = e.target.closest('[data-mode]'); if (b) setMode(b.dataset.mode); });
+
+      // ---- Link mode: optional claim lock (M2 restrictions — email / X / Discord) ----
+      // "Anyone" mints an open intent; picking a provider locks the claim to one
+      // verified identity (the edge function matches the claimant's OAuth account).
+      const lockWrap = document.getElementById('fp-lock');
+      const lockSeg = document.getElementById('fp-lock-seg');
+      const lockInput = document.getElementById('fp-lock-value');
+      const LOCKS = {
+        email:   { ph: 'their@email.com', type: 'email' },
+        twitter: { ph: '@their_handle', type: 'text' },
+        discord: { ph: 'their discord username', type: 'text' },
+      };
+      let lockType = '';
+      if (lockSeg) lockSeg.addEventListener('click', e => {
+        const b = e.target.closest('[data-lock]'); if (!b) return;
+        lockType = b.dataset.lock;
+        [...lockSeg.children].forEach(x => x.classList.toggle('on', x === b));
+        const lc = LOCKS[lockType];
+        if (lockInput) {
+          lockInput.hidden = !lc;
+          if (lc) { lockInput.type = lc.type; lockInput.placeholder = lc.ph; lockInput.value = ''; lockInput.focus(); }
+        }
+      });
+      // mirror of the server's normalizeRestriction (intent.ts)
+      function lockRestriction() {
+        if (!lockType) return undefined;
+        let v = String((lockInput && lockInput.value) || '').trim().toLowerCase().replace(/^@+/, '');
+        if (lockType === 'discord') v = v.replace(/#\d+$/, '');
+        const okv = lockType === 'email' ? /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v) : /^[a-z0-9_.-]{2,37}$/.test(v);
+        if (!okv) return null;
+        return { type: lockType, value: v };
+      }
 
       function valid(v) {
         if (mode === 'email') return /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v);
@@ -1936,6 +2184,12 @@
         if (mintingLink) return;
         const IC = window.GIIIFTIntent;
         if (!IC || !lastCompact) { if (btn) btn.textContent = 'Link unavailable'; return; }
+        // claim lock first (M2): an invalid lock target shouldn't cost a sign-in round-trip
+        const restriction = lockRestriction();
+        if (restriction === null) {
+          if (lockInput) { lockInput.focus(); lockInput.style.borderColor = 'rgba(255,90,120,0.6)'; setTimeout(() => lockInput.style.borderColor = '', 1200); }
+          return;
+        }
         mintingLink = true;
         if (btn) { btn.disabled = true; btn.textContent = 'Waiting for sign-in…'; }
         const ok = await IC.ensureLogin();
@@ -1947,6 +2201,7 @@
           sender_name: senderName || undefined,
           sender_wallet: window.giiiftWalletAddress || undefined,
           expiry_days: 14,
+          restriction,
         });
         mintingLink = false;
         if (!r.ok || !r.data || !r.data.url) {
@@ -1954,12 +2209,19 @@
           console.error('[GIIIFT] intent create failed', r.status, r.data);
           return;
         }
-        if (window.giiift && window.giiift.track) window.giiift.track('intent_created', { open: true });
+        if (window.giiift && window.giiift.track) window.giiift.track('intent_created', restriction ? { open: false, restricted: restriction.type } : { open: true });
         // the invitation URL becomes the link this screen shares + previews
         const setLink2 = (url) => { finishUrl = url; const o = document.getElementById('fp-open'); if (o) o.href = url; };
         setLink2(r.data.url);
+        const lockLabel = restriction
+          ? (restriction.type === 'twitter' ? '@' + restriction.value + ' on X'
+            : restriction.type === 'discord' ? restriction.value + ' on Discord'
+            : restriction.value)
+          : '';
         if (sentH) sentH.textContent = 'Your invitation link is ready';
-        if (sentSub) sentSub.textContent = 'Share it anywhere. It carries no funds: when someone taps it and signs in, you approve the hand-over from your Vault. It rests in 14 days.';
+        if (sentSub) sentSub.textContent = restriction
+          ? 'Share it anywhere — only ' + lockLabel + ' can claim it. They sign in, we verify the account matches, and you approve the hand-over from your Vault. It rests in 14 days.'
+          : 'Share it anywhere. It carries no funds: when someone taps it and signs in, you approve the hand-over from your Vault. It rests in 14 days.';
         const cft = document.getElementById('fp-copy-fallback-text');
         if (cft) cft.textContent = 'Copy the invitation link';
         if (sendStage) sendStage.hidden = true;
@@ -2367,6 +2629,7 @@
       const occ = (q.get('occasion') || '').trim();
       if (occ) setOccasion(occ.slice(0, 24));
     })();
+    if (window.__seedToName) window.__seedToName();   // ?to= / reciprocity seeds land in the step-1 field
     renderContents();
     syncForm();
     paint();
