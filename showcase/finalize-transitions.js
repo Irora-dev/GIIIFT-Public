@@ -87,7 +87,16 @@
       try { forced = new URLSearchParams(location.search).get('fx') || window.__forceFx || null; } catch (e) {}
 
       var pick = null;
-      if (forced) pick = list.find(function (t) { return t.id === forced; }) || null;
+      if (forced) {
+        // a forced pick must still be able to run — a typo'd ?fx= or forcing the
+        // wormhole where WebGL is unavailable would otherwise dead-end the send
+        // (nothing reveals the finish card). Fall back to the weighted pick.
+        pick = list.find(function (t) { return t.id === forced; }) || null;
+        if (pick && pick.canRun && !pick.canRun(ctx)) {
+          console.warn('[GIIIFT] forced transition "' + forced + '" cannot run here — falling back');
+          pick = null;
+        }
+      }
       if (!pick) pick = weightedPick(eligibleFor(ctx));
 
       console.info('[GIIIFT] finalize transition →', pick && pick.id, forced ? '(forced)' : '');
