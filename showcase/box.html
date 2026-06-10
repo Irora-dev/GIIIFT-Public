@@ -180,8 +180,11 @@
        bottom edge sits at the mouth line, so the coins start hidden inside the box and
        emerge upward through the middle (never pasted over the back flap). */
     .above-icons { position: absolute; left: calc((100% - var(--rail-w)) / 2); bottom: calc(50% + var(--rev-box) * 0.30); transform: translateX(-50%);
-      height: calc(var(--rev-box) * 0.52); padding: 0 10px; overflow: hidden;
+      box-sizing: border-box; height: calc(var(--rev-box) * 0.52 + 22px); padding: 22px 14px 0; overflow: hidden;
       display: flex; align-items: flex-start; justify-content: center; gap: clamp(6px, calc(var(--rev-box) * 0.045), 12px); z-index: 5; pointer-events: none; }
+    /* the 22px top padding is headroom INSIDE the clip: ai-bob lifts the coins 6px and the
+       glow shadow needs room, so without it the discs shear at the window's top edge. The
+       bottom edge stays at the mouth line (bottom-anchored, padding only extends upward). */
     .above-coin { width: clamp(26px, calc(var(--rev-box) * 0.165), 40px); height: clamp(26px, calc(var(--rev-box) * 0.165), 40px); border-radius: 50%; overflow: hidden; display: flex; align-items: center; justify-content: center; background: #f3f4f2; color: #111; font-weight: 800; font-size: clamp(10px, calc(var(--rev-box) * 0.06), 15px);
       box-shadow: inset 0 -2px 3px rgba(0,0,0,0.18), inset 0 2px 3px rgba(255,255,255,0.3), 0 9px 19.5px rgba(0,0,0,0.5), 0 0 19.5px -3px var(--accent-ui);
       opacity: 0; transform: translateY(calc(var(--rev-box) * 0.58)) scale(.45); }
@@ -370,8 +373,8 @@
       .stage { --rev-box: clamp(140px, 46vw, 205px); height: auto; min-height: 38vh; flex-direction: column; }
       .portal { width: min(94vw, calc(var(--rev-box) * 1.7)); top: calc(var(--rev-box) * 0.62); }
       /* column stage: the box sits at the top, so anchor the mouth clip + landing to it
-         (clip top = mouth line - window height = boxTop + 0.12rev - 0.52rev) */
-      .above-icons { bottom: auto; top: calc(var(--rev-box) * -0.40); transform: translateX(-50%); }
+         (clip top = mouth line - content height - headroom = boxTop + 0.12rev - 0.52rev - 22px) */
+      .above-icons { bottom: auto; top: calc(var(--rev-box) * -0.40 - 22px); transform: translateX(-50%); }
       .landing { bottom: auto; top: calc(var(--rev-box) * 0.96); }
       .gift-note { transform: rotate(-1.5deg); }
       .scene.revealed ~ .reveal-rail .gift-note { transform: rotate(-1.5deg); }
@@ -1463,15 +1466,40 @@
     })();
 
     // ---------- drag to rotate (only AFTER opening, so a tap reliably OPENS the box) ----------
-    let drag = null, rot = { y: -24, x: 13 };
-    stage.addEventListener("pointerdown", (e) => { if (!stage.classList.contains("can-drag")) return; drag = { x: e.clientX, y: e.clientY, ry: rot.y, rx: rot.x }; stage.classList.add("dragging"); box.style.transition = "none"; });
+    // Two guards keep this glitch-free: (1) a tap must not disturb the box at all, so the
+    // dragging state (float-pause + transition-off) only engages past a small movement
+    // threshold; (2) the start pose is decomposed from the box's CURRENT transform (the
+    // engine sets its own opened pose), never a stale literal — otherwise the first moved
+    // pixel snaps the box to a different rotation.
+    let drag = null, rot = null;
+    function poseFromBox() {
+      try {
+        const m = new DOMMatrix(getComputedStyle(box).transform);
+        // for a rotateY(a) rotateX(b) transform: a = atan2(-m13, m11), b = atan2(-m32, m22)
+        return { y: Math.atan2(-m.m13, m.m11) * 180 / Math.PI, x: Math.atan2(-m.m32, m.m22) * 180 / Math.PI };
+      } catch (e) { return { y: -24, x: 13 }; }
+    }
+    stage.addEventListener("pointerdown", (e) => {
+      if (!stage.classList.contains("can-drag")) return;
+      drag = { x: e.clientX, y: e.clientY, live: false };
+    });
     window.addEventListener("pointermove", (e) => {
       if (!drag) return;
+      if (!drag.live) {
+        if (Math.hypot(e.clientX - drag.x, e.clientY - drag.y) < 5) return;   // still a tap
+        rot = rot || poseFromBox();   // first real drag continues from the box's own pose
+        drag.live = true; drag.ry = rot.y; drag.rx = rot.x; drag.x = e.clientX; drag.y = e.clientY;
+        stage.classList.add("dragging"); box.style.transition = "none";
+      }
       rot.y = drag.ry + (e.clientX - drag.x) * 0.4;
       rot.x = Math.max(-30, Math.min(40, drag.rx - (e.clientY - drag.y) * 0.4));
       box.style.transform = `rotateY(${rot.y}deg) rotateX(${rot.x}deg)`;
     });
-    window.addEventListener("pointerup", () => { if (!drag) return; drag = null; stage.classList.remove("dragging"); box.style.transition = ""; });
+    window.addEventListener("pointerup", () => {
+      if (!drag) return;
+      const live = drag.live; drag = null;
+      if (live) { stage.classList.remove("dragging"); box.style.transition = ""; }
+    });
 
     // ---------- delivery intro: van arrives, drops the package, drives off ----------
     // Opposite of the send flow (which picks a package up). The borealis is tied to
