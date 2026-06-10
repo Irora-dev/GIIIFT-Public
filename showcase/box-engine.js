@@ -88,7 +88,9 @@
     smokum: { name: "Smokum", gf: "Smokum", cat: "dark", vibe: ["western", "vintage"] },
   };
   var ALIGN = { left: 1, center: 1, right: 1 };
-  var ELTYPES = { text: 1, stamp: 1, note: 1, graffiti: 1, label: 1, barcode: 1, seal: 1, postmark: 1, sticker: 1, art: 1, decal: 1, fade: 1 };
+  var SHAPES = { rect: 1, ellipse: 1, line: 1, triangle: 1, star: 1, diamond: 1, heart: 1 };   // `shape` element sub-kinds
+  var FRAMES = { rect: 1, rounded: 1, circle: 1, heart: 1, star: 1, triangle: 1 };             // `frame` photo-clip shapes
+  var ELTYPES = { text: 1, stamp: 1, note: 1, graffiti: 1, label: 1, barcode: 1, seal: 1, postmark: 1, sticker: 1, art: 1, decal: 1, fade: 1, shape: 1, frame: 1 };
   // curated flat-SVG decal/sticker library (defined in box-stickers.js, loaded before this file)
   var STICKERS = (typeof window !== "undefined" && window.GIIIFTBoxStickers) || {};
   // full-face panel/wrap library (defined in box-panels.js, loaded before this file)
@@ -195,6 +197,26 @@
         base.angle = num(e.angle, 0, 0, 360);
         base.opacity = num(e.opacity, 1, 0, 1);
         base.w = num(e.w, 1, 0.05, 1); base.h = num(e.h, 0.6, 0.05, 1);
+        break;
+      case "shape":                                      // vector shape: colour block / badge / divider / star, etc.
+        base.shape = enumv(SHAPES, e.shape, "rect");
+        base.fill = e.fill === "none" ? "none" : hex(e.fill, palette.accent);
+        base.stroke = (e.stroke == null || e.stroke === "none") ? "none" : hex(e.stroke, "#111111");
+        base.strokeW = num(e.strokeW, 0, 0, 0.06);       // border, as a fraction of box size (0 = none)
+        base.radius = num(e.radius, 0.12, 0, 0.5);       // corner radius (rect), fraction of the shorter side
+        base.w = num(e.w, 0.5, 0.02, 1); base.h = num(e.h, 0.2, 0.02, 1);
+        base.opacity = num(e.opacity, 1, 0, 1);
+        if (e.flipX) base.flipX = true; if (e.flipY) base.flipY = true;
+        break;
+      case "frame":                                      // a photo clipped into a shape (circle / heart / star / rounded ...)
+        base.frame = enumv(FRAMES, e.frame, "circle");
+        base.src = (typeof e.src === "string" && ART_OK.test(e.src)) ? e.src
+          : (typeof e.src === "string" && ART_DATA.test(e.src) && e.src.length <= ART_DATA_MAX) ? e.src : "";
+        base.stroke = (e.stroke == null || e.stroke === "none") ? "none" : hex(e.stroke, "#ffffff");
+        base.strokeW = num(e.strokeW, 0, 0, 0.06);
+        base.radius = num(e.radius, 0.16, 0, 0.5);       // corner radius for the `rounded` frame
+        base.w = num(e.w, 0.42, 0.05, 1); base.h = num(e.h, 0.42, 0.05, 1);
+        base.opacity = num(e.opacity, 1, 0, 1);
         break;
     }
     return base;
@@ -359,6 +381,8 @@
     ".gbx-art{display:block;border-radius:calc(var(--gbx-size)*var(--gbx-art-r,0.03));box-shadow:0 6px 20px rgba(0,0,0,0.5)}",
     ".gbx-fade{display:block}",
     ".gbx-decal{display:grid;place-items:center;filter:drop-shadow(0 5px 12px rgba(0,0,0,0.45))}",
+    ".gbx-shape{display:block}",
+    ".gbx-frame{display:block;overflow:hidden;background-position:center;background-repeat:no-repeat}",
     ".gbx-decal svg{width:100%;height:100%;display:block;overflow:visible}",
     ".gbx-panel{position:absolute;inset:0;z-index:1;pointer-events:none;overflow:hidden}",
     ".gbx-panel svg{width:100%;height:100%;display:block}",
@@ -454,6 +478,16 @@
     if (e.w != null && e.t !== "sticker" && e.t !== "seal" && e.t !== "postmark" && e.t !== "decal" && e.t !== "fade") node.style.width = (e.w * 100) + "%";
     node.style.setProperty("--rot", (e.rotate || 0) + "deg");
   }
+  var CLIP_ID = 1;
+  function shapeSvgPath(shape, attrs) {   // inner SVG for polygon/path shapes in a 0..100 viewBox
+    switch (shape) {
+      case "triangle": return '<polygon points="50,6 95,94 5,94"' + attrs + '/>';
+      case "diamond":  return '<polygon points="50,4 96,50 50,96 4,50"' + attrs + '/>';
+      case "star":     return '<polygon points="50,3 61.8,37.6 98.2,37.6 68.8,59.2 80.4,94 50,72.4 19.6,94 31.2,59.2 1.8,37.6 38.2,37.6"' + attrs + '/>';
+      case "heart":    return '<path d="M50,90 C16,64 6,42 18,27 C28,15 45,16 50,30 C55,16 72,15 82,27 C94,42 84,64 50,90 Z"' + attrs + '/>';
+      default:         return '<rect x="1" y="1" width="98" height="98"' + attrs + '/>';
+    }
+  }
   function renderElement(e, palette) {
     var n;
     switch (e.t) {
@@ -544,6 +578,47 @@
           ? "radial-gradient(circle at center, " + fOff + " 0%, " + fOn + " 100%)"
           : "linear-gradient(" + (e.angle != null ? e.angle : 0) + "deg, " + fOn + ", " + fOff + ")";
         break;
+      case "shape": {
+        n = document.createElement("div"); n.className = "gbx-shape";
+        n.style.width = px(e.w); n.style.height = px(e.h);
+        var sfill = e.fill === "none" ? "transparent" : e.fill;
+        var sStroke = e.stroke && e.stroke !== "none" && e.strokeW > 0;
+        if (e.shape === "rect" || e.shape === "ellipse" || e.shape === "line") {   // CSS path: perfect uniform border
+          n.style.background = sfill; n.style.boxSizing = "border-box";
+          n.style.borderRadius = e.shape === "ellipse" ? "50%" : e.shape === "line" ? px(e.h * 0.5) : px(Math.min(e.w, e.h) * e.radius);
+          if (sStroke) n.style.border = "calc(var(--gbx-size) * " + e.strokeW + ") solid " + e.stroke;
+        } else {                                                                     // SVG path: triangle / star / diamond / heart
+          var sa = ' fill="' + sfill + '"' + (sStroke ? ' stroke="' + e.stroke + '" stroke-width="' + (e.strokeW * 100).toFixed(2) + '" stroke-linejoin="round"' : '');
+          n.innerHTML = '<svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none">' + shapeSvgPath(e.shape, sa) + '</svg>';
+        }
+        if (e.opacity != null && e.opacity < 1) n.style.opacity = e.opacity;
+        if (e.flipX) n.style.setProperty("--gbx-fx", -1);
+        if (e.flipY) n.style.setProperty("--gbx-fy", -1);
+        break;
+      }
+      case "frame": {
+        n = document.createElement("div"); n.className = "gbx-frame";
+        n.style.width = px(e.w); n.style.height = px(e.h);
+        var fStroke = e.stroke && e.stroke !== "none" && e.strokeW > 0;
+        if (e.frame === "rect" || e.frame === "rounded" || e.frame === "circle") {   // CSS path
+          n.style.boxSizing = "border-box";
+          n.style.borderRadius = e.frame === "circle" ? "50%" : e.frame === "rounded" ? px(Math.min(e.w, e.h) * Math.max(e.radius, 0.08)) : "0";
+          if (e.src) { n.style.backgroundImage = 'url("' + e.src + '")'; n.style.backgroundSize = "cover"; n.style.backgroundPosition = "center"; n.style.backgroundRepeat = "no-repeat"; }
+          else { n.style.background = "rgba(255,255,255,.06)"; n.style.display = "grid"; n.style.placeItems = "center"; n.style.color = palette.accent; n.style.fontSize = px(0.14); n.textContent = "🖼"; }
+          if (fStroke) n.style.border = "calc(var(--gbx-size) * " + e.strokeW + ") solid " + e.stroke;
+          else if (!e.src) n.style.border = "calc(var(--gbx-size) * 0.006) dashed " + palette.accent;
+        } else {                                                                     // SVG clip path: heart / star / triangle
+          var cid = "gbxcl" + (CLIP_ID++);
+          var clip = shapeSvgPath(e.frame, ' fill="#fff"');
+          var border = fStroke ? shapeSvgPath(e.frame, ' fill="none" stroke="' + e.stroke + '" stroke-width="' + (e.strokeW * 100).toFixed(2) + '" stroke-linejoin="round"') : "";
+          var inner = e.src
+            ? '<image href="' + esc(e.src) + '" x="0" y="0" width="100" height="100" preserveAspectRatio="xMidYMid slice" clip-path="url(#' + cid + ')"/>'
+            : shapeSvgPath(e.frame, ' fill="rgba(255,255,255,.07)" stroke="' + palette.accent + '" stroke-width="2.2" stroke-dasharray="5 3"');
+          n.innerHTML = '<svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none"><defs><clipPath id="' + cid + '">' + clip + '</clipPath></defs>' + inner + border + '</svg>';
+        }
+        if (e.opacity != null && e.opacity < 1) n.style.opacity = e.opacity;
+        break;
+      }
       default: return null;
     }
     placeLayer(n, e);
@@ -587,9 +662,14 @@
   function faceCovered(face) {
     if (face.panel && PANELS[face.panel]) return true;
     return (face.layers || []).some(function (e) {
-      return e.t === "art" && e.src && e.fit === "cover" && !e.noShadow
+      if (e.t === "art" && e.src && e.fit === "cover" && !e.noShadow
         && (e.opacity == null || e.opacity >= 1)
-        && (e.w == null || e.w >= 0.98) && (e.h == null || e.h >= 0.98);
+        && (e.w == null || e.w >= 0.98) && (e.h == null || e.h >= 0.98)) return true;
+      if (e.t === "shape" && e.shape === "rect" && e.fill && e.fill !== "none" && !(e.strokeW > 0)
+        && (e.opacity == null || e.opacity >= 1) && e.w >= 0.98 && e.h >= 0.98) return true;
+      if (e.t === "frame" && e.frame === "rect" && e.src
+        && (e.opacity == null || e.opacity >= 1) && e.w >= 0.98 && e.h >= 0.98) return true;
+      return false;
     });
   }
   function buildFace(pos, face, palette, cls) {

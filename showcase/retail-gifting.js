@@ -1,0 +1,100 @@
+/* GIIIFT - retail gifting V1 client (the curated menu + the merchant handoff).
+ *
+ * Pairs with /api/retail-menu and /api/retail-resolve (netlify/edge-functions/retail.ts),
+ * the shopify-usdc-base adapter behind the GiftMandate seam. The split mirrors
+ * nft-buy.js:
+ *   - giiiftRetailMenu()                  -> the curated products (cached fetch)
+ *   - giiiftRetailQuote(product)          -> transparent local breakdown of what the
+ *                                            SENDER funds: item + buffer (+ fee 0 in V2)
+ *   - giiiftRetailResolve(productId, p)   -> the recipient's handoff step: the merchant's
+ *                                            own USDC-on-Base checkout URL, cart prefilled.
+ *
+ * Posture (do not regress): the server only resolves; the RECIPIENT is the only
+ * signer, on the MERCHANT'S checkout (merchant of record). The item is a
+ * suggestion: every gift falls back to spendable balance. Variant + address are
+ * recipient-side only and never shown to the sender.
+ *
+ * Rejects use typed reasons ('not-enabled' | 'unknown-product' | 'retail-not-live'
+ * | 'product-placeholder' | 'merchant-usdc-unverified' | …) so sheets can fall
+ * back gracefully (to the balance, which is always there).
+ */
+(function () {
+  var cache = null;
+
+  function round2(n) { return Math.round((Number(n) || 0) * 100) / 100; }
+  function fail(reason, extra) { var e = new Error(reason); e.reason = reason; if (extra) e.detail = extra; return e; }
+
+  // The curated menu (display + quoting data). Cached for the session.
+  async function menu(force) {
+    if (cache && !force) return cache;
+    var res;
+    try { res = await fetch("/api/retail-menu", { headers: { accept: "application/json" } }); }
+    catch (e) { throw fail("not-enabled", String(e)); }
+    if (!res || !res.ok) throw fail("not-enabled");
+    var data = await res.json();
+    if (!data || !data.ok || !Array.isArray(data.products)) throw fail("not-enabled");
+    cache = { live: !!data.live, products: data.products };
+    return cache;
+  }
+
+  // What the SENDER funds, computed locally so the UI is honest even offline.
+  function quote(product) {
+    var item = round2(product && product.priceUSD);
+    var buffer = round2(product && product.bufferUSD);
+    return {
+      itemUSD: item,
+      bufferUSD: buffer,
+      feeBps: 0, feeUSD: 0,            // V2 handoff: the commerce fee cannot ride (server says the same)
+      fundUSD: round2(item + buffer),  // item + shipping/tax headroom the sender funds
+      currency: "USD",
+      note: "Unspent buffer stays in the recipient's balance.",
+    };
+  }
+
+  // Resolve the recipient's claim step: the merchant-checkout handoff.
+  // params: { variantId?, variantLabel?, email?, firstName?, lastName?,
+  //           address1?, address2?, city?, province?, country?, zip?, mandateId? }
+  // Address fields are optional best-effort prefill; the recipient can always
+  // just type them on the merchant page.
+  async function resolve(productId, params) {
+    if (!productId) throw fail("unknown-product");
+    var body = { productId: String(productId) };
+    var p = params || {};
+    ["variantId", "variantLabel", "email", "firstName", "lastName",
+      "address1", "address2", "city", "province", "country", "zip", "mandateId"
+    ].forEach(function (k) { if (p[k] != null && p[k] !== "") body[k] = String(p[k]); });
+
+    var res;
+    try {
+      res = await fetch("/api/retail-resolve", {
+        method: "POST",
+        headers: { "content-type": "application/json", accept: "application/json" },
+        body: JSON.stringify(body),
+      });
+    } catch (e) { throw fail("not-enabled", String(e)); }
+    if (!res || !res.ok) throw fail("not-enabled");
+
+    var data = await res.json();
+    if (!data || !data.ok) throw fail("not-enabled");
+    var step = (data.steps && data.steps[0]) || null;
+    if (!step || step.kind !== "handoff" || !step.url) {
+      throw fail(data.reason || "order-unavailable", data);
+    }
+    return {
+      ok: true,
+      executable: !!data.executable,      // false while dormant: UI shows preview/fallback
+      url: step.url,                      // the merchant's own USDC-on-Base checkout
+      merchant: step.merchant,
+      merchantDomain: step.merchantDomain,
+      variant: step.variant,
+      payHint: step.payHint,              // "usdc-base"
+      breakdown: data.breakdown,
+      fallback: data.fallback || "spendable-balance",
+      reason: data.reason,
+    };
+  }
+
+  window.giiiftRetailMenu = menu;
+  window.giiiftRetailQuote = quote;
+  window.giiiftRetailResolve = resolve;
+})();

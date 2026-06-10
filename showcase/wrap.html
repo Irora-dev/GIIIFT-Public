@@ -471,6 +471,17 @@
     .tfield input[type="text"]:focus + .tfield-hint, .tfield:focus-within label { color: var(--ink); }
     .tfield input::placeholder { color: var(--muted-2); font-weight: 400; }
     .tfield-hint { font-size: 8.6px; color: var(--muted-2); margin-top: 6px; }
+    /* polaroid photo picker (note step): mini polaroids + an add tile; drag/drop or tap */
+    .photo-drop { display: flex; align-items: stretch; gap: 8px; flex-wrap: wrap; padding: 8px; border: 1px dashed var(--line-strong); border-radius: 9px; background: var(--bg-2); transition: border-color .2s, background .2s; }
+    .photo-drop.over { border-color: var(--accent-ui); background: rgba(0,255,157,0.05); }
+    .photo-strip { display: contents; }
+    .photo-add { font-family: var(--font-main); font-size: 9.8px; font-weight: 600; color: var(--muted); background: none; border: 1px solid var(--line); border-radius: 7px; padding: 0 12px; min-height: 56px; cursor: pointer; transition: color .2s, border-color .2s; }
+    .photo-add:hover { color: var(--ink); border-color: var(--line-strong); }
+    .photo-add[hidden] { display: none; }
+    .photo-thumb { position: relative; margin: 0; width: 48px; background: #fdfdf8; padding: 3px 3px 10px; border-radius: 2px; box-shadow: 0 4px 10px rgba(0,0,0,0.45); transform: rotate(var(--p-rot, -3deg)); }
+    .photo-thumb img { display: block; width: 100%; aspect-ratio: 1; object-fit: cover; background: #e8e4d8; }
+    .photo-thumb .px { position: absolute; top: -6px; right: -6px; width: 16px; height: 16px; border-radius: 50%; border: none; background: #1c222b; color: #fff; font-size: 9px; line-height: 1; cursor: pointer; box-shadow: 0 2px 5px rgba(0,0,0,0.5); }
+    .photo-thumb .px:hover { background: #ff5a78; }
     /* hero "Front text" field - echoes the box's serif lettering */
     .tfield-hero input[type="text"] { font-family: var(--font-serif); font-style: italic; font-weight: 600; font-size: 20px; line-height: 1.1; padding: 9.8px 12px; }
     .tfield-hero input::placeholder { font-style: italic; }
@@ -917,6 +928,16 @@
                 <div class="vchip-row" id="occasion-chips"></div>
                 <div class="tfield-hint" id="occasion-hint"></div>
               </div>
+              <!-- polaroid photos (optional): ride the reveal rail as white-frame polaroids -->
+              <div class="tfield" id="photo-field">
+                <div class="tfield-top"><label>Photos</label><span class="tcount" id="photo-count">0/3</span></div>
+                <div class="photo-drop" id="photo-drop">
+                  <input type="file" id="photo-input" accept="image/*" multiple hidden>
+                  <div class="photo-strip" id="photo-strip"></div>
+                  <button type="button" class="photo-add" id="photo-add">＋ Add photos</button>
+                </div>
+                <div class="tfield-hint">They unpack as polaroids beside the box. Demo: photos preview on this device.</div>
+              </div>
             </div>
           </div>
 
@@ -1324,6 +1345,70 @@
       setText('#fp-sub', vtxt('readySub'));
       const fo = document.getElementById('fp-open');
       if (fo && fo.firstChild && fo.firstChild.nodeType === 3 && vtxt('previewLabel')) fo.firstChild.nodeValue = vtxt('previewLabel') + ' ';
+    })();
+
+    // polaroid photos (optional, up to 3): compressed client-side, previewed as mini
+    // polaroids, and stashed in localStorage at send (d.ph carries the key) — CDN
+    // request-URL limits make data-URI photos inside the ?g= token impossible, so the
+    // demo is same-device; cross-device links simply omit photos until a backend exists.
+    let giftPhotos = [];
+    (function setupPhotos() {
+      const field = document.getElementById('photo-field');
+      const drop = document.getElementById('photo-drop');
+      const input = document.getElementById('photo-input');
+      const strip = document.getElementById('photo-strip');
+      const addBtn = document.getElementById('photo-add');
+      const count = document.getElementById('photo-count');
+      if (!field || !drop || !input || !strip || !addBtn) return;
+      const MAXP = 3, ROTS = ['-3deg', '2deg', '-4deg'];
+      function sync() {
+        strip.innerHTML = '';
+        giftPhotos.forEach((src, i) => {
+          const f = document.createElement('figure');
+          f.className = 'photo-thumb';
+          f.style.setProperty('--p-rot', ROTS[i % ROTS.length]);
+          const img = document.createElement('img'); img.src = src; img.alt = '';
+          const x = document.createElement('button');
+          x.type = 'button'; x.className = 'px'; x.setAttribute('aria-label', 'Remove photo'); x.textContent = '✕';
+          x.addEventListener('click', () => { giftPhotos.splice(i, 1); sync(); });
+          f.appendChild(img); f.appendChild(x); strip.appendChild(f);
+        });
+        addBtn.hidden = giftPhotos.length >= MAXP;
+        if (count) count.textContent = giftPhotos.length + '/' + MAXP;
+      }
+      // canvas-compress: ~480px max edge, jpeg q0.62 → ~20-60KB per shot, fine for localStorage
+      function compress(file) {
+        return new Promise((resolve) => {
+          const url = URL.createObjectURL(file);
+          const img = new Image();
+          img.onload = () => {
+            const s = Math.min(1, 480 / Math.max(img.naturalWidth, img.naturalHeight));
+            const cv = document.createElement('canvas');
+            cv.width = Math.max(1, Math.round(img.naturalWidth * s));
+            cv.height = Math.max(1, Math.round(img.naturalHeight * s));
+            cv.getContext('2d').drawImage(img, 0, 0, cv.width, cv.height);
+            URL.revokeObjectURL(url);
+            resolve(cv.toDataURL('image/jpeg', 0.62));
+          };
+          img.onerror = () => { URL.revokeObjectURL(url); resolve(null); };
+          img.src = url;
+        });
+      }
+      async function take(files) {
+        for (const f of [...files]) {
+          if (giftPhotos.length >= MAXP) break;
+          if (!f.type.startsWith('image/')) continue;
+          const data = await compress(f);
+          if (data) giftPhotos.push(data);
+        }
+        sync();
+      }
+      addBtn.addEventListener('click', () => input.click());
+      input.addEventListener('change', () => { take(input.files || []); input.value = ''; });
+      drop.addEventListener('dragover', (e) => { e.preventDefault(); drop.classList.add('over'); });
+      drop.addEventListener('dragleave', () => drop.classList.remove('over'));
+      drop.addEventListener('drop', (e) => { e.preventDefault(); drop.classList.remove('over'); take((e.dataTransfer && e.dataTransfer.files) || []); });
+      sync();
     })();
 
     // occasion (optional): rides in the payload and personalizes the recipient's shop
@@ -1895,6 +1980,15 @@
       if (cfg.sublabel && cfg.sublabel !== DEF.sublabel) d.s = cfg.sublabel;
       if (cfg.model && cfg.model !== DEF.model) d.md = cfg.model;
       if (cfg.template) d.tp = cfg.template;   // box-design template: the receive page rebuilds it via GIIIFTBoxTemplates
+      // polaroid photos (same-device demo): stash the compressed shots under a key the
+      // receive page reads back; the link itself only carries the key (URL limits).
+      if (giftPhotos.length) {
+        try {
+          const phKey = Math.random().toString(36).slice(2, 10);
+          localStorage.setItem('giiift-photos:' + phKey, JSON.stringify(giftPhotos.slice(0, 3)));
+          d.ph = phKey;
+        } catch (e) { console.warn('[GIIIFT] photos too large to stash, sending without:', e); }
+      }
       const compact = {
         t: strip(cfg.labelTo, /^to:\s*/i),
         f: strip(cfg.from, /^from:\s*/i),
