@@ -39,7 +39,9 @@
  *   3. gift payload         the sender's vertical travels inside the gift
  *                           (pages pass it via resolve({ payload: id }))
  *   4. inference            keywords/tickers scored against the gift contents
- *   5. sticky session       last explicit/path/payload hit (24h, localStorage)
+ *   5. sticky session       last explicit/path/payload hit (24h, localStorage);
+ *                           SKIPPED in demo mode (giiift-demo) — the showcase is
+ *                           multi-partner, so only the walked link picks the voice
  *   6. 'core'               the plain GIIIFT experience
  * Sources 1-4 persist to the session, so the identity follows the user from
  * landing → wrap → receive → shop without every link carrying a param.
@@ -195,7 +197,16 @@
     }
     return best ? { id: best.id, src: 'infer' } : null;
   }
+  // Demo mode (the public showcase sets giiift-demo on every page): the showcase is
+  // multi-partner, not a TCG site, so a vertical must come from the LINK being walked
+  // (?v=, /tcg path, payload v, or the gift's own content) — never from a sticky
+  // session left by an earlier walk. Without this, one /tcg visit re-voices every
+  // later generic reveal ("Pick your card") for 24h.
+  function isDemo() {
+    try { return localStorage.getItem('giiift-demo') === '1'; } catch (e) { return false; }
+  }
   function fromSession() {
+    if (isDemo()) return null;
     var rec = readStore();
     return rec ? { id: rec.id, src: 'session' } : null;
   }
@@ -218,7 +229,7 @@
       var hit = fromParam() || fromPath() || fromPayload(hints) || fromInference(hints) || fromSession()
         || { id: 'core', src: 'default' };
       if (hit.clear) writeStore('core', 'param');
-      else if (hit.src !== 'session' && hit.src !== 'default') writeStore(hit.id, hit.src);
+      else if (!isDemo() && hit.src !== 'session' && hit.src !== 'default') writeStore(hit.id, hit.src);
       var changed = hit.id !== activeId;
       activeId = hit.id;
       activeSource = hit.src;
@@ -424,7 +435,7 @@
         viewVaultCta: 'View in your vault →',
         spendCta: 'Spend your {amount} →',
         spendCtaZero: 'Spend it now →',
-        manifestTitle: 'Gifted to you',
+        manifestTitle: "What's inside",
         noteEyebrow: 'A note',
         forLabel: 'for',
         becomesTitle: 'Your {amount} → what it becomes',
