@@ -140,16 +140,16 @@
       box-shadow: 0 0 150px 50px rgba(0,0,0,0.5); }
 
     /* the sender's note, pinned to the side of the box */
-    .gift-note { position: absolute; top: 7%; right: 1%; width: min(252px, 33vw); z-index: 6;
-      background: linear-gradient(180deg, #fbf3df, #ecdcba); color: #2a2018; padding: 16px 18px 18px; border-radius: 4px;
+    .gift-note { position: absolute; top: 6%; right: 1%; width: min(360px, 42vw); z-index: 6;
+      background: linear-gradient(180deg, #fbf3df, #ecdcba); color: #2a2018; padding: 22px 26px 24px; border-radius: 5px;
       box-shadow: 0 22px 46px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.6);
       opacity: 0; transform: rotate(3deg) translateY(14px); transition: opacity .7s .45s ease, transform .7s .45s cubic-bezier(.2,.8,.2,1); }
     .scene.revealed ~ .gift-note { opacity: 1; transform: rotate(3deg) translateY(0); }
     .gift-note[hidden] { display: none; }
-    .gift-note .gn-pin { position: absolute; top: -11px; left: 50%; transform: translateX(-50%); width: 18px; height: 18px; border-radius: 50%; background: radial-gradient(circle at 35% 30%, #ff8a98, #d4344a 75%); box-shadow: 0 4px 8px rgba(0,0,0,0.5), inset 0 -2px 3px rgba(0,0,0,0.3); }
-    .gift-note .gn-eyebrow { font-family: var(--font-mono); font-size: 12px; letter-spacing: 0.18em; text-transform: uppercase; color: #a98b5c; margin-bottom: 7px; }
-    .gift-note .gn-text { font-family: var(--font-serif); font-style: italic; font-size: 19px; line-height: 1.4; }
-    .gift-note .gn-from { margin-top: 12px; font-family: var(--font-serif); font-size: 15px; text-align: right; color: #6b5a40; }
+    .gift-note .gn-pin { position: absolute; top: -13px; left: 50%; transform: translateX(-50%); width: 22px; height: 22px; border-radius: 50%; background: radial-gradient(circle at 35% 30%, #ff8a98, #d4344a 75%); box-shadow: 0 4px 8px rgba(0,0,0,0.5), inset 0 -2px 3px rgba(0,0,0,0.3); }
+    .gift-note .gn-eyebrow { font-family: var(--font-mono); font-size: 13px; letter-spacing: 0.18em; text-transform: uppercase; color: #a98b5c; margin-bottom: 10px; }
+    .gift-note .gn-text { font-family: var(--font-serif); font-style: italic; font-size: 27px; line-height: 1.35; }
+    .gift-note .gn-from { margin-top: 16px; font-family: var(--font-serif); font-size: 19px; text-align: right; color: #6b5a40; }
     .gift-note .gn-from b { color: #2a2018; font-weight: 600; font-style: italic; }
 
     /* actions below the box */
@@ -1087,9 +1087,10 @@
         if (window.giiift && window.giiift.track) window.giiift.track("intent_opened", {});
       }
       cta.disabled = false;
-      cta.classList.add("claimed");
-      cta.textContent = res.alreadyClaimed ? vtxt("viewVaultCta", null, "View in your vault →") : vtxt("savedCta", null, "Save to vault →");
-      cta.onclick = () => { window.location.href = "/showcase/"; };
+      /* public showcase mirror: the demo ends at the reveal — no vault claim,
+         no spend funnel, no reciprocity loop (those live on the real product) */
+      cta.style.display = "none";
+      return;
       // The received value isn't a dead-end: offer to spend it right away.
       if (!document.getElementById("spend-now")) {
         const sp = document.createElement("a");

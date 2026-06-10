@@ -255,7 +255,8 @@
       { t: "text", value: c.sublabel || "A GIFT FOR YOU", x: 0.5, y: 0.55, w: 0.7, font: "mono", size: 0.05, weight: 500, color: palette.accent, align: "center" },
       { t: "text", value: (c.model || "Model: GF-001") + "      " + (c.qty || "Qty: 1"), x: 0.5, y: 0.74, w: 0.82, font: "mono", size: 0.045, weight: 500, color: palette.accent, align: "center" }
     ];
-    if (c.note) faces.front.layers.push({ t: "graffiti", value: c.note, x: 0.5, y: 0.9, w: 0.7, font: "marker", size: 0.07, color: palette.accent });
+    // the note rides the pinned card beside the box, never the box face — the
+    // marker layer used to collide with the model/qty line (owner call 2026-06-10)
     if (c.fragile) faces.front.layers.push({ t: "stamp", value: c.fragileText || "Fragile", x: 0.8, y: 0.14, rotate: 8, color: hex(c.fragileColor, "#d94f2a"), size: 0.06 });
     // RIGHT — shipping label + one stamp per asset
     faces.right.pattern = pat;
