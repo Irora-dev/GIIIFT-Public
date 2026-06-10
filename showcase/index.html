@@ -54,13 +54,26 @@
 
   .kicker{ font-size:12px; font-weight:800; letter-spacing:.2em; text-transform:uppercase;
     color:var(--accent); margin:0 0 14px; }
-  h1{ font-size:clamp(30px,4vw,44px); line-height:1.04; font-weight:900; letter-spacing:-.025em; margin:0 0 14px; }
+  h1{ font-size:clamp(30px,4vw,44px); line-height:1.04; font-weight:900; letter-spacing:-.025em; margin:0 0 14px; max-width:640px; }
   h1 .g{ color:var(--accent); }
   .sub{ font-size:15.5px; line-height:1.55; color:var(--muted); max-width:640px; margin:0; }
   .sub b{ color:var(--ink); font-weight:700; }
   .for{ margin-top:18px; font-family:"JetBrains Mono",monospace; font-size:11px;
     letter-spacing:.16em; text-transform:uppercase; color:var(--faint); }
   .for b{ color:var(--partner); font-weight:700; }
+
+  /* hero box — a real engine-rendered gift box, slowly tumbling beside the
+     headline (decorative: pointer-events none, hidden when the column tightens) */
+  .hero-box{ position:absolute; top:54px; right:-2px; width:340px; height:340px; z-index:5;
+    perspective:1500px; pointer-events:none;
+    filter:drop-shadow(0 34px 60px rgba(0,0,0,.55)) drop-shadow(0 0 44px rgba(0,255,157,.07)); }
+  /* the engine's cube root is .gbx-box, sized by --gbx-size (default clamps to 32vw —
+     far too big here); the tumble overrides its static pose, transition off so they don't fight */
+  .hero-box .gbx-box{ --gbx-size:244px; margin:30px auto 0; transition:none;
+    animation:hb-tumble 32s linear infinite; }
+  @keyframes hb-tumble{ from{ transform:rotateX(-14deg) rotateY(0deg); } to{ transform:rotateX(-14deg) rotateY(360deg); } }
+  @media (max-width:1140px){ .hero-box{ display:none; } }
+  @media (prefers-reduced-motion:reduce){ .hero-box .gbx-box{ animation:none; } }
 
   /* demo entry cards */
   .demos{ display:grid; grid-template-columns:repeat(3,1fr); gap:16px; margin:42px 0 0; }
@@ -135,6 +148,8 @@
     </div>
     <span class="tag">Partner showcase</span>
   </div>
+
+  <div class="hero-box" id="hero-box" aria-hidden="true"></div>
 
   <p class="kicker">The gifting experience, live</p>
   <h1>Open a gift the way <span class="g">your people will.</span></h1>
@@ -279,5 +294,24 @@
   };
 </script>
 <script defer src="/showcase/borealis-set.js"></script>
+
+<!-- the CRT / mission-control layer the product pages wear (?nocrt to disable) -->
+<script defer src="/showcase/crt-overlay.js"></script>
+
+<!-- hero box: a REAL engine render (same box the wrap flow ships), tumbling beside the headline -->
+<script src="/showcase/box-stickers.js"></script>
+<script src="/showcase/box-panels.js"></script>
+<script src="/showcase/box-engine.js"></script>
+<script src="/showcase/box-templates.js"></script>
+<script>
+  (function heroBox() {
+    var host = document.getElementById("hero-box");
+    if (!host || !window.GIIIFTBox || !window.GIIIFTBoxTemplates) return;
+    try {
+      var doc = GIIIFTBoxTemplates.doc("holographic", { to: "you", from: "the GIIIFT team", note: "Open one like a recipient" });
+      GIIIFTBox.render(host, doc, { mode: "view", burst: false });
+    } catch (e) { /* decorative — never block the landing */ }
+  })();
+</script>
 </body>
 </html>

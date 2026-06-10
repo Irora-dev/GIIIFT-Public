@@ -407,7 +407,7 @@
         designHint: 'Pick a box design or your own colours, then fill it.',
         finalizeBtn: 'Finalize →',
         readyTitle: 'Your gift<br>is ready.',
-        readySub: 'Send it to their email, phone, or wallet. We handle the rest.',
+        readySub: 'Email, phone, a link, their wallet, or a social handle. We handle the rest.',
         wrappedFor: 'Wrapped for {to} · {count} item{s}.',
         previewLabel: 'Preview the box',
       },
