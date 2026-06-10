@@ -1,0 +1,2620 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<script>/* public showcase mirror: always demo mode */try{localStorage.setItem("giiift-demo","1");localStorage.setItem("giiift-authed","1");}catch(e){}</script>
+<meta name="robots" content="noindex, nofollow, noarchive">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GIIIFT - Wrap a box</title>
+  <meta name="description" content="Fill a box with a gift, seal it, and make it yours." />
+  <meta name="theme-color" content="#0b0d0c" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bowlby+One&family=EB+Garamond:ital,wght@0,400;0,600;1,400&family=Inter:wght@400;500;600;700;800&family=VT323&display=swap" rel="stylesheet">
+  <link rel="icon" type="image/svg+xml" href="/showcase/favicon.svg" />
+  <script src="/showcase/supabase-config.js"></script>
+  <!-- vertical engine + packs: BLOCKING (no defer) so the inline flow script below can
+       read copy/theme synchronously. /tcg-style entries re-skin this whole page. -->
+  <script src="/showcase/vertical-engine.js"></script>
+  <script src="/showcase/verticals/tcg.js"></script>
+  <script defer src="/showcase/brand.js"></script>
+  <script defer src="/showcase/site-nav.js"></script>
+  <script defer src="/showcase/intent-client.js"></script><!-- link-gifting: invitation-link delivery mode -->
+  <!-- borealis set: aurora + night-town + window-bloom backdrop, tinted to the box being
+       designed (the active vertical seeds the palette; the live design re-tints it) -->
+  <script>
+    window.GIIIFT_SET = { colors: (window.GIIIFTVertical && window.GIIIFTVertical.get('theme.set')) || { c1: "#7c3aed", c2: "#ec4899", accent: "#fde68a" } };
+    if (window.GIIIFTVertical) window.GIIIFTVertical.applyTheme();
+  </script>
+  <script defer src="/showcase/borealis-set.js"></script>
+  <!-- finalize transition engine: random-picks a transition (iris, wormhole, …) on Send; see finalize-transitions.js -->
+  <script defer src="/showcase/finalize-transitions.js"></script>
+  <!-- three.js for the borealis-wormhole finalize transition (the present dives through the aurora) -->
+  <script type="importmap">
+    { "imports": {
+      "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+      "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+    } }
+  </script>
+  <style>
+    :root { --bset-z: -3; }                  /* aurora/town/bloom render behind the page content */
+    .studio-grid, .noise { display: none; }  /* the borealis aurora replaces the studio grid + noise */
+  </style>
+
+  <style>
+    :root {
+      --bg: #0b0d0c; --bg-2: #131715; --panel: #16191b; --panel-2: #1d2123;
+      --line: rgba(255,255,255,0.10); --line-strong: rgba(255,255,255,0.22);
+      --ink: #f3f4f2; --muted: rgba(243,244,242,0.55); --muted-2: rgba(243,244,242,0.38);
+      --accent-ui: #00FF9D;
+      --font-main: 'Inter', sans-serif; --font-serif: 'EB Garamond', serif;
+      --font-mono: 'VT323', monospace; --font-logo: 'Bowlby One', sans-serif;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background:
+        radial-gradient(1100px 720px at 12% -8%, hsla(162,85%,55%,0.16), transparent 60%),
+        radial-gradient(1000px 800px at 92% 8%, hsla(212,88%,58%,0.18), transparent 62%),
+        radial-gradient(1200px 900px at 50% 116%, hsla(264,80%,60%,0.15), transparent 60%),
+        var(--bg);
+      color: var(--ink); font-family: var(--font-main); min-height: 100vh; overflow-x: hidden;
+      -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale;
+    }
+    a { color: inherit; }
+    .studio-grid { position: fixed; inset: 0; z-index: 0; pointer-events: none;
+      background-image: linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.025) 1px, transparent 1px);
+      background-size: 48px 48px; mask-image: radial-gradient(circle at 50% 35%, #000 0%, transparent 75%); }
+    .noise { position: fixed; inset: 0; z-index: 1; pointer-events: none; opacity: 0.035;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"); }
+
+    .nav-logo { position: fixed; top: 20px; left: 24px; z-index: 60; font-family: var(--font-logo); font-size: 22px; letter-spacing: -0.04em; color: var(--ink); text-decoration: none; transform: rotate(-3deg); display: inline-flex; align-items: baseline; gap: 1px; }
+    .nav-logo .i-1 { color: #FF3B6F; } .nav-logo .i-2 { color: #FFD93D; } .nav-logo .i-3 { color: #4ECDC4; }
+    .nav-logo .dot { width: 8px; height: 8px; background: var(--ink); border-radius: 50%; transform: translateY(-2px); margin-left: 3px; }
+    .nav-back { position: fixed; top: 22px; right: 24px; z-index: 60; font-size: 12px; font-weight: 600; text-decoration: none; color: var(--muted); padding: 8px 14px; border: 1px solid var(--line); border-radius: 99px; background: rgba(255,255,255,0.03); transition: color .2s, border-color .2s; }
+    .nav-back:hover { color: var(--ink); border-color: var(--line-strong); }
+
+    /* ---------- 2-column studio: control card (left) + stage (right) ---------- */
+    .stage {
+      position: relative; z-index: 2; min-height: 100vh;
+      display: grid; grid-template-columns: minmax(480px, 624px) 1fr; gap: 30px;
+      padding: 88px 34px 40px 128px;
+      align-items: start;
+    }
+
+    /* the single sleek control card on the left - holds whichever step is active */
+    .control-card {
+      align-self: center;
+      background: linear-gradient(180deg, rgba(255,255,255,0.045), rgba(255,255,255,0.012));
+      border: 1px solid var(--line); border-radius: 22px;
+      padding: 24px 22px;
+      box-shadow: 0 28px 70px -34px rgba(0,0,0,0.85), inset 0 1px 0 rgba(255,255,255,0.05);
+      backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+      min-height: min(640px, calc(100vh - 120px)); max-height: calc(100vh - 104px); overflow-y: auto;
+      display: flex; flex-direction: column; gap: 18px;
+      transition: opacity .3s;
+    }
+    .control-card.busy { opacity: 0.5; pointer-events: none; }
+    .control-card::-webkit-scrollbar { width: 8px; }
+    .control-card::-webkit-scrollbar-thumb { background: var(--line-strong); border-radius: 99px; }
+
+    /* card header (changes per step) */
+    .card-head .eyebrow { font-family: var(--font-mono); font-size: 13px; letter-spacing: 0.24em; text-transform: uppercase; color: var(--accent-ui); }
+    .card-head h2 { font-family: var(--font-serif); font-style: italic; font-weight: 600; font-size: 27px; margin-top: 3px; }
+    .card-head p { font-size: 12.5px; color: var(--muted); margin-top: 7px; line-height: 1.45; }
+
+    /* step panes swap inside the card */
+    .pane { display: flex; flex-direction: column; gap: 16px; }
+    .pane[hidden] { display: none; }
+    .pane-enter { animation: pane-in 0.45s cubic-bezier(.2,.7,.2,1) both; }
+    @keyframes pane-in { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+    /* sub-steps inside "make it yours": text → design */
+    .sub-pane { display: flex; flex-direction: column; gap: 16px; }
+    .sub-pane[hidden] { display: none; }
+    .back-link { align-self: flex-start; background: none; border: none; color: var(--muted); font-family: var(--font-main); font-size: 12px; font-weight: 600; cursor: pointer; padding: 0; margin-bottom: 10px; display: inline-flex; align-items: center; gap: 4px; transition: color .2s; }
+    .back-link:hover { color: var(--accent-ui); }
+
+    /* vertical "one-tap pack" suggestions - injected when the active vertical defines wrap.suggested */
+    .suggest-row { display: flex; flex-direction: column; gap: 8px; }
+    .suggest-row[hidden] { display: none; }
+    .suggest-title { font-size: 10.5px; font-weight: 800; letter-spacing: 0.16em; text-transform: uppercase; color: var(--accent-ui); }
+    .suggest-chips { display: flex; gap: 8px; flex-wrap: wrap; }
+    .suggest-chip { display: inline-flex; align-items: center; gap: 8px; padding: 9px 12px; border-radius: 12px; cursor: pointer;
+      border: 1px solid color-mix(in srgb, var(--accent-ui) 36%, transparent); background: color-mix(in srgb, var(--accent-ui) 7%, transparent);
+      color: var(--ink); font-family: var(--font-main); font-size: 12.5px; font-weight: 700; transition: border-color .2s, background .2s, transform .15s; }
+    .suggest-chip:hover { border-color: var(--accent-ui); background: color-mix(in srgb, var(--accent-ui) 14%, transparent); transform: translateY(-1px); }
+    .suggest-chip .sc-glyph { font-size: 15px; }
+    .suggest-chip .sc-hint { font-weight: 500; font-size: 11px; color: var(--muted); }
+
+    /* small one-tap chips: occasions + note prompts (vertical-driven) */
+    .vchip-row { display: flex; gap: 7px; flex-wrap: wrap; margin-top: 8px; }
+    .vchip { padding: 7px 12px; border-radius: 99px; cursor: pointer; font-family: var(--font-main); font-size: 11.5px; font-weight: 700;
+      border: 1px solid var(--line); background: rgba(255,255,255,0.03); color: var(--muted); transition: color .2s, border-color .2s, background .2s; }
+    .vchip:hover { color: var(--ink); border-color: var(--line-strong); }
+    .vchip.sel { color: var(--ink); border-color: var(--accent-ui); background: color-mix(in srgb, var(--accent-ui) 10%, transparent); }
+    .value-guide { font-size: 11px; color: var(--muted-2); margin-top: 7px; line-height: 1.5; }
+    .value-guide[hidden] { display: none; }
+
+    /* ---------- right stage: step tracker + big box + action ---------- */
+    .stage-right { display: flex; flex-direction: column; align-items: center; gap: 10px; min-height: calc(100vh - 116px); }
+
+    /* the "1 → N" step tracker, in its own sleek pill-card */
+    .steps-card {
+      position: relative; z-index: 10;
+      display: inline-flex; align-items: center; gap: 10px; flex-wrap: wrap; justify-content: center;
+      background: rgba(18,21,23,0.78); border: 1px solid var(--line); border-radius: 99px;
+      padding: 10px 20px; box-shadow: 0 8px 24px -10px rgba(0,0,0,0.7), inset 0 1px 0 rgba(255,255,255,0.05); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+    }
+    .step { display: flex; align-items: center; gap: 8px; font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted-2); transition: color .3s; }
+    .step .num { width: 24px; height: 24px; border-radius: 50%; border: 1px solid var(--line-strong); display: flex; align-items: center; justify-content: center; font-family: var(--font-mono); font-size: 14px; transition: all .3s; }
+    .step .lbl { white-space: nowrap; }
+    .step.active { color: var(--ink); }
+    .step.active .num { border-color: var(--accent-ui); color: var(--accent-ui); box-shadow: 0 0 12px -2px var(--accent-ui); }
+    .step.done .num { background: var(--accent-ui); color: #06241a; border-color: var(--accent-ui); }
+    .step .bar { width: 22px; height: 1px; background: var(--line); }
+
+    /* ---------- the 3D box ---------- */
+    .box-stage { perspective: 1600px; flex: 1; width: 100%; min-height: 460px; padding-top: 66px; display: flex; align-items: center; justify-content: center; position: relative; }
+    .scene { transform-style: preserve-3d; position: relative; z-index: 1; animation: scene-enter 1.05s cubic-bezier(.2,.75,.25,1) both, float 6s 1.15s ease-in-out infinite; }
+    /* on load: the box rotates in from the right, settles, then idles */
+    @keyframes scene-enter {
+      0%   { opacity: 0; transform: translateX(120%) rotateY(-85deg) scale(.92); }
+      55%  { opacity: 1; }
+      100% { opacity: 1; transform: translateX(0) rotateY(0deg) scale(1); }
+    }
+    /* once the box has settled, the step-1 UI rises in */
+    #control-card { animation: ui-rise .6s 1.05s backwards; }
+    #steps { animation: ui-rise .55s 1.25s backwards; }
+    @keyframes ui-rise { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: none; } }
+    /* gentle idle hover - floats up and subtly wobbles (paused while dragging) */
+    @keyframes float {
+      0%   { transform: translateY(0) rotateX(0deg) rotateY(0deg); }
+      50%  { transform: translateY(-18px) rotateX(-2.5deg) rotateY(4deg); }
+      100% { transform: translateY(0) rotateX(0deg) rotateY(0deg); }
+    }
+    .box { --box-size: clamp(260px, 26vw, 360px); position: relative; width: var(--box-size); height: var(--box-size); transform-style: preserve-3d; transform: rotateY(-27deg) rotateX(13deg); transition: transform 0.9s cubic-bezier(.5,.02,.2,1); }
+    .box-stage.can-drag { cursor: grab; }
+    .box-stage.dragging { cursor: grabbing; }
+    .box-stage.dragging .box { transition: none; }
+
+    .face {
+      position: absolute; width: var(--box-size); height: var(--box-size); overflow: hidden;
+      border: 1px solid rgba(255,255,255,0.05); border-radius: 9px;
+      background: var(--bg-dark, #6b4f33); background-size: var(--bg-size, auto);
+    }
+    .face:not(.front)::after { content: ''; position: absolute; inset: 0; pointer-events: none; background-image: repeating-linear-gradient(0deg, rgba(0,0,0,0.05) 0 2px, transparent 2px 6px); opacity: 0.6; }
+    .face.front { background: var(--bg-front, #6b4f33); background-size: var(--bg-size, auto); transform: translateZ(calc(var(--box-size) / 2)); display: flex; flex-direction: column; align-items: center; justify-content: center; padding: calc(var(--box-size) * 0.09); }
+    .face.back { transform: translateZ(calc(var(--box-size) / -2)) rotateY(180deg); }
+    .face.left { transform: rotateY(-90deg) translateZ(calc(var(--box-size) / 2)); }
+    .face.right { background: var(--bg-side2, #5a4226); background-size: var(--bg-size, auto); transform: rotateY(90deg) translateZ(calc(var(--box-size) / 2)); }
+    .face.bottom { transform: rotateX(-90deg) translateZ(calc(var(--box-size) / 2)); }
+
+    /* interior shown while open */
+    .cavity {
+      position: absolute; inset: 8%;
+      background: radial-gradient(circle at 50% 40%, #2a2018, #0c0805 78%);
+      box-shadow: inset 0 8px 22px rgba(0,0,0,0.85);
+      transform: rotateX(90deg) translateZ(calc(var(--box-size) / -2 + 16px));
+      border-radius: 8px;
+    }
+
+    /* lid sits on the top plane, hinged at the back edge */
+    .lid-plane { position: absolute; width: var(--box-size); height: var(--box-size); transform: rotateX(90deg) translateZ(calc(var(--box-size) / 2)); transform-style: preserve-3d; pointer-events: none; }
+    .flap {
+      position: absolute; background: var(--bg-top, #7c5c39); background-size: var(--bg-size, auto);
+      border: 1px solid rgba(0,0,0,0.18); border-radius: 7px;
+      transition: transform 0.95s cubic-bezier(.5,.02,.2,1);
+      box-shadow: 0 0 8px rgba(0,0,0,0.25);
+    }
+    .flap::after { content: ''; position: absolute; inset: 0; background-image: repeating-linear-gradient(0deg, rgba(0,0,0,0.05) 0 2px, transparent 2px 6px); opacity: 0.55; border-radius: 7px; }
+    .fl-back  { top: 0; left: 0; width: 100%; height: 50%; transform-origin: center top;    transform: translateZ(0.6px) rotateX(0deg); }
+    .fl-front { bottom: 0; left: 0; width: 100%; height: 50%; transform-origin: center bottom; transform: translateZ(0.6px) rotateX(0deg); }
+    .fl-left  { top: 0; left: 0; width: 50%; height: 100%; transform-origin: left center;   transform: translateZ(-0.6px) rotateY(0deg); }
+    .fl-right { top: 0; right: 0; width: 50%; height: 100%; transform-origin: right center; transform: translateZ(-0.6px) rotateY(0deg); }
+    .box.is-open .fl-back  { transform: translateZ(0.6px) rotateX(127deg); }
+    .box.is-open .fl-front { transform: translateZ(0.6px) rotateX(-127deg); }
+    .box.is-open .fl-left  { transform: translateZ(-0.6px) rotateY(-127deg); }
+    .box.is-open .fl-right { transform: translateZ(-0.6px) rotateY(127deg); }
+    .box.holo-anim .face, .box.holo-anim .flap { animation: holoshift 15s ease-in-out infinite alternate; }
+    @keyframes holoshift { 0% { background-position: 0% 50%; } 100% { background-position: 100% 50%; } }
+
+    /* pause the idle hover only while the user is dragging the box */
+    .box-stage.dragging .scene { animation-play-state: paused; }
+    /* side manifest stamps - one per asset, in the box's accent colour, right of the label */
+    .side-stamps {
+      position: absolute; right: calc(var(--box-size) * 0.08); top: calc(var(--box-size) * 0.15);
+      width: calc(var(--box-size) * 0.3); height: calc(var(--box-size) * 0.68);
+      display: flex; flex-direction: column; flex-wrap: wrap; align-content: flex-start;
+      gap: calc(var(--box-size) * 0.035); z-index: 2; pointer-events: none;
+    }
+    .side-stamp {
+      width: calc(var(--box-size) * 0.145); height: calc(var(--box-size) * 0.145); border-radius: 50%;
+      border: 2px solid var(--accent, #e8d5b0); color: var(--accent, #e8d5b0);
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 800; font-size: calc(var(--box-size) * 0.06); line-height: 1;
+      opacity: 0.9; transform: rotate(-7deg);
+      animation: stamp-in 0.42s cubic-bezier(.34,1.56,.64,1) both;
+    }
+    @keyframes stamp-in { 0% { transform: scale(0.2) rotate(-26deg); opacity: 0; } 60% { opacity: 0.9; } 100% { transform: scale(1) rotate(-7deg); opacity: 0.9; } }
+
+    /* front content */
+    .brandwrap { border: 3px solid var(--accent, #e8d5b0); color: var(--accent, #e8d5b0); padding: calc(var(--box-size) * 0.05) calc(var(--box-size) * 0.07); text-align: center; max-width: 86%; position: relative; z-index: 3; transition: opacity .3s; }
+    .brandwrap h2 { font-family: var(--font-serif); font-style: italic; font-weight: 600; font-size: calc(var(--box-size) * 0.15); line-height: 0.95; overflow-wrap: break-word; min-height: 0.9em; }
+    .sublabel { font-family: var(--font-mono); font-size: calc(var(--box-size) * 0.056); letter-spacing: 0.18em; margin-top: calc(var(--box-size) * 0.02); text-transform: uppercase; }
+    .specs { margin-top: calc(var(--box-size) * 0.06); width: 86%; font-family: var(--font-mono); font-size: calc(var(--box-size) * 0.05); text-transform: uppercase; color: var(--accent, #e8d5b0); border-top: 2px solid var(--accent, #e8d5b0); padding-top: calc(var(--box-size) * 0.022); position: relative; z-index: 3; }
+    .specs-row { display: flex; justify-content: space-between; gap: 8px; }
+    .front-note { margin-top: calc(var(--box-size) * 0.05); font-family: var(--font-serif); font-style: italic; font-size: calc(var(--box-size) * 0.06); color: rgba(255,255,255,0.7); text-align: center; position: relative; z-index: 3; }
+    .stamp { position: absolute; top: calc(var(--box-size) * 0.06); right: calc(var(--box-size) * 0.06); border: 2px solid var(--fragile, #ff4d4d); color: var(--fragile, #ff4d4d); padding: 3px 7px; font-weight: 800; font-family: var(--font-main); font-size: calc(var(--box-size) * 0.05); letter-spacing: 0.04em; transform: rotate(14deg); text-transform: uppercase; opacity: 0.9; white-space: nowrap; z-index: 3; }
+    .hidden { display: none !important; }
+
+    /* typewriter: front text is rendered char-by-char so newly typed
+       characters "ink" onto the box; a caret blinks while the field is focused */
+    .tch.ink { animation: ink-in 0.32s ease both; }
+    @keyframes ink-in { from { opacity: 0; } to { opacity: 1; } }
+    [data-role="brand"].caret::after,
+    [data-role="sublabel"].caret::after,
+    [data-role="note"].caret::after {
+      content: ''; display: inline-block; width: 0.07em; height: 0.92em; background: currentColor;
+      margin-left: 0.06em; vertical-align: -0.08em; border-radius: 1px;
+      animation: caret-blink 1.05s steps(1) infinite;
+    }
+    @keyframes caret-blink { 0%, 50% { opacity: 0.85; } 50.01%, 100% { opacity: 0; } }
+
+    /* finish layers (front + side) */
+    .front-fx { position: absolute; inset: 0; pointer-events: none; z-index: 1; }
+    /* wrap patterns - always on, subtly drifting */
+    .front-fx.stripes    { background-image: repeating-linear-gradient(45deg, rgba(255,255,255,0.10) 0 7px, transparent 7px 16px); animation: pat-pan 7s ease-in-out infinite alternate; }
+    .front-fx.dots       { background-image: radial-gradient(rgba(255,255,255,0.16) 1.5px, transparent 1.8px); background-size: 16px 16px; animation: pat-pan 9s ease-in-out infinite alternate; }
+    .front-fx.grid       { background-image: linear-gradient(rgba(255,255,255,0.11) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.11) 1px, transparent 1px); background-size: 18px 18px; animation: pat-pan 11s ease-in-out infinite alternate; }
+    .front-fx.chevron    { background-image: repeating-linear-gradient(135deg, rgba(255,255,255,0.10) 0 6px, transparent 6px 14px), repeating-linear-gradient(45deg, rgba(255,255,255,0.10) 0 6px, transparent 6px 14px); background-size: 28px 28px; animation: pat-pan 10s ease-in-out infinite alternate; }
+    .front-fx.crosshatch { background-image: repeating-linear-gradient(45deg, rgba(255,255,255,0.10) 0 1px, transparent 1px 9px), repeating-linear-gradient(-45deg, rgba(255,255,255,0.10) 0 1px, transparent 1px 9px); animation: pat-pan 12s ease-in-out infinite alternate; }
+    .front-fx.waves      { background-image: radial-gradient(circle at 50% 120%, transparent 7px, rgba(255,255,255,0.12) 8px, transparent 9px); background-size: 22px 13px; animation: pat-pan 8s ease-in-out infinite alternate; }
+    .front-fx.checker    { background-image: conic-gradient(rgba(255,255,255,0.09) 0 25%, transparent 0 50%, rgba(255,255,255,0.09) 0 75%, transparent 0); background-size: 22px 22px; animation: pat-pan 13s ease-in-out infinite alternate; }
+    .front-fx.rings      { background-image: radial-gradient(circle, transparent 4px, rgba(255,255,255,0.13) 5px, transparent 6px); background-size: 24px 24px; animation: pat-pan 9.5s ease-in-out infinite alternate; }
+    .front-fx.plus       { background-image: linear-gradient(rgba(255,255,255,0.14) 2px, transparent 2px), linear-gradient(90deg, rgba(255,255,255,0.14) 2px, transparent 2px); background-size: 22px 22px; animation: pat-pan 11.5s ease-in-out infinite alternate; }
+    .front-fx.diagonal   { background-image: repeating-linear-gradient(60deg, rgba(255,255,255,0.09) 0 9px, transparent 9px 20px); animation: pat-pan 10.5s ease-in-out infinite alternate; }
+    .front-fx.weave      { background-image: repeating-linear-gradient(0deg, rgba(255,255,255,0.08) 0 2px, transparent 2px 10px), repeating-linear-gradient(90deg, rgba(255,255,255,0.08) 0 2px, transparent 2px 10px); background-size: 20px 20px; animation: pat-pan 12.5s ease-in-out infinite alternate; }
+    @keyframes pat-pan { from { background-position: 0 0; } to { background-position: 24px 16px; } }
+    .front-fx.sheen { background: linear-gradient(120deg, transparent 30%, rgba(255,255,255,0.22) 50%, transparent 70%); background-size: 250% 100%; animation: sheen-sweep 7.5s ease-in-out infinite; }
+    @keyframes sheen-sweep { 0% { background-position: 170% 0; } 55%, 100% { background-position: -70% 0; } }
+
+    /* side receipt */
+    .label { position: absolute; bottom: calc(var(--box-size) * 0.12); left: calc(var(--box-size) * 0.12); width: calc(var(--box-size) * 0.46); background: #e8e6e0; color: #111; padding: calc(var(--box-size) * 0.05); transform: rotate(-5deg); box-shadow: 0 4px 14px rgba(0,0,0,0.5); font-family: var(--font-main); z-index: 2; }
+    .label-title { font-weight: 800; font-size: calc(var(--box-size) * 0.05); letter-spacing: 0.06em; }
+    .label-to { font-size: calc(var(--box-size) * 0.045); margin-top: 3px; color: #333; }
+    .label .addr { height: 3px; background: #bdb9af; margin: calc(var(--box-size) * 0.025) 0; width: 85%; }
+    .label .addr.short { width: 55%; }
+    .barcode { height: calc(var(--box-size) * 0.12); margin-top: calc(var(--box-size) * 0.03); background: repeating-linear-gradient(90deg, #111 0 2px, #e8e6e0 2px 4px); }
+
+    /* ---------- unique printed decals on the left / back / bottom faces ---------- */
+    .face.left, .face.back, .face.bottom { color: var(--accent, #e8d5b0); }
+    .side-eyebrow { font-family: var(--font-mono); font-size: calc(var(--box-size)*0.045); letter-spacing: 0.22em; opacity: 0.75; }
+    .side-rule { width: 64%; height: 2px; background: currentColor; opacity: 0.5; margin: calc(var(--box-size)*0.035) auto; }
+    .side-barcode { height: calc(var(--box-size)*0.1); background: repeating-linear-gradient(90deg, currentColor 0 2px, transparent 2px 5px); opacity: 0.5; }
+
+    /* LEFT - handling & care symbols */
+    .side-stack { position: absolute; inset: 0; z-index: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: calc(var(--box-size)*0.03); padding: calc(var(--box-size)*0.1); text-align: center; }
+    .handling { display: flex; gap: calc(var(--box-size)*0.045); }
+    .hsym { width: calc(var(--box-size)*0.155); height: calc(var(--box-size)*0.155); border: 2px solid currentColor; border-radius: calc(var(--box-size)*0.03); display: flex; align-items: center; justify-content: center; opacity: 0.9; }
+    .hsym svg { width: 62%; height: 62%; }
+    .side-caption { font-family: var(--font-main); font-weight: 800; font-size: calc(var(--box-size)*0.05); letter-spacing: 0.12em; opacity: 0.9; }
+    .side-stack .side-barcode { width: 62%; }
+
+    /* BACK - return address, postage stamp, postmark */
+    .back-grid { position: absolute; inset: 0; z-index: 1; }
+    .ret-block { position: absolute; top: calc(var(--box-size)*0.13); left: calc(var(--box-size)*0.11); width: 52%; }
+    .ret-name { font-family: var(--font-main); font-weight: 800; font-size: calc(var(--box-size)*0.052); margin-top: 4px; line-height: 1.1; }
+    .ret-line { height: 2px; background: currentColor; opacity: 0.4; margin-top: calc(var(--box-size)*0.035); width: 92%; }
+    .ret-line.short { width: 58%; }
+    .postage { position: absolute; top: calc(var(--box-size)*0.11); right: calc(var(--box-size)*0.1); width: calc(var(--box-size)*0.19); height: calc(var(--box-size)*0.23); border: 2px dashed currentColor; border-radius: 5px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: calc(var(--box-size)*0.012); transform: rotate(4deg); }
+    .postage-star { font-size: calc(var(--box-size)*0.085); line-height: 1; }
+    .postage-val { font-family: var(--font-mono); font-size: calc(var(--box-size)*0.042); letter-spacing: 0.06em; }
+    .postmark { position: absolute; top: calc(var(--box-size)*0.42); right: calc(var(--box-size)*0.12); width: calc(var(--box-size)*0.27); height: calc(var(--box-size)*0.27); border: 2px solid currentColor; border-radius: 50%; opacity: 0.55; display: flex; align-items: center; justify-content: center; text-align: center; transform: rotate(-12deg); }
+    .postmark::before { content: ''; position: absolute; inset: calc(var(--box-size)*0.02); border: 1px solid currentColor; border-radius: 50%; opacity: 0.7; }
+    .postmark span { font-family: var(--font-mono); font-size: calc(var(--box-size)*0.032); letter-spacing: 0.08em; line-height: 1.25; max-width: 78%; }
+    .back-grid .side-barcode { position: absolute; bottom: calc(var(--box-size)*0.12); left: calc(var(--box-size)*0.11); width: 78%; }
+
+    /* BOTTOM - seal of authenticity */
+    .bottom-stack { position: absolute; inset: 0; z-index: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: calc(var(--box-size)*0.04); text-align: center; padding: calc(var(--box-size)*0.1); }
+    .seal { width: calc(var(--box-size)*0.3); height: calc(var(--box-size)*0.3); border: 2px solid currentColor; border-radius: 50%; display: flex; align-items: center; justify-content: center; position: relative; opacity: 0.92; }
+    .seal::before { content: ''; position: absolute; inset: calc(var(--box-size)*0.028); border: 1px dashed currentColor; border-radius: 50%; opacity: 0.7; }
+    .seal-star { font-size: calc(var(--box-size)*0.13); line-height: 1; }
+    .made { font-family: var(--font-mono); font-size: calc(var(--box-size)*0.042); letter-spacing: 0.12em; opacity: 0.85; }
+    .serial { font-family: var(--font-mono); font-size: calc(var(--box-size)*0.04); letter-spacing: 0.08em; opacity: 0.55; }
+
+    /* tape - a themed strip on the lid (top), running left → right across the
+       box. Sits just above the closed flaps and wipes on when the box seals. */
+    .tape-wall {
+      position: absolute; left: 0; width: 100%; top: 39%; height: 22%;
+      transform: translateZ(2px) scaleX(0); transform-origin: left center;
+      pointer-events: none; opacity: 0;
+      background:
+        repeating-linear-gradient(0deg, rgba(255,255,255,0.12) 0 5px, transparent 5px 11px),
+        linear-gradient(180deg, color-mix(in srgb, var(--tape, #d6b88c) 82%, transparent), color-mix(in srgb, var(--tape, #d6b88c) 64%, transparent));
+      border-top: 1px solid rgba(255,255,255,0.3); border-bottom: 1px solid rgba(0,0,0,0.24);
+      box-shadow: 0 3px 8px rgba(0,0,0,0.34);
+    }
+    /* Wipe the tape on (left → right) once sealed; `forwards` holds the end
+       state (a transition stalls at t=0 under the box's infinite float anim). */
+    .box.is-sealed .tape-wall { animation: tape-on 0.6s cubic-bezier(.5,.02,.2,1) 0.15s forwards; }
+    @keyframes tape-on {
+      from { opacity: 0; transform: translateZ(2px) scaleX(0); }
+      to   { opacity: 1; transform: translateZ(2px) scaleX(1); }
+    }
+
+    .glow { position: absolute; inset: 0; transform: translateZ(8px); opacity: 0; background: radial-gradient(circle, color-mix(in srgb, var(--accent, #e8d5b0) 45%, transparent) 0%, transparent 70%); transition: opacity .4s; }
+    .box.is-open .glow { opacity: 0.5; }
+
+    /* falling deposit coins - sit behind the box so they read as dropping inside */
+    .drop-coin {
+      position: absolute; z-index: 20;           /* left/top + --start-y set in JS */
+      width: 46px; height: 46px; border-radius: 50%; overflow: hidden;
+      display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 800; font-size: 18px;
+      box-shadow: inset 0 -3px 4px rgba(0,0,0,0.3), inset 0 3px 4px rgba(255,255,255,0.25), 0 10px 22px rgba(0,0,0,0.55);
+      text-shadow: 0 1px 1px rgba(0,0,0,0.3); pointer-events: none;
+      animation: drop-into 0.85s cubic-bezier(.45,.08,.62,1) forwards;
+    }
+    .drop-coin img { width: 100%; height: 100%; object-fit: cover; }
+    /* Falls from above the top of the window (z-index 20, in front of everything),
+       then at the flap line slips BEHIND the open flaps / box (z-index 0) so it
+       disappears inside. --start-y (set in JS) places the start above the viewport. */
+    @keyframes drop-into {
+      0%   { z-index: 20; transform: translate(-50%,-50%) translateY(var(--start-y,-340px)) scale(0.92) rotate(-14deg); opacity: 0; }
+      12%  { opacity: 1; }
+      44%  { z-index: 20; transform: translate(-50%,-50%) translateY(-150px) scale(1) rotate(-3deg); opacity: 1; }
+      47%  { z-index: 0;  opacity: 1; }
+      100% { z-index: 0;  transform: translate(-50%,-50%) translateY(96px) scale(0.5) rotate(9deg); opacity: 0; }
+    }
+
+    /* ---------- asset picker ---------- */
+    .search-row { position: relative; }
+    .search-row input {
+      width: 100%; background: var(--bg-2); border: 1px solid var(--line); border-radius: 12px;
+      color: var(--ink); font-family: var(--font-main); font-size: 14px; padding: 12px 12px 12px 40px; transition: border-color .2s, box-shadow .2s;
+    }
+    .search-row input:focus { outline: none; border-color: var(--accent-ui); box-shadow: 0 0 0 3px rgba(0,255,157,0.08); }
+    .search-row input::placeholder { color: var(--muted-2); }
+    .search-row .si { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: var(--muted-2); font-size: 16px; pointer-events: none; }
+
+    .asset-scroll { max-height: 350px; overflow-y: auto; margin: 0 -4px; padding: 2px 4px; }
+    .asset-scroll::-webkit-scrollbar { width: 8px; }
+    .asset-scroll::-webkit-scrollbar-thumb { background: var(--line-strong); border-radius: 99px; }
+    .asset-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+    .asset-btn { display: flex; flex-direction: column; align-items: center; gap: 7px; padding: 12px 6px; border: 1px solid var(--line); border-radius: 13px; background: var(--panel-2); cursor: pointer; transition: border-color .18s, transform .15s, background .2s; color: var(--ink); }
+    .asset-btn:hover { border-color: var(--line-strong); transform: translateY(-1px); }
+    .asset-btn.sel { border-color: var(--accent-ui); background: rgba(0,255,157,0.07); box-shadow: 0 0 0 1px var(--accent-ui) inset; }
+    .asset-empty-search { grid-column: 1 / -1; font-size: 12px; color: var(--muted-2); font-style: italic; padding: 22px 8px; text-align: center; }
+    .coin {
+      width: 34px; height: 34px; border-radius: 50%; flex-shrink: 0; overflow: hidden;
+      display: flex; align-items: center; justify-content: center; background: #f3f4f2;
+      box-shadow: inset 0 -2px 3px rgba(0,0,0,0.16), inset 0 2px 3px rgba(255,255,255,0.25), 0 1px 2px rgba(0,0,0,0.35);
+    }
+    .coin img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .coin.no-logo { color: #fff; font-weight: 800; font-size: 14px; text-shadow: 0 1px 1px rgba(0,0,0,0.3); }
+    .coin.sm { width: 30px; height: 30px; font-size: 13px; }
+    .asset-btn .nm { font-size: 11px; font-weight: 700; letter-spacing: 0.02em; }
+
+    /* deposit block - big, friendly amount entry */
+    .deposit { display: flex; flex-direction: column; gap: 12px; padding: 16px; border: 1px solid var(--line); border-radius: 16px; background: linear-gradient(180deg, rgba(255,255,255,0.035), rgba(255,255,255,0.006)); }
+    .deposit-label { font-size: 10px; font-weight: 800; letter-spacing: 0.16em; text-transform: uppercase; color: var(--muted-2); }
+    .amount-field { display: flex; align-items: center; gap: 12px; background: var(--bg-2); border: 1.5px solid var(--line); border-radius: 14px; padding: 8px 16px; transition: border-color .2s, box-shadow .2s; }
+    .amount-field:focus-within { border-color: var(--accent-ui); box-shadow: 0 0 0 4px rgba(0,255,157,0.1); }
+    .amount-coin { display: inline-flex; flex-shrink: 0; }
+    .amount-coin .coin { width: 40px; height: 40px; }
+    .amount-input { flex: 1; min-width: 0; background: none; border: none; color: var(--ink); font-family: var(--font-main); font-size: 30px; font-weight: 700; letter-spacing: -0.02em; padding: 8px 0; }
+    .amount-input:focus { outline: none; }
+    .amount-input::placeholder { color: var(--muted-2); font-weight: 600; }
+    .amount-suffix { font-size: 17px; font-weight: 800; color: var(--muted); letter-spacing: 0.03em; flex-shrink: 0; }
+    .quick-amounts { display: flex; gap: 7px; }
+    .quick-amounts button { flex: 1; padding: 9px 0; border: 1px solid var(--line); border-radius: 10px; background: var(--panel-2); color: var(--muted); font-family: var(--font-main); font-size: 13px; font-weight: 700; cursor: pointer; transition: border-color .15s, color .15s, transform .15s, background .15s; }
+    .quick-amounts button:hover { border-color: var(--line-strong); color: var(--ink); background: rgba(255,255,255,0.05); transform: translateY(-1px); }
+    .add-btn { width: 100%; padding: 14px; border-radius: 13px; font-family: var(--font-main); font-size: 15px; font-weight: 800; letter-spacing: -0.01em; background: rgba(0,255,157,0.13); border: 1px solid rgba(0,255,157,0.45); color: var(--accent-ui); cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 8px; transition: background .2s, border-color .2s, transform .15s; }
+    .add-btn:hover { background: rgba(0,255,157,0.22); border-color: var(--accent-ui); transform: translateY(-1px); }
+    .add-btn .ab-arrow { font-size: 17px; }
+    .btn { font-family: var(--font-main); font-size: 13px; font-weight: 700; color: var(--ink); background: var(--panel-2); border: 1px solid var(--line); padding: 11px 16px; border-radius: 10px; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 8px; transition: border-color .2s, background .2s, transform .15s; }
+    .btn:hover { border-color: var(--line-strong); transform: translateY(-1px); }
+    .btn.add { background: rgba(0,255,157,0.1); border-color: rgba(0,255,157,0.4); color: var(--accent-ui); }
+
+    .contents { display: flex; flex-direction: column; gap: 8px; }
+    .content-row { display: flex; align-items: center; gap: 10px; padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: rgba(255,255,255,0.02); animation: pane-in .3s ease both; }
+    .content-row .meta { flex: 1; min-width: 0; }
+    .content-row .meta .a { font-size: 13px; font-weight: 700; }
+    .content-row .meta .b { font-size: 11px; color: var(--muted); }
+    .content-row .rm { background: none; border: none; color: var(--muted-2); cursor: pointer; font-size: 15px; padding: 2px 4px; }
+    .content-row .rm:hover { color: #ff6b6b; }
+    .empty-note { font-size: 12px; color: var(--muted-2); font-style: italic; padding: 14px; text-align: center; border: 1px dashed var(--line); border-radius: 12px; }
+
+    /* customize controls (shared look) */
+    .group { margin-bottom: 4px; }
+    .group > h4 { font-size: 10px; font-weight: 800; letter-spacing: 0.16em; text-transform: uppercase; color: var(--muted-2); margin-bottom: 10px; padding-bottom: 6px; border-bottom: 1px solid var(--line); }
+    .field { margin-bottom: 11px; }
+    .field label { display: block; font-size: 11px; font-weight: 600; color: var(--muted); margin-bottom: 5px; }
+    .field input[type="text"] { width: 100%; background: var(--bg-2); border: 1px solid var(--line); border-radius: 8px; color: var(--ink); font-family: var(--font-main); font-size: 13px; padding: 9px 11px; }
+    .field input[type="text"]:focus { outline: none; border-color: var(--accent-ui); }
+    .field select { width: 100%; background: var(--bg-2); border: 1px solid var(--line); border-radius: 8px; color: var(--ink); font-family: var(--font-main); font-size: 13px; padding: 9px 11px; cursor: pointer; }
+    .field select:focus { outline: none; border-color: var(--accent-ui); }
+    .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .colorfield { display: flex; align-items: center; gap: 10px; }
+    .colorfield input[type="color"] { -webkit-appearance: none; appearance: none; width: 36px; height: 36px; border: 1px solid var(--line); border-radius: 9px; background: none; cursor: pointer; padding: 0; }
+    .colorfield input[type="color"]::-webkit-color-swatch-wrapper { padding: 3px; }
+    .colorfield input[type="color"]::-webkit-color-swatch { border: none; border-radius: 6px; }
+    .colorfield .hex { font-family: var(--font-mono); font-size: 15px; color: var(--muted); text-transform: uppercase; }
+    .swatches { display: flex; gap: 7px; flex-wrap: wrap; margin-top: 8px; }
+    .sw-chip { width: 26px; height: 26px; border-radius: 50%; border: 1px solid var(--line); cursor: pointer; transition: transform .15s; }
+    .sw-chip:hover { transform: scale(1.12); }
+    .switch-row { display: flex; align-items: center; justify-content: space-between; padding: 6px 0; }
+    .switch-row span { font-size: 12px; font-weight: 600; }
+    .switch { position: relative; width: 42px; height: 24px; flex-shrink: 0; }
+    .switch input { opacity: 0; width: 0; height: 0; }
+    .switch .track { position: absolute; inset: 0; background: var(--panel-2); border: 1px solid var(--line); border-radius: 99px; transition: background .2s, border-color .2s; }
+    .switch .track::before { content: ''; position: absolute; width: 16px; height: 16px; left: 3px; top: 3px; border-radius: 50%; background: var(--muted); transition: transform .2s, background .2s; }
+    .switch input:checked + .track { background: rgba(0,255,157,0.16); border-color: var(--accent-ui); }
+    .switch input:checked + .track::before { transform: translateX(18px); background: var(--accent-ui); }
+
+    /* ---------- text step - large, pretty message fields ---------- */
+    .tfields { display: flex; flex-direction: column; gap: 20px; }
+    .tfield-top { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 9px; }
+    .tfield label { font-size: 12px; font-weight: 700; color: var(--muted); letter-spacing: 0.02em; }
+    .tcount { font-family: var(--font-mono); font-size: 14px; color: var(--muted-2); }
+    .tfield input[type="text"] {
+      width: 100%; background: var(--bg-2); border: 1.5px solid var(--line); border-radius: 14px;
+      color: var(--ink); font-family: var(--font-main); font-size: 16px; font-weight: 500; padding: 15px 17px;
+      transition: border-color .2s, box-shadow .2s, background .2s;
+    }
+    .tfield input[type="text"]:focus { outline: none; border-color: var(--accent-ui); box-shadow: 0 0 0 4px rgba(0,255,157,0.1); background: rgba(255,255,255,0.03); }
+    .tfield input[type="text"]:focus + .tfield-hint, .tfield:focus-within label { color: var(--ink); }
+    .tfield input::placeholder { color: var(--muted-2); font-weight: 400; }
+    .tfield-hint { font-size: 11.5px; color: var(--muted-2); margin-top: 8px; }
+    /* hero "Front text" field - echoes the box's serif lettering */
+    .tfield-hero input[type="text"] { font-family: var(--font-serif); font-style: italic; font-weight: 600; font-size: 27px; line-height: 1.1; padding: 16px 18px; }
+    .tfield-hero input::placeholder { font-style: italic; }
+
+    /* ---------- design step - theme presets (gradient showcase) ---------- */
+    .presets { display: flex; gap: 11px; overflow-x: auto; padding: 2px 2px 8px; margin: 0 -2px; }
+    .presets::-webkit-scrollbar { height: 6px; }
+    .presets::-webkit-scrollbar-thumb { background: var(--line-strong); border-radius: 99px; }
+    .preset { flex: 0 0 auto; background: none; border: none; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 7px; padding: 0; }
+    .preset-sw { width: 66px; height: 52px; border-radius: 14px; border: 1.5px solid var(--line); box-shadow: inset 0 1px 0 rgba(255,255,255,0.22), 0 6px 14px -8px rgba(0,0,0,0.7); transition: transform .15s, box-shadow .2s, border-color .2s; }
+    .preset:hover .preset-sw { transform: translateY(-3px); border-color: var(--line-strong); }
+    .preset.sel .preset-sw { border-color: var(--accent-ui); box-shadow: 0 0 0 2px var(--accent-ui), 0 6px 16px -8px rgba(0,0,0,0.7); }
+    .preset-nm { font-size: 11px; font-weight: 600; color: var(--muted); }
+    .preset.sel .preset-nm { color: var(--ink); }
+
+    /* ---------- design step - pattern tiles (replaces the dropdown) ---------- */
+    .pattern-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 9px; }
+    .pat { flex: 1; background: var(--panel-2); border: 1px solid var(--line); border-radius: 13px; cursor: pointer; padding: 9px 8px; display: flex; flex-direction: column; align-items: center; gap: 8px; transition: border-color .2s, transform .15s, background .2s; }
+    .pat:hover { border-color: var(--line-strong); transform: translateY(-1px); }
+    .pat.sel { border-color: var(--accent-ui); background: rgba(0,255,157,0.07); box-shadow: inset 0 0 0 1px var(--accent-ui); }
+    .pat-sw { width: 100%; height: 38px; border-radius: 8px; background-color: #2a2f31; }
+    .pat-none { background-image: none; border: 1px dashed var(--line-strong); background-color: transparent; }
+    .pat-stripes { background-image: repeating-linear-gradient(45deg, rgba(255,255,255,0.3) 0 4px, transparent 4px 9px); }
+    .pat-dots { background-image: radial-gradient(rgba(255,255,255,0.45) 1.6px, transparent 1.9px); background-size: 9px 9px; }
+    .pat-grid { background-image: linear-gradient(rgba(255,255,255,0.32) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.32) 1px, transparent 1px); background-size: 10px 10px; }
+    .pat-chevron    { background-image: repeating-linear-gradient(135deg, rgba(255,255,255,0.34) 0 3px, transparent 3px 7px), repeating-linear-gradient(45deg, rgba(255,255,255,0.34) 0 3px, transparent 3px 7px); background-size: 14px 14px; }
+    .pat-crosshatch { background-image: repeating-linear-gradient(45deg, rgba(255,255,255,0.4) 0 1px, transparent 1px 6px), repeating-linear-gradient(-45deg, rgba(255,255,255,0.4) 0 1px, transparent 1px 6px); }
+    .pat-waves      { background-image: radial-gradient(circle at 50% 120%, transparent 4px, rgba(255,255,255,0.4) 5px, transparent 6px); background-size: 13px 8px; }
+    .pat-checker    { background-image: conic-gradient(rgba(255,255,255,0.32) 0 25%, transparent 0 50%, rgba(255,255,255,0.32) 0 75%, transparent 0); background-size: 12px 12px; }
+    .pat-rings      { background-image: radial-gradient(circle, transparent 2.5px, rgba(255,255,255,0.4) 3.5px, transparent 4.5px); background-size: 13px 13px; }
+    .pat-plus       { background-image: linear-gradient(rgba(255,255,255,0.45) 1.5px, transparent 1.5px), linear-gradient(90deg, rgba(255,255,255,0.45) 1.5px, transparent 1.5px); background-size: 12px 12px; }
+    .pat-diagonal   { background-image: repeating-linear-gradient(60deg, rgba(255,255,255,0.32) 0 4px, transparent 4px 9px); }
+    .pat-weave      { background-image: repeating-linear-gradient(0deg, rgba(255,255,255,0.3) 0 1.5px, transparent 1.5px 6px), repeating-linear-gradient(90deg, rgba(255,255,255,0.3) 0 1.5px, transparent 1.5px 6px); background-size: 11px 11px; }
+    .pat-nm { font-size: 11px; font-weight: 600; color: var(--muted); }
+    .pat.sel .pat-nm { color: var(--ink); }
+
+    .stage-action { width: 100%; max-width: 460px; margin-top: 8px; display: flex; flex-direction: column; align-items: center; gap: 18px; padding-bottom: 24px; margin-bottom: 48px; min-height: 90px; }
+    .primary {
+      font-family: var(--font-main); font-size: 17px; font-weight: 700; letter-spacing: -0.01em;
+      background: var(--accent-ui); color: #06241a; border: none; padding: 18px 42px; border-radius: 99px; cursor: pointer;
+      display: inline-flex; align-items: center; gap: 10px; box-shadow: 0 14px 34px -10px var(--accent-ui); transition: transform .2s, box-shadow .25s, opacity .2s;
+    }
+    .primary:hover { transform: translateY(-2px); }
+    .primary:disabled { opacity: 0.4; cursor: not-allowed; background: var(--panel-2); color: var(--muted); box-shadow: none; }
+    .hint { font-size: 15px; color: var(--muted-2); text-align: center; }
+    /* finalize: box spins away, studio UI fades, link/email panel takes the stage */
+    .stage.finalized .scene { animation: gift-fade-away 0.55s ease forwards; }
+    @keyframes gift-fade-away { to { transform: scale(0.96); opacity: 0; } }
+    .stage.finalized .control-card, .stage.finalized #steps, .stage.finalized .stage-action { opacity: 0; transform: translateY(-12px); transition: opacity .5s ease, transform .5s ease; pointer-events: none; }
+    .finish-panel { position: fixed; inset: 0; z-index: 20; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; gap: 18px; padding: clamp(40px, 8vh, 90px) 0; overflow-y: auto; animation: fp-rise .6s cubic-bezier(.2,.7,.2,1) both;
+      background: linear-gradient(180deg, #05060C 0%, #0A0B16 50%, #14122A 100%); }
+    /* wormhole variant: panel goes transparent so the persisting (blurred) tunnel shows behind the card */
+    .finish-panel.wh-backdrop { background: transparent; }
+    .finish-panel[hidden] { display: none; }
+    @keyframes fp-rise { from { transform: translateY(24px); } to { transform: none; } }
+    /* iris transition: a circular "hole" whose huge box-shadow blacks out everything around it */
+    .iris { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); border-radius: 50%;
+      box-shadow: 0 0 0 150vmax #05060C; pointer-events: none; z-index: 60; width: 150vmax; height: 150vmax; }
+    .iris[hidden] { display: none; }
+    .iris-closing { animation: iris-close 1.2s cubic-bezier(.5, 0, .2, 1) forwards; }
+    .iris-opening { animation: iris-open 1.2s cubic-bezier(.5, 0, .2, 1) forwards; }
+    @keyframes iris-close { 0% { width: 150vmax; height: 150vmax; } 100% { width: 0; height: 0; } }
+    @keyframes iris-open { 0% { width: 0; height: 0; } 100% { width: 150vmax; height: 150vmax; } }
+    /* hold the van (and the user's package) frozen off-screen until the reveal completes */
+    .finish-panel.van-hold .dv-van,
+    .finish-panel.van-hold .dv-van *,
+    .finish-panel.van-hold .dv-pkg-user { animation-play-state: paused; }
+    /* cosmic city skyline - a silhouette band rising behind the road (replaces the grass) */
+    .fp-city { position: absolute; left: 0; bottom: 0; width: 100%; height: clamp(220px, 30vh, 320px); z-index: 0; pointer-events: none; overflow: hidden; }
+    .fp-city svg { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+    /* clean dark silhouettes: no outlines, no glow */
+    .fpc-bg { fill: #060209; } .fpc-mid { fill: #040106; } .fpc-fg { fill: #030105; }
+    .fpc-rim-m, .fpc-rim-c, .fpc-rim-s { stroke: none; }
+    .fpc-win { fill: #ffd166; opacity: .8; filter: drop-shadow(0 0 4px rgba(255,209,102,0.8)); animation: fpc-window 4s infinite alternate ease-in-out; }
+    @keyframes fpc-window { 0% { opacity: .4; filter: drop-shadow(0 0 2px rgba(255,209,102,0.4)); } 100% { opacity: .9; filter: drop-shadow(0 0 6px rgba(255,209,102,0.9)); } }
+    /* full-screen night sky behind the whole finish panel */
+    /* WebGL aurora/borealis background - the backmost layer of the finish panel,
+       sitting behind the hills, road, house, card and text. Replaces the CSS night sky. */
+    .fp-aurora { position: absolute; inset: 0; z-index: 0; width: 100%; height: 100%; display: block; pointer-events: none; }
+    /* two-column finish layout: glass card on the left, dreamy status title on the right */
+    .fp-main { position: relative; z-index: 3; width: 100%; max-width: 1240px; margin: auto 0; padding: 0 clamp(24px, 5vw, 72px); display: grid; place-items: center; }
+    /* status + card share one centered cell: the status plays first, the card is revealed at the end */
+    .fp-main > .delivery-status, .fp-main > .fp-card { grid-area: 1 / 1; }
+    .fp-main .delivery-status { max-width: min(92vw, 760px); transition: opacity .55s ease; }
+    .fp-main .delivery-status.gone { opacity: 0; pointer-events: none; }
+    @media (max-width: 980px) { .fp-main { max-width: 640px; } }
+    /* glass card (adopted design) */
+    .fp-card { position: relative; z-index: 1; width: min(720px, 94vw); max-width: 100%; padding: clamp(40px, 5vw, 64px); border-radius: 36px; text-align: center; overflow: hidden;
+      background: linear-gradient(135deg, rgba(255,255,255,0.06), rgba(255,255,255,0.012));
+      border: 1px solid rgba(255,255,255,0.09); box-shadow: 0 32px 64px -16px rgba(0,0,0,0.6), inset 0 1px 1px rgba(255,255,255,0.1);
+      backdrop-filter: blur(40px); -webkit-backdrop-filter: blur(40px); display: flex; flex-direction: column; align-items: center;
+      opacity: 0; transform: translateY(26px) scale(.97); pointer-events: none; transition: opacity .7s cubic-bezier(.2,.7,.2,1), transform .7s cubic-bezier(.2,.7,.2,1); }
+    .fp-card.revealed { opacity: 1; transform: none; pointer-events: auto; }
+    .fp-card::before { content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 1px; background: linear-gradient(90deg, transparent, rgba(255,255,255,0.22), transparent); }
+    /* wormhole variant only: lift the card + brighten the tunnel directly behind it so it pops against the dim flow */
+    .finish-panel.wh-backdrop .fp-card {
+      background: linear-gradient(135deg, rgba(255,255,255,0.12), rgba(255,255,255,0.035));
+      border-color: rgba(255,255,255,0.18);
+      -webkit-backdrop-filter: blur(40px) brightness(1.5) saturate(1.12);
+      backdrop-filter: blur(40px) brightness(1.5) saturate(1.12);
+      box-shadow: 0 32px 64px -16px rgba(0,0,0,0.5), inset 0 1px 1px rgba(255,255,255,0.2), 0 0 120px -10px rgba(255,255,255,0.22); }
+    .fp-title { font-family: var(--font-main); font-weight: 600; font-size: clamp(48px, 5vw, 68px); line-height: 1.05; letter-spacing: -0.025em; color: #fff; text-shadow: 0 0 30px rgba(255,255,255,0.35); }
+    .fp-sub { font-size: 20px; font-weight: 300; color: rgba(255,255,255,0.5); margin-top: 18px; }
+    .fp-sub b { color: rgba(255,255,255,0.85); font-weight: 500; }
+    .fp-divider { width: 100%; height: 1px; border: 0; background: linear-gradient(90deg, transparent, rgba(255,255,255,0.14), transparent); margin: 38px 0; }
+    .fp-field-label { font-family: var(--font-main); font-size: 18px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; color: rgba(255,255,255,0.65); text-align: center; margin: 0 0 22px; }
+    .fp-link { width: 100%; display: flex; align-items: center; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.07); border-radius: 18px; padding: 8px; box-shadow: inset 0 2px 10px rgba(0,0,0,0.5); transition: border-color .25s; }
+    .fp-link:hover { border-color: rgba(255,255,255,0.15); }
+    .fp-link-icon { flex-shrink: 0; width: 40px; height: 40px; display: grid; place-items: center; border-radius: 12px; background: rgba(255,255,255,0.05); color: rgba(255,255,255,0.4); }
+    .fp-link-icon svg { width: 16px; height: 16px; }
+    .fp-url { flex: 1; min-width: 0; font-family: var(--font-mono); font-size: 13px; color: rgba(255,255,255,0.8); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding: 0 14px; text-align: left; }
+    .fp-copy { flex-shrink: 0; display: inline-flex; align-items: center; gap: 7px; background: #fff; color: #000; font-family: var(--font-main); font-weight: 600; font-size: 14px; padding: 12px 22px; border-radius: 12px; border: none; cursor: pointer; box-shadow: 0 0 15px rgba(255,255,255,0.2); transition: transform .15s, background .2s; }
+    .fp-copy:hover { background: rgba(255,255,255,0.9); }
+    .fp-copy:active { transform: scale(.96); }
+    .fp-copy svg { width: 15px; height: 15px; }
+    .fp-email { width: 100%; display: flex; flex-direction: column; gap: 20px; margin-top: 26px; }
+    .fp-email input { width: 100%; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.08); border-radius: 18px; padding: 23px 26px; color: #fff; font-family: var(--font-main); font-size: 21px; box-shadow: inset 0 2px 10px rgba(0,0,0,0.5); transition: border-color .2s, box-shadow .2s; }
+    .fp-email input::placeholder { color: rgba(255,255,255,0.3); }
+    .fp-email input:focus { outline: none; border-color: rgba(140,219,232,0.5); box-shadow: inset 0 2px 10px rgba(0,0,0,0.5), 0 0 0 3px rgba(140,219,232,0.14); }
+    /* Send: full-width, bottom of the card, glowing/animating in borealis colours */
+    .fp-send { width: 100%; margin-top: 24px; color: #fff; border: 1px solid color-mix(in srgb, var(--bor-bright, #8cdbe8) 45%, transparent); font-family: var(--font-main); font-weight: 700; font-size: 20px; padding: 21px; border-radius: 18px; cursor: pointer; text-shadow: 0 1px 6px rgba(0,0,0,0.45);
+      background: linear-gradient(90deg, var(--bor-a, #2c7a8b), var(--bor-b, #4ba6b3), var(--bor-c, #8cdbe8), var(--bor-b, #4ba6b3), var(--bor-a, #2c7a8b)); background-size: 280% 100%;
+      animation: borealis-shift 7s linear infinite, borealis-glow 3.6s ease-in-out infinite alternate; transition: transform .15s; }
+    .fp-send:hover { transform: translateY(-2px); }
+    .fp-send:active { transform: scale(.98); }
+    @keyframes borealis-shift { to { background-position: 280% 50%; } }
+    @keyframes borealis-glow { 0% { box-shadow: 0 0 22px -4px color-mix(in srgb, var(--bor-b, #4ba6b3) 45%, transparent); } 100% { box-shadow: 0 0 42px 2px color-mix(in srgb, var(--bor-bright, #8cdbe8) 62%, transparent); } }
+    .fp-open { display: inline-flex; align-items: center; gap: 8px; font-size: 16px; color: rgba(255,255,255,0.4); text-decoration: none; margin-top: 30px; align-self: center; transition: color .2s; }
+    .fp-open:hover { color: rgba(255,255,255,0.8); }
+    .fp-open svg { width: 16px; height: 16px; }
+    /* recipient capture (Privy delivery): segmented channel toggle + hint + sent state */
+    .fp-seg { display: inline-flex; gap: 5px; padding: 5px; border-radius: 16px; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.07); margin-bottom: 4px; }
+    .fp-seg button { font-family: var(--font-mono); font-size: 17px; letter-spacing: 0.06em; text-transform: uppercase; color: rgba(255,255,255,0.5); background: none; border: none; padding: 13px 30px; border-radius: 12px; cursor: pointer; transition: background .2s, color .2s; }
+    .fp-seg button.on { background: rgba(255,255,255,0.12); color: #fff; }
+    .fp-seg button:hover:not(.on) { color: rgba(255,255,255,0.8); }
+    /* all three channel hints share one grid cell, so the block is always as tall as
+       the tallest one and toggling email/phone/wallet never nudges the Send button */
+    .fp-hint { display: grid; max-width: 56ch; margin: 0 auto; font-size: 16px; }
+    .fp-hint > span { grid-area: 1 / 1; font-size: 16px; font-weight: 300; line-height: 1.6; color: rgba(255,255,255,0.45); text-align: center; visibility: hidden; }
+    .fp-hint > span.on { visibility: visible; }
+    .fp-hint b { color: rgba(255,255,255,0.7); font-weight: 500; }
+    .fp-sent { display: flex; align-items: flex-start; gap: 14px; padding: 18px; border-radius: 18px; background: rgba(0,255,157,0.06); border: 1px solid rgba(0,255,157,0.22); }
+    .fp-sent-ic { flex: 0 0 auto; width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; background: rgba(0,255,157,0.16); color: #6fe6c0; font-weight: 700; }
+    .fp-sent-h { font-weight: 600; font-size: 16px; color: #fff; }
+    .fp-sent-sub { font-size: 13.5px; font-weight: 300; color: rgba(255,255,255,0.55); margin-top: 3px; line-height: 1.5; }
+    .fp-copy-fallback { display: inline-flex; align-items: center; gap: 7px; margin-top: 14px; background: none; border: none; color: rgba(255,255,255,0.4); font-family: var(--font-main); font-size: 13px; cursor: pointer; padding: 0; }
+    .fp-copy-fallback:hover { color: rgba(255,255,255,0.85); }
+    .fp-copy-fallback svg { width: 14px; height: 14px; }
+    /* ===================== delivery animation (GIIIFT van) ===================== */
+    .delivery { position: absolute; left: 0; bottom: 0; z-index: 1; width: 100vw; height: 230px; overflow: hidden; pointer-events: none; }
+    .delivery-status { position: relative; z-index: 1; font-family: var(--font-serif); font-style: italic; font-weight: 600; font-size: clamp(42px, 5.4vw, 72px); color: var(--ink); text-align: center; letter-spacing: -0.02em; line-height: 1.02; min-height: 1.1em; text-shadow: 0 3px 30px rgba(0,0,0,0.5); }
+    /* status floated above the WebGL wormhole canvas — the "text around the wormhole" */
+    .delivery-status.over-wormhole { position: fixed; z-index: 10000; left: 50%; top: 50%; transform: translate(-50%, -50%); width: min(92vw, 760px); margin: 0; pointer-events: none; }
+    .delivery-status .dv-verb { font-style: inherit; color: #4ECDC4; }
+    @supports ((-webkit-background-clip: text) or (background-clip: text)) {
+      .delivery-status .dv-verb {
+        background: linear-gradient(90deg, #4ECDC4, #7CF5FF, #00FF9D, #9d8bff, #4ECDC4);
+        background-size: 300% 100%; -webkit-background-clip: text; background-clip: text;
+        -webkit-text-fill-color: transparent; color: transparent;
+        animation: text-shimmer 7s linear infinite;
+      }
+    }
+    @keyframes text-shimmer { to { background-position: -300% 50%; } }
+    /* ethereal per-character reveal for the delivery status - dreamy blur-in, then a gentle float */
+    .delivery-status .dream-char { display: inline-block; opacity: 0; filter: blur(14px); transform: translate3d(0, 22px, -34px) scale(1.08); animation: ds-reveal 2.4s cubic-bezier(.2,.8,.2,1) forwards; --gc: rgba(255,255,255,0.42); text-shadow: 0 0 14px var(--gc); will-change: transform, opacity, filter; }
+    .delivery-status .dream-char.verb { color: #fff; --gc: rgba(255,255,255,0.5); }
+    .delivery-status .dream-char.float { animation: ds-breath 7s infinite ease-in-out alternate; }
+    @keyframes ds-reveal {
+      0%   { opacity: 0; filter: blur(14px); transform: translate3d(0, 30px, -34px) scale(1.08) rotateX(-12deg); }
+      55%  { opacity: .85; filter: blur(2px); }
+      100% { opacity: 1; filter: blur(0); transform: translate3d(0, 0, 0) scale(1) rotateX(0deg); }
+    }
+    @keyframes ds-breath {
+      0%   { transform: translateY(0) scale(1); text-shadow: 0 0 8px var(--gc); }
+      50%  { transform: translateY(-4px) scale(1.02); text-shadow: 0 0 18px var(--gc); }
+      100% { transform: translateY(2px) scale(.99); text-shadow: 0 0 6px var(--gc); }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .delivery-status .dream-char { animation: none !important; opacity: 1 !important; filter: none !important; transform: none !important; }
+    }
+    .dv-glow { position: absolute; top: 6%; left: 50%; transform: translateX(-50%); width: 420px; height: 130px; background: radial-gradient(circle, color-mix(in srgb, var(--bor-bright, #00FF9D) 10%, transparent), transparent 70%); filter: blur(44px); }
+    .dv-star { position: absolute; width: 2px; height: 2px; background: #fff; border-radius: 50%; animation: dv-twinkle 3.5s ease-in-out infinite; }
+    @keyframes dv-twinkle { 0%,100% { opacity: .12; transform: scale(.8); } 50% { opacity: 1; transform: scale(1.3); } }
+    .dv-road { position: absolute; bottom: 0; left: 0; width: 100%; height: 50px; background: linear-gradient(180deg, #0F111A, #050508); border-top: 1px solid #23273B; }
+    .dv-road::before { content: ''; position: absolute; top: 24px; left: 0; width: 100%; height: 4px; background: repeating-linear-gradient(90deg, #3A415C 0 70px, transparent 70px 130px); opacity: .5; }
+    .dv-road-glow { position: absolute; bottom: 49px; left: 0; width: 100%; height: 2px; background: color-mix(in srgb, var(--pkg-accent, #00FF9D) 30%, transparent); filter: blur(1.5px); }
+    .dv-van { position: absolute; bottom: var(--van-bottom, 50px); left: 0; z-index: 5; animation: dv-drive 12s 2s both; will-change: transform; }
+    @keyframes dv-drive {
+      0%   { transform: translateX(-720px); animation-timing-function: cubic-bezier(.3,.55,.45,1); }
+      30%  { transform: translateX(calc(50vw - 165px)); animation-timing-function: linear; }
+      70%  { transform: translateX(calc(50vw - 165px)); animation-timing-function: cubic-bezier(.45,.1,.6,1); }
+      100% { transform: translateX(calc(100vw + 240px)); }
+    }
+    .dv-rig { position: relative; display: flex; align-items: flex-end; animation: dv-susp 12s 2s both; transform-origin: center bottom; }
+    @keyframes dv-susp {
+      0%,20% { transform: translateY(0) rotate(0deg); }
+      26% { transform: translateY(3px) rotate(1deg); }
+      30% { transform: translateY(8px) rotate(2.4deg); }
+      32% { transform: translateY(-5px) rotate(-1.4deg); }
+      34% { transform: translateY(3px) rotate(.7deg); }
+      36%,68% { transform: translateY(0) rotate(0deg); }
+      70% { transform: translateY(-4px) rotate(-2deg); }
+      72% { transform: translateY(1px) rotate(.6deg); }
+      74%,100% { transform: translateY(0) rotate(0deg); }
+    }
+    .dv-shadow { position: absolute; bottom: -12px; left: 50%; width: 290px; height: 12px; transform: translateX(-50%); background: rgba(0,0,0,0.85); filter: blur(9px); border-radius: 100%; animation: dv-shadow 12s 2s both; z-index: 0; }
+    @keyframes dv-shadow {
+      0%,20% { transform: translateX(-50%) scaleX(1); opacity: .5; }
+      30% { transform: translateX(-50%) scaleX(1.12); opacity: .8; }
+      32% { transform: translateX(-50%) scaleX(.92); opacity: .35; }
+      36%,68% { transform: translateX(-50%) scaleX(1); opacity: .5; }
+      70% { transform: translateX(-50%) scaleX(1.08); opacity: .7; }
+      74%,100% { transform: translateX(-50%) scaleX(1); opacity: .5; }
+    }
+    .dv-cargo { position: relative; width: 230px; height: 140px; background: linear-gradient(135deg, #1A1C29, #0A0A0F); border-radius: 30px 8px 0 0; border-top: 2px solid #31364A; border-left: 1px solid #31364A; display: flex; align-items: center; overflow: hidden; z-index: 10; box-shadow: -10px 8px 26px rgba(0,0,0,0.6); }
+    .dv-shine { position: absolute; top: 7px; left: 12px; width: 70%; height: 2px; background: linear-gradient(90deg, rgba(255,255,255,.12), transparent); }
+    .dv-cargo .dv-accent, .dv-cab .dv-accent { position: absolute; bottom: 26px; left: 0; width: 100%; height: 3px; background: linear-gradient(90deg, var(--pkg1, #00FF9D), var(--pkg-accent, #fde68a), var(--pkg2, #00FF9D)); box-shadow: 0 0 12px 2px color-mix(in srgb, var(--pkg-accent, #00FF9D) 70%, transparent); z-index: 2; }
+    .dv-cab .dv-accent { width: 80%; }
+    .dv-logo { position: relative; z-index: 3; margin-left: 26px; display: flex; flex-direction: column; }
+    .dv-mark { font-family: var(--font-logo); font-size: 30px; letter-spacing: -0.04em; color: #fff; line-height: 1; display: inline-flex; align-items: baseline; transform: rotate(-2deg); }
+    .dv-mark .i1 { color: #FF3B6F; } .dv-mark .i2 { color: #FFD93D; } .dv-mark .i3 { color: #4ECDC4; }
+    .dv-mark .d { width: 6px; height: 6px; background: #fff; border-radius: 50%; display: inline-block; margin-left: 3px; transform: translateY(-1px); }
+    .dv-sub { font-family: var(--font-mono); font-size: 12px; letter-spacing: 0.34em; color: var(--accent-ui); text-transform: uppercase; margin-top: 3px; margin-left: 3px; }
+    .dv-cab { position: relative; width: 96px; height: 116px; background: linear-gradient(135deg, #222536, #151722); border-radius: 0 40px 0 6px; border-top: 2px solid #3D435C; border-right: 1px solid #3D435C; z-index: 9; margin-left: -3px; box-shadow: 6px 8px 20px rgba(0,0,0,0.5); }
+    .dv-window { position: absolute; right: 8px; top: 12px; width: 60px; height: 52px; background: linear-gradient(135deg, #05060A, #11131C); border: 3px solid #2A2E40; border-radius: 0 32px 0 10px; overflow: hidden; }
+    .dv-window::before { content: ''; position: absolute; inset: -2px; background: linear-gradient(135deg, rgba(0,255,157,0.18), transparent 60%); }
+    .dv-window::after { content: ''; position: absolute; top: -10%; right: 14px; width: 7px; height: 150%; background: rgba(255,255,255,0.12); transform: skewX(35deg); }
+    .dv-headlight { position: absolute; right: 0; bottom: 14px; width: 11px; height: 20px; background: color-mix(in srgb, var(--pkg-accent, #E2E8F0) 55%, #fff); border-radius: 3px 9px 9px 3px; box-shadow: 0 0 18px 5px color-mix(in srgb, var(--pkg-accent, #fff) 75%, transparent); z-index: 10; }
+    .dv-beam { position: absolute; right: -340px; bottom: 2px; width: 340px; height: 96px; background: linear-gradient(90deg, color-mix(in srgb, var(--pkg-accent, #fff) 32%, transparent), transparent 72%); border-radius: 0 100% 100% 0 / 0 50% 50% 0; transform: rotate(3deg); transform-origin: left center; mix-blend-mode: screen; filter: blur(3px); pointer-events: none; }
+    .dv-brake { position: absolute; left: -3px; bottom: 44px; width: 9px; height: 26px; background: #dc2626; border-radius: 6px 0 0 6px; z-index: 12; animation: dv-brake 12s 2s both; }
+    @keyframes dv-brake {
+      0%,20% { background: #dc2626; box-shadow: 0 0 8px rgba(220,38,38,0.4); }
+      22%,35% { background: #fca5a5; box-shadow: 0 0 40px 14px rgba(239,68,68,0.9); }
+      37%,100% { background: #dc2626; box-shadow: 0 0 8px rgba(220,38,38,0.4); }
+    }
+    .dv-well { position: absolute; bottom: 4px; width: 74px; height: 38px; background: #05050A; border-radius: 38px 38px 0 0; z-index: 11; box-shadow: inset 0 12px 12px rgba(0,0,0,0.8); border-top: 1px solid #1F2233; }
+    .dv-well-rear { left: 26px; } .dv-well-front { right: 18px; }
+    .dv-wheel { position: absolute; bottom: -28px; width: 64px; height: 64px; border-radius: 50%; background: #050508; border: 8px solid #13151F; box-shadow: 0 10px 20px rgba(0,0,0,0.85), inset 0 4px 10px rgba(0,0,0,0.8); display: grid; place-items: center; z-index: 12; padding: 4px; }
+    .dv-wheel-rear { left: 31px; } .dv-wheel-front { right: 23px; }
+    .dv-tire { position: relative; width: 100%; height: 100%; border: 3px dashed #2D3245; border-radius: 50%; display: grid; place-items: center; animation: dv-spin 12s 2s both; }
+    .dv-tire::before, .dv-tire::after { content: ''; position: absolute; inset: 0; margin: auto; background: #222536; }
+    .dv-tire::before { width: 100%; height: 5px; } .dv-tire::after { width: 5px; height: 100%; }
+    .dv-hub { width: 24px; height: 24px; background: linear-gradient(135deg, #252838, #151722); border: 3px solid #3D435C; border-radius: 50%; z-index: 2; display: grid; place-items: center; }
+    .dv-hub::after { content: ''; width: 8px; height: 8px; background: #0A0A0F; border-radius: 50%; }
+    @keyframes dv-spin {
+      0% { transform: rotate(0deg); animation-timing-function: cubic-bezier(.3,.55,.45,1); }
+      30% { transform: rotate(3600deg); animation-timing-function: linear; }
+      70% { transform: rotate(3600deg); animation-timing-function: cubic-bezier(.45,.1,.6,1); }
+      100% { transform: rotate(7200deg); }
+    }
+    /* packages on the road - the van picks up the user's box */
+    .dv-packages { position: absolute; bottom: 46px; left: 50%; transform: translateX(calc(-50% - 50px)); z-index: 3; display: flex; align-items: flex-end; gap: 7px; }
+    .dv-packages::after { content: ''; position: absolute; left: -12px; right: -12px; bottom: -9px; height: 11px; background: rgba(0,0,0,0.6); filter: blur(7px); border-radius: 100%; z-index: -1; }
+    .dv-pkg { position: relative; border-radius: 4px; box-shadow: 0 7px 14px rgba(0,0,0,0.7), inset 0 1px 0 rgba(255,255,255,0.2), inset 0 0 0 1px rgba(255,255,255,0.08); }
+    .dv-pkg-user { width: 52px; height: 46px; overflow: hidden; background: linear-gradient(135deg, var(--pkg1, #7c3aed), var(--pkg2, #ec4899)); box-shadow: 0 8px 18px rgba(0,0,0,0.7), 0 0 16px -2px var(--pkg-accent, #fde68a), inset 0 0 0 1px rgba(255,255,255,0.22); animation: dv-pickup 12s 2s both; }
+    .dv-pkg-user .pkg-band { position: absolute; left: 0; right: 0; top: 38%; height: 5px; background: var(--pkg-accent, #fde68a); opacity: .95; }
+    .dv-pkg-user .pkg-band-v { position: absolute; top: 0; bottom: 0; left: 40%; width: 5px; background: var(--pkg-accent, #fde68a); opacity: .95; }
+    @keyframes dv-pickup { 0%, 36% { opacity: 1; } 44%, 100% { opacity: 0; } }
+    /* while the wormhole transition is flying the present in, keep the road package hidden;
+       it's revealed the instant the present lands (so the warp box "becomes" the package). */
+    .dv-pkg-user.pkg-warp-hold { opacity: 0 !important; animation-play-state: paused !important; }
+    /* when the wormhole is on, the road package is the ACTUAL designed box (a mini clone),
+       so the present that flew through is genuinely set down here for the van to pick up. */
+    .dv-pkg-user.pkg-is-box { width: 60px; height: 60px; background: none !important; box-shadow: none !important;
+      overflow: visible; display: grid; place-items: center; perspective: 340px; }
+    .dv-pkg-user.pkg-is-box .pkg-band, .dv-pkg-user.pkg-is-box .pkg-band-v { display: none; }
+    .dv-pkg-user.pkg-is-box > .box { --box-size: 56px; transition: none !important; }
+
+    /* gift link result */
+    .link-card { width: 100%; border: 1px solid var(--accent-ui); border-radius: 14px; background: rgba(0,255,157,0.05); padding: 16px; display: none; }
+    .link-card.show { display: block; }
+    .link-card .lk-label { font-size: 10px; font-weight: 800; letter-spacing: 0.16em; text-transform: uppercase; color: var(--accent-ui); }
+    .link-card .lk-url { font-family: var(--font-mono); font-size: 15px; color: var(--ink); word-break: break-all; margin: 8px 0 12px; background: var(--bg-2); padding: 9px 11px; border-radius: 8px; }
+    .link-row { display: flex; gap: 8px; }
+
+    @media (max-width: 980px) {
+      .stage { grid-template-columns: 1fr; padding: 78px 16px 40px; gap: 22px; }
+      .control-card { position: static; max-height: none; order: 2; }
+      .stage-right { order: 1; min-height: auto; }
+      .box-stage { min-height: 380px; }
+      .box { --box-size: clamp(240px, 72vw, 340px); }
+    }
+    @media (max-width: 560px) {
+      .step .lbl { display: none; }
+      .steps-card { gap: 6px; padding: 9px 14px; }
+      .step .bar { width: 16px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="studio-grid"></div>
+  <div class="noise"></div>
+
+
+  <main class="stage">
+    <!-- LEFT: one sleek card, swaps between step panes -->
+    <aside class="control-card" id="control-card">
+
+      <!-- STEP 1 - fill -->
+      <div class="pane pane-enter" id="pane-fill">
+        <div class="card-head">
+          <div class="eyebrow">// step 1</div>
+          <h2>Fill the box</h2>
+          <p>Search a coin or token, set an amount, and drop it into the open box.</p>
+        </div>
+        <!-- one-tap suggestions from the active vertical (e.g. "$50 · Booster Box" on /tcg) -->
+        <div class="suggest-row" id="suggest-row" hidden>
+          <div class="suggest-title" id="suggest-title"></div>
+          <div class="suggest-chips" id="suggest-chips"></div>
+        </div>
+        <div class="search-row">
+          <span class="si">⌕</span>
+          <input type="text" id="asset-search" placeholder="Search assets - BTC, Solana…" autocomplete="off">
+        </div>
+        <div class="asset-scroll"><div class="asset-grid" id="asset-grid"></div></div>
+
+        <div class="deposit">
+          <div class="deposit-label">How much?</div>
+          <div class="amount-field">
+            <span class="amount-coin" id="amount-coin"></span>
+            <input type="text" id="amount" inputmode="decimal" class="amount-input" placeholder="0.00">
+            <span class="amount-suffix" id="amount-suffix"></span>
+          </div>
+          <div class="quick-amounts" id="quick-amounts"></div>
+          <div class="value-guide" id="value-guide" hidden></div>
+          <button class="add-btn" id="add-asset">Drop it in <span class="ab-arrow">↓</span></button>
+        </div>
+
+        <div>
+          <div class="group"><h4>Inside the box</h4></div>
+          <div class="contents" id="contents"></div>
+        </div>
+      </div>
+
+      <!-- STEPS 3 & 4 - make it yours: text first, then design (hidden until sealed) -->
+      <div class="pane" id="pane-customize" hidden>
+        <form id="editor" autocomplete="off">
+
+          <!-- 3 · TEXT -->
+          <div class="sub-pane pane-enter" id="sub-text">
+            <div class="card-head">
+              <div class="eyebrow">// step 3 · text</div>
+              <h2>Make it yours</h2>
+              <p>Write the words that go on the box - they appear live as you type.</p>
+            </div>
+            <div class="tfields">
+              <div class="tfield tfield-hero">
+                <div class="tfield-top"><label>Front text</label><span class="tcount" data-count-for="brand"></span></div>
+                <input type="text" data-field="brand" maxlength="20" placeholder="Name Here">
+                <div class="tfield-hint">The big name across the front of the box</div>
+              </div>
+              <div class="tfield">
+                <div class="tfield-top"><label>Sub-label</label><span class="tcount" data-count-for="sublabel"></span></div>
+                <input type="text" data-field="sublabel" maxlength="26" placeholder="A GIFT FOR YOU">
+              </div>
+              <div class="tfield">
+                <div class="tfield-top"><label>Note below</label><span class="tcount" data-count-for="note"></span></div>
+                <input type="text" data-field="note" maxlength="38" placeholder="with love">
+                <!-- vertical message starters: one tap fills the note ("go pull something rare") -->
+                <div class="vchip-row" id="note-prompts" hidden></div>
+              </div>
+              <div class="tfield">
+                <div class="tfield-top"><label>To (on the receipt)</label><span class="tcount" data-count-for="labelTo"></span></div>
+                <input type="text" data-field="labelTo" maxlength="22" placeholder="To: Alex">
+              </div>
+              <div class="tfield">
+                <div class="tfield-top"><label>From (on the sticker)</label><span class="tcount" data-count-for="from"></span></div>
+                <input type="text" data-field="from" maxlength="22" placeholder="From: you">
+              </div>
+              <!-- occasion (optional): travels with the gift and shapes the shop they land in -->
+              <div class="tfield" id="occasion-field" hidden>
+                <div class="tfield-top"><label id="occasion-label">Occasion</label></div>
+                <div class="vchip-row" id="occasion-chips"></div>
+                <div class="tfield-hint" id="occasion-hint"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 4 · DESIGN -->
+          <div class="sub-pane" id="sub-design" hidden>
+            <div class="card-head">
+              <button type="button" class="back-link" id="to-text">← Back to text</button>
+              <div class="eyebrow">// step 4 · design</div>
+              <h2>Design the box</h2>
+              <p>Finish, colours and a sticker.</p>
+            </div>
+            <div class="group">
+              <h4>Theme</h4>
+              <div class="presets" id="presets"></div>
+            </div>
+
+            <div class="group">
+              <h4>Pattern</h4>
+              <div class="pattern-row" id="pattern-row">
+                <button type="button" class="pat sel" data-pattern="stripes"><span class="pat-sw pat-stripes"></span><span class="pat-nm">Stripes</span></button>
+                <button type="button" class="pat" data-pattern="dots"><span class="pat-sw pat-dots"></span><span class="pat-nm">Dots</span></button>
+                <button type="button" class="pat" data-pattern="grid"><span class="pat-sw pat-grid"></span><span class="pat-nm">Grid</span></button>
+                <button type="button" class="pat" data-pattern="chevron"><span class="pat-sw pat-chevron"></span><span class="pat-nm">Chevron</span></button>
+                <button type="button" class="pat" data-pattern="crosshatch"><span class="pat-sw pat-crosshatch"></span><span class="pat-nm">Hatch</span></button>
+                <button type="button" class="pat" data-pattern="waves"><span class="pat-sw pat-waves"></span><span class="pat-nm">Waves</span></button>
+                <button type="button" class="pat" data-pattern="checker"><span class="pat-sw pat-checker"></span><span class="pat-nm">Checker</span></button>
+                <button type="button" class="pat" data-pattern="rings"><span class="pat-sw pat-rings"></span><span class="pat-nm">Rings</span></button>
+                <button type="button" class="pat" data-pattern="plus"><span class="pat-sw pat-plus"></span><span class="pat-nm">Plus</span></button>
+                <button type="button" class="pat" data-pattern="diagonal"><span class="pat-sw pat-diagonal"></span><span class="pat-nm">Slant</span></button>
+                <button type="button" class="pat" data-pattern="weave"><span class="pat-sw pat-weave"></span><span class="pat-nm">Weave</span></button>
+              </div>
+              <div class="switch-row" style="margin-top:14px"><span>Glossy sheen</span><label class="switch"><input type="checkbox" data-field="sheen"><span class="track"></span></label></div>
+            </div>
+
+            <div class="group">
+              <h4>Colours</h4>
+              <div class="field">
+                <label>Cardboard</label>
+                <div class="colorfield"><input type="color" data-field="cardboard"><span class="hex" data-hex="cardboard"></span></div>
+                <div class="swatches" id="sw-cardboard"></div>
+              </div>
+              <div class="field"><label>2nd colour · gradient</label><div class="colorfield"><input type="color" data-field="cardboard2"><span class="hex" data-hex="cardboard2"></span></div></div>
+              <div class="field">
+                <label>Accent</label>
+                <div class="colorfield"><input type="color" data-field="accent"><span class="hex" data-hex="accent"></span></div>
+                <div class="swatches" id="sw-accent"></div>
+              </div>
+            </div>
+
+            <div class="group">
+              <h4>Fragile sticker</h4>
+              <div class="switch-row"><span>Show sticker</span><label class="switch"><input type="checkbox" data-field="fragile"><span class="track"></span></label></div>
+              <div class="field"><label>Sticker text</label><input type="text" data-field="fragileText" maxlength="14" placeholder="Fragile"></div>
+            </div>
+          </div>
+        </form>
+      </div>
+    </aside>
+
+    <!-- RIGHT: step tracker + big box + action -->
+    <section class="stage-right">
+      <div class="steps-card" id="steps">
+        <div class="step active" data-step="fill"><span class="num">1</span><span class="lbl">Fill</span></div>
+        <span class="bar"></span>
+        <div class="step" data-step="seal"><span class="num">2</span><span class="lbl">Seal</span></div>
+        <span class="bar"></span>
+        <div class="step" data-step="text"><span class="num">3</span><span class="lbl">Text</span></div>
+        <span class="bar"></span>
+        <div class="step" data-step="design"><span class="num">4</span><span class="lbl">Design</span></div>
+        <span class="bar"></span>
+        <div class="step" data-step="send"><span class="num">5</span><span class="lbl">Send</span></div>
+      </div>
+
+      <div class="box-stage">
+        <div class="scene">
+          <div class="box is-open" id="box">
+            <div class="cavity"></div>
+            <div class="face front">
+              <div class="front-fx" data-role="pattern"></div>
+              <div class="front-fx sheen" data-role="sheen"></div>
+              <div class="stamp" data-role="fragile">Fragile</div>
+              <div class="brandwrap">
+                <h2 data-role="brand"></h2>
+                <p class="sublabel" data-role="sublabel"></p>
+              </div>
+              <div class="specs">
+                <div class="specs-row"><span data-role="model">Model: GF-001</span><span data-role="qty">Qty: 1</span></div>
+              </div>
+              <div class="front-note" data-role="note"></div>
+            </div>
+            <div class="face right">
+              <div class="front-fx" data-role="patternR"></div>
+              <div class="front-fx sheen" data-role="sheenR"></div>
+              <div class="label" data-role="label">
+                <div class="label-title" data-role="labelTitle">PRIORITY</div>
+                <div class="label-to" data-role="labelTo">To: someone</div>
+                <div class="label-to label-from" data-role="labelFrom">From: you</div>
+                <div class="addr"></div><div class="addr short"></div>
+                <div class="barcode"></div>
+              </div>
+              <div class="side-stamps"></div>
+            </div>
+            <div class="face left">
+              <div class="front-fx" data-role="pattern"></div>
+              <div class="side-stack">
+                <div class="side-eyebrow">CARE</div>
+                <div class="handling">
+                  <span class="hsym"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v12"/><path d="M7 9l5-5 5 5"/><path d="M5 20h14"/></svg></span>
+                  <span class="hsym"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3h8l-1.3 6.2a2.7 2.7 0 0 1-5.4 0z"/><path d="M12 12v8"/><path d="M8.5 20h7"/></svg></span>
+                  <span class="hsym"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4a8 8 0 0 1 8 8H4a8 8 0 0 1 8-8z"/><path d="M12 12v5.5a2 2 0 0 0 4 0"/></svg></span>
+                </div>
+                <div class="side-rule"></div>
+                <div class="side-caption">HANDLE WITH CARE</div>
+                <div class="side-barcode"></div>
+              </div>
+            </div>
+            <div class="face back">
+              <div class="front-fx" data-role="pattern"></div>
+              <div class="back-grid">
+                <div class="ret-block">
+                  <div class="side-eyebrow">FROM</div>
+                  <div class="ret-name">GIIIFT FULFILMENT</div>
+                  <div class="ret-line"></div>
+                  <div class="ret-line short"></div>
+                </div>
+                <div class="postage"><span class="postage-star">✦</span><span class="postage-val">GF·01</span></div>
+                <div class="postmark"><span>WRAPPED WITH CARE</span></div>
+                <div class="side-barcode"></div>
+              </div>
+            </div>
+            <div class="face bottom">
+              <div class="front-fx" data-role="pattern"></div>
+              <div class="bottom-stack">
+                <div class="seal"><span class="seal-star">✦</span></div>
+                <div class="made">SECURELY SEALED · MADE WITH ♥</div>
+                <div class="serial" data-role="serial">SER · GF-0000</div>
+              </div>
+            </div>
+            <div class="lid-plane">
+              <div class="flap fl-left"><div class="front-fx" data-role="pattern"></div></div>
+              <div class="flap fl-right"><div class="front-fx" data-role="pattern"></div></div>
+              <div class="flap fl-back"><div class="front-fx" data-role="pattern"></div></div>
+              <div class="flap fl-front"><div class="front-fx" data-role="pattern"></div></div>
+              <div class="tape-wall"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="stage-action">
+        <button class="primary" id="primary" disabled>Seal the box →</button>
+        <div class="hint" id="hint">Add at least one asset to seal.</div>
+        <div class="link-card" id="link-card">
+          <div class="lk-label">Your gift link</div>
+          <div class="lk-url" id="lk-url"></div>
+          <div class="link-row">
+            <button class="btn add" id="copy-link" style="flex:1">⧉ Copy link</button>
+            <a class="btn" id="open-link" href="#" target="_blank" style="flex:1">Open it ↗</a>
+          </div>
+        </div>
+      </div>
+
+      <div class="finish-panel" id="finish-panel" hidden>
+        <canvas class="fp-aurora" id="fp-aurora" aria-hidden="true"></canvas>
+        <div class="fp-city" aria-hidden="true">
+          <svg viewBox="0 0 1440 400" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <linearGradient id="cityMagenta" x1="0%" y1="0%" x2="0%" y2="100%">
+                <stop offset="0%" stop-color="#b854b0" stop-opacity="0.8"/>
+                <stop offset="40%" stop-color="#6a1a63" stop-opacity="0.3"/>
+                <stop offset="100%" stop-color="#030105" stop-opacity="0"/>
+              </linearGradient>
+              <linearGradient id="cityCyan" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" stop-color="#8cdbe8" stop-opacity="0.6"/>
+                <stop offset="100%" stop-color="#030105" stop-opacity="0"/>
+              </linearGradient>
+            </defs>
+            <!-- far ridge -->
+            <path class="fpc-bg fpc-rim-s" d="M0,300 L80,220 L150,260 L280,150 L350,190 L450,100 L550,180 L680,80 L800,200 L950,120 L1100,220 L1250,160 L1440,280 L1440,400 L0,400 Z"/>
+            <!-- mid skyline (magenta rim) -->
+            <path class="fpc-mid fpc-rim-m" d="M-10,400 L-10,280 L40,280 L40,250 L60,230 L80,250 L80,280 L180,280 L180,220 L220,180 L260,220 L260,260 L320,260 L320,190 L350,160 L380,190 L380,270 L480,270 L480,140 L520,90 L560,140 L560,250 L650,250 L650,180 L700,120 L750,180 L750,260 L880,260 L880,170 L930,130 L980,170 L980,280 L1080,280 L1080,200 L1130,160 L1180,200 L1180,290 L1280,290 L1280,230 L1320,190 L1360,230 L1360,300 L1450,300 L1450,400 Z"/>
+            <!-- foreground buildings (cyan rim) -->
+            <g class="fpc-fg fpc-rim-c">
+              <polygon points="0,400 0,320 50,320 50,280 80,240 110,280 110,340 180,340 180,400"/>
+              <polygon points="65,285 75,270 85,285" fill="#030105" stroke="none"/>
+              <polygon points="150,400 150,350 200,350 200,260 220,230 240,260 240,310 280,310 280,240 310,190 340,240 340,360 400,360 400,400"/>
+              <path d="M 380,400 L 380,330 L 450,330 L 450,200 L 470,180 L 490,200 L 490,280 L 530,280 L 530,120 L 550,80 L 570,120 L 570,250 L 620,250 L 620,350 L 700,350 L 700,400 Z"/>
+              <path d="M 680,400 L 680,360 L 730,360 L 730,280 L 760,250 L 790,250 L 820,280 L 820,340 L 880,340 L 880,220 L 910,170 L 940,220 L 940,370 L 1000,370 L 1000,400 Z"/>
+              <polygon points="980,400 980,350 1050,350 1050,260 1080,220 1110,260 1110,320 1160,320 1160,250 1190,210 1220,250 1220,360 1300,360 1300,400"/>
+              <polygon points="1280,400 1280,340 1330,340 1330,270 1360,230 1390,270 1390,320 1440,320 1440,400"/>
+            </g>
+            <!-- window glows -->
+            <rect x="548" y="140" width="4" height="12" class="fpc-win"/>
+            <rect x="548" y="160" width="4" height="12" class="fpc-win" style="animation-delay: 1s;"/>
+            <rect x="548" y="200" width="4" height="16" class="fpc-win"/>
+            <circle cx="220" cy="280" r="2" class="fpc-win" style="animation-delay: 2s;"/>
+            <circle cx="310" cy="260" r="2.5" class="fpc-win"/>
+            <rect x="770" y="290" width="10" height="20" rx="5" class="fpc-win" style="animation-delay: 0.5s;"/>
+            <circle cx="1080" cy="280" r="1.5" class="fpc-win" style="animation-delay: 3s;"/>
+            <rect x="1190" y="280" width="3" height="8" class="fpc-win"/>
+          </svg>
+        </div>
+        <div class="fp-main">
+          <div class="fp-card">
+            <h2 class="fp-title">Your gift<br>is ready.</h2>
+            <p class="fp-sub" id="fp-sub">Send it to their email, phone, or wallet. We handle the rest.</p>
+            <hr class="fp-divider">
+            <div id="fp-send-stage">
+              <p class="fp-field-label">Deliver the gift to</p>
+              <div class="fp-seg" id="fp-seg" role="tablist" aria-label="Delivery channel">
+                <button type="button" class="on" data-mode="email">Email</button>
+                <button type="button" data-mode="phone">Phone</button>
+                <button type="button" data-mode="wallet">Wallet</button>
+                <!-- Link delivery lives on the real product; the mirror has no intents backend -->
+              </div>
+              <form class="fp-email" id="fp-deliver-form">
+                <input type="email" id="fp-deliver" placeholder="their@email.com" autocomplete="email" required>
+                <div class="fp-hint" id="fp-deliver-hint">
+                  <span data-hint="email" class="on">We spin up a secure <b>GIIIFT wallet</b> from their email and deliver the gift there. They get a link to open it. <b>No app, no seed phrase</b>.</span>
+                  <span data-hint="phone">We text a link to their phone. Tapping it spins up a secure <b>GIIIFT wallet</b> tied to their number with the gift inside.</span>
+                  <span data-hint="wallet">Already on-chain? We send the gift straight to their wallet and share a link to open it.</span>
+                  <span data-hint="link">We mint an <b>invitation link</b> you can share anywhere. It carries no funds: when someone taps it and signs in, <b>you approve the hand-over</b> from your Vault. Links rest after 14 days.</span>
+                </div>
+                <button type="submit" class="fp-send">Send →</button>
+              </form>
+            </div>
+            <div id="fp-sent-stage" hidden>
+              <div class="fp-sent">
+                <div class="fp-sent-ic">✓</div>
+                <div>
+                  <div class="fp-sent-h" id="fp-sent-h">On its way</div>
+                  <div class="fp-sent-sub" id="fp-sent-sub">We created their GIIIFT wallet and sent a link to open it.</div>
+                </div>
+              </div>
+              <button type="button" class="fp-copy-fallback" id="fp-copy-fallback"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg><span id="fp-copy-fallback-text">Copy the link instead</span></button>
+            </div>
+            <a class="fp-open" id="fp-open" href="#" target="_blank" rel="noopener">Preview the box <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 17 17 7"/><path d="M7 7h10v10"/></svg></a>
+          </div>
+          <div class="delivery-status" id="delivery-status" aria-live="polite"></div>
+        </div>
+
+        <div class="delivery" aria-hidden="true">
+          <div class="dv-road"></div>
+          <div class="dv-road-glow"></div>
+          <div class="dv-packages">
+            <div class="dv-pkg dv-pkg-user" id="dv-pkg-user"><span class="pkg-band"></span><span class="pkg-band-v"></span></div>
+          </div>
+          <div class="dv-van">
+            <div class="dv-rig">
+              <div class="dv-shadow"></div>
+              <div class="dv-cargo">
+                <span class="dv-shine"></span>
+                <span class="dv-accent"></span>
+                <div class="dv-logo">
+                  <span class="dv-mark">G<span class="i1">I</span><span class="i2">I</span><span class="i3">I</span>FT<span class="d"></span></span>
+                  <span class="dv-sub">Delivery</span>
+                </div>
+              </div>
+              <div class="dv-cab">
+                <span class="dv-accent"></span>
+                <div class="dv-window"></div>
+                <div class="dv-headlight"></div>
+                <div class="dv-beam"></div>
+              </div>
+              <div class="dv-brake"></div>
+              <div class="dv-well dv-well-rear"></div>
+              <div class="dv-well dv-well-front"></div>
+              <div class="dv-wheel dv-wheel-rear"><div class="dv-tire"><div class="dv-hub"></div></div></div>
+              <div class="dv-wheel dv-wheel-front"><div class="dv-tire"><div class="dv-hub"></div></div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- iris transition overlay (close-to-black then open-to-reveal the night sky) -->
+  <div class="iris" id="iris" hidden aria-hidden="true"></div>
+
+  <script>
+    // ---------- assets ----------
+    const ASSETS = [
+      { ticker:'BTC',   name:'Bitcoin',     color:'#F7931A' },
+      { ticker:'ETH',   name:'Ethereum',    color:'#627EEA' },
+      { ticker:'USDC',  name:'USD Coin',    color:'#2775CA' },
+      { ticker:'USDT',  name:'Tether',      color:'#26A17B' },
+      { ticker:'SOL',   name:'Solana',      color:'#14F195' },
+      { ticker:'BNB',   name:'BNB',         color:'#F3BA2F' },
+      { ticker:'XRP',   name:'XRP',         color:'#23292F' },
+      { ticker:'ADA',   name:'Cardano',     color:'#0033AD' },
+      { ticker:'DOGE',  name:'Dogecoin',    color:'#C2A633' },
+      { ticker:'AVAX',  name:'Avalanche',   color:'#E84142' },
+      { ticker:'DOT',   name:'Polkadot',    color:'#E6007A' },
+      { ticker:'MATIC', name:'Polygon',     color:'#8247E5' },
+      { ticker:'LINK',  name:'Chainlink',   color:'#2A5ADA' },
+      { ticker:'LTC',   name:'Litecoin',    color:'#A6A9AA' },
+      { ticker:'TRX',   name:'TRON',        color:'#EF0027' },
+      { ticker:'UNI',   name:'Uniswap',     color:'#FF007A' },
+      { ticker:'ATOM',  name:'Cosmos',      color:'#2E3148' },
+      { ticker:'XLM',   name:'Stellar',     color:'#7D00FF' },
+      { ticker:'ZEC',   name:'Zcash',       color:'#ECB244' },
+      { ticker:'XMR',   name:'Monero',      color:'#FF6600' },
+      { ticker:'NEAR',  name:'NEAR',        color:'#00C08B' },
+      { ticker:'APT',   name:'Aptos',       color:'#10E0C0' },
+      { ticker:'ARB',   name:'Arbitrum',    color:'#28A0F0' },
+      { ticker:'OP',    name:'Optimism',    color:'#FF0420' },
+      { ticker:'SHIB',  name:'Shiba Inu',   color:'#FFA409' },
+      { ticker:'PEPE',  name:'Pepe',        color:'#3D8130' },
+      { ticker:'NFT',   name:'NFT / collectible', color:'#B06CF0', glyph:'✦' },
+    ];
+    let selectedTicker = ASSETS[0].ticker;
+    const contents = [];
+
+    // ---------- box design config (starts brown / kraft) ----------
+    const cfg = {
+      brand: 'Name Here', sublabel: 'A GIFT FOR YOU', note: '', labelTo: 'To: someone', from: 'From: you',
+      model: 'Model: GF-001', qty: 'Qty: 1',
+      finish: 'gradient', cardboard: '#7c3aed', cardboard2: '#ec4899', angle: 135,
+      pattern: 'dots', sheen: true, accent: '#fde68a',
+      fragile: false, fragileText: 'Fragile', fragileColor: '#d94f2a',
+    };
+
+    let stage = 'fill';
+
+    // ---------- vertical funnel engine (per-audience skin: /tcg, /pokemon, …) ----------
+    // The engine resolved from URL/path/session at load; here we re-apply theme and
+    // swap every copy slot. Core config carries the plain-GIIIFT strings, so with no
+    // vertical active this is a no-op and the literals below stay as fallbacks.
+    const V = window.GIIIFTVertical || null;
+    if (V) { V.resolve(); V.applyTheme(); }
+    const vtxt = (path, tokens, fb) => { const s = V ? V.text('copy.wrap.' + path, tokens) : ''; return s || fb || ''; };
+
+    // vertical asset voice: rename tickers for this flow (NFT → "Card pick" on /tcg).
+    // Display-only; payloads still carry tickers, and the receive page re-aliases
+    // from the same vertical, so both ends match.
+    (function aliasAssets() {
+      const aliases = (V && V.get('copy.assets')) || {};
+      ASSETS.forEach(a => { if (aliases[a.ticker]) a.name = aliases[a.ticker]; });
+    })();
+
+    // apply a suggested recipe: single asset ({ticker, amount}) or a BUNDLE
+    // ({items: [[ticker, amount], …]}), plus an optional seeded note. Shared by
+    // the one-tap chips and the ?pack= landing handoff.
+    function applyRecipe(recipe, animate) {
+      const entries = (Array.isArray(recipe.items) && recipe.items.length)
+        ? recipe.items
+        : [[recipe.ticker || 'USDC', recipe.amount || 1]];
+      entries.forEach(([tk, amt], i) => {
+        const a = ASSETS.find(x => x.ticker === String(tk).toUpperCase()) || ASSETS[0];
+        selectedTicker = a.ticker;
+        contents.push({ ticker: a.ticker, name: a.name, color: a.color, glyph: a.glyph, amount: String(amt) });
+        if (animate) setTimeout(() => dropCoin(a), 120 + i * 260);
+      });
+      if (recipe.note && !cfg.note) {
+        const ni = document.querySelector('[data-field="note"]');
+        if (ni) { ni.value = recipe.note; ni.dispatchEvent(new Event('input', { bubbles: true })); }
+      }
+      renderContents();
+      updatePrimary();
+      setTimeout(syncStamps, 420 + entries.length * 260);
+    }
+
+    (function applyVerticalCopy() {
+      if (!V) return;
+      const setText = (sel, val) => { const el = document.querySelector(sel); if (el && val) el.textContent = val; };
+      const setPh = (sel, val) => { const el = document.querySelector(sel); if (el && val) el.placeholder = val; };
+      document.title = vtxt('docTitle', null, document.title);
+      setText('#pane-fill .card-head .eyebrow', vtxt('fillEyebrow'));
+      setText('#pane-fill .card-head h2', vtxt('fillTitle'));
+      setText('#pane-fill .card-head p', vtxt('fillSub'));
+      setPh('#asset-search', vtxt('searchPh'));
+      setText('.deposit-label', vtxt('amountLabel'));
+      setText('#pane-fill .group h4', vtxt('insideTitle'));
+      const add = document.getElementById('add-asset');
+      if (add && vtxt('addBtn')) add.innerHTML = vtxt('addBtn') + ' <span class="ab-arrow">↓</span>';
+      setText('#sub-text .card-head .eyebrow', vtxt('textEyebrow'));
+      setText('#sub-text .card-head h2', vtxt('textTitle'));
+      setText('#sub-text .card-head p', vtxt('textSub'));
+      setPh('[data-field="brand"]', vtxt('brandPh'));
+      setPh('[data-field="sublabel"]', vtxt('sublabelPh'));
+      setPh('[data-field="note"]', vtxt('notePh'));
+      setText('#sub-design .card-head .eyebrow', vtxt('designEyebrow'));
+      setText('#sub-design .card-head h2', vtxt('designTitle'));
+      setText('#sub-design .card-head p', vtxt('designSub'));
+      const ft = document.querySelector('.fp-title');
+      if (ft && vtxt('readyTitle')) ft.innerHTML = vtxt('readyTitle');   // pack copy is in-repo (trusted); may carry <br>
+      setText('#fp-sub', vtxt('readySub'));
+      const fo = document.getElementById('fp-open');
+      if (fo && fo.firstChild && fo.firstChild.nodeType === 3 && vtxt('previewLabel')) fo.firstChild.nodeValue = vtxt('previewLabel') + ' ';
+    })();
+
+    // occasion (optional): rides in the payload and personalizes the recipient's shop
+    let giftOccasion = '';
+    function setOccasion(o) {
+      giftOccasion = (giftOccasion === o) ? '' : String(o || '').slice(0, 24);   // tap again to clear
+      document.querySelectorAll('#occasion-chips .vchip').forEach(c => c.classList.toggle('sel', c.dataset.occ === giftOccasion));
+    }
+    (function renderOccasions() {
+      const list = (V && V.get('wrap.occasions')) || [];
+      const field = document.getElementById('occasion-field');
+      if (!field || !list.length) return;
+      document.getElementById('occasion-label').textContent = vtxt('occasionTitle', null, 'Occasion');
+      document.getElementById('occasion-hint').textContent = vtxt('occasionHint', null, '');
+      const row = document.getElementById('occasion-chips');
+      list.forEach(o => {
+        const b = document.createElement('button');
+        b.type = 'button'; b.className = 'vchip'; b.dataset.occ = o; b.textContent = o;
+        b.addEventListener('click', () => setOccasion(o));
+        row.appendChild(b);
+      });
+      field.hidden = false;
+    })();
+
+    // vertical message starters: one tap drops a line into the note (still editable)
+    (function renderNotePrompts() {
+      const list = (V && V.get('wrap.notePrompts')) || [];
+      const row = document.getElementById('note-prompts');
+      if (!row || !list.length) return;
+      list.forEach(p => {
+        const b = document.createElement('button');
+        b.type = 'button'; b.className = 'vchip'; b.textContent = p;
+        b.addEventListener('click', () => {
+          const input = document.querySelector('[data-field="note"]');
+          if (!input) return;
+          input.value = p;
+          input.dispatchEvent(new Event('input', { bubbles: true }));   // flows through onEdit → cfg.note → box
+          input.focus();
+        });
+        row.appendChild(b);
+      });
+      row.hidden = false;
+    })();
+
+    // value-to-outcome guidance under the amount ("$50 ≈ a graded holo")
+    (function renderValueGuide() {
+      const g = vtxt('valueGuide');
+      const el = document.getElementById('value-guide');
+      if (el && g) { el.textContent = g; el.hidden = false; }
+    })();
+
+    // one-tap suggestions from the vertical ("$50 · Booster Box" → drops USDC 50 in)
+    (function renderSuggestions() {
+      const list = (V && V.get('wrap.suggested')) || [];
+      const row = document.getElementById('suggest-row');
+      if (!row || !list.length) return;
+      document.getElementById('suggest-title').textContent = vtxt('suggestTitle', null, 'One-tap suggestions');
+      const chips = document.getElementById('suggest-chips');
+      list.forEach(s => {
+        const b = document.createElement('button');
+        b.type = 'button'; b.className = 'suggest-chip';
+        const g = document.createElement('span'); g.className = 'sc-glyph'; g.textContent = s.glyph || '🎁';
+        const t = document.createElement('span'); t.textContent = s.label || (s.amount + ' ' + (s.ticker || ''));
+        b.append(g, t);
+        if (s.hint) { const h = document.createElement('span'); h.className = 'sc-hint'; h.textContent = s.hint; b.appendChild(h); }
+        b.addEventListener('click', () => {
+          if (stage !== 'fill') return;
+          applyRecipe(s, true);
+        });
+        chips.appendChild(b);
+      });
+      row.hidden = false;
+    })();
+
+    // ---------- colour helpers ----------
+    function shade(hex, pct) {
+      const n = parseInt(hex.replace('#',''),16);
+      let r=(n>>16)&255,g=(n>>8)&255,b=n&255;
+      r=Math.round(Math.min(255,Math.max(0,r+255*pct)));
+      g=Math.round(Math.min(255,Math.max(0,g+255*pct)));
+      b=Math.round(Math.min(255,Math.max(0,b+255*pct)));
+      return '#'+((1<<24)+(r<<16)+(g<<8)+b).toString(16).slice(1);
+    }
+    function faceBg(c) {
+      const c1 = c.cardboard, c2 = c.cardboard2 || c.cardboard, a = c.angle ?? 135;
+      if (c.finish === 'holo') {
+        const holo = 'linear-gradient(125deg, #bfa9ff 0%, #ffc6e9 30%, #b8f0ff 60%, #cdbcff 100%)';
+        const tint = (al) => `linear-gradient(rgba(0,0,0,${al}), rgba(0,0,0,${al}))`;
+        return { front: holo, side2:`${tint(0.20)}, ${holo}`, top:`${tint(0.02)}, ${holo}`, dark:`${tint(0.40)}, ${holo}`, size:'300% 300%' };
+      }
+      if (c.finish === 'gradient') {
+        const g = (x,y) => `linear-gradient(${a}deg, ${x}, ${y})`;
+        return { front:g(c1,c2), side2:g(shade(c1,0.05),shade(c2,0.05)), top:g(shade(c1,0.12),shade(c2,0.12)), dark:g(shade(c1,-0.12),shade(c2,-0.12)), size:'auto' };
+      }
+      return { front:c1, side2:shade(c1,0.05), top:shade(c1,0.12), dark:shade(c1,-0.08), size:'auto' };
+    }
+
+    // ---------- coin rendering (real logo, letter fallback) ----------
+    function logoUrl(ticker) {
+      return `https://cdn.jsdelivr.net/gh/spothq/cryptocurrency-icons@master/svg/color/${ticker.toLowerCase()}.svg`;
+    }
+    function makeCoin(a, cls) {
+      const span = document.createElement('span');
+      span.className = cls || 'coin';
+      const fallback = () => {
+        span.classList.add('no-logo');
+        span.style.background = `radial-gradient(circle at 30% 25%, rgba(255,255,255,0.4), transparent 55%), ${a.color}`;
+        span.textContent = a.glyph || a.ticker[0];
+      };
+      if (a.glyph) { fallback(); return span; }
+      const img = document.createElement('img');
+      img.src = logoUrl(a.ticker); img.alt = ''; img.loading = 'lazy';
+      img.addEventListener('error', () => { span.innerHTML = ''; fallback(); });
+      span.appendChild(img);
+      return span;
+    }
+
+    // ---------- box element refs ----------
+    const box = document.getElementById('box');
+    const set = (role, val) => { const el = box.querySelector(`[data-role="${role}"]`); if (el) el.textContent = val; };
+
+    // box orientation (drag to rotate)
+    let boxRot = { y: -16, x: -20 };
+    function applyRot() { box.style.transform = `rotateY(${boxRot.y}deg) rotateX(${boxRot.x}deg)`; }
+
+    // typewriter renderer - only the characters added since last render animate in,
+    // so live typing reads as ink being written onto the box (spaces stay inline so
+    // word-wrapping is preserved).
+    const typed = {};
+    function renderTyped(role, val) {
+      const el = box.querySelector(`[data-role="${role}"]`);
+      if (!el) return;
+      val = val == null ? '' : String(val);
+      if (typed[role] === val) return;
+      const prev = [...(typed[role] ?? '')];
+      const arr = [...val];
+      let common = 0;
+      while (common < prev.length && common < arr.length && prev[common] === arr[common]) common++;
+      el.textContent = '';
+      arr.forEach((ch, i) => {
+        const s = document.createElement('span');
+        s.className = 'tch';
+        s.textContent = ch;
+        if (i >= common) { s.classList.add('ink'); s.style.animationDelay = ((i - common) * 0.035) + 's'; }
+        el.appendChild(s);
+      });
+      typed[role] = val;
+    }
+
+    function paint() {
+      const bg = faceBg(cfg);
+      box.style.setProperty('--bg-front', bg.front);
+      box.style.setProperty('--bg-side2', bg.side2);
+      box.style.setProperty('--bg-top', bg.top);
+      box.style.setProperty('--bg-dark', bg.dark);
+      box.style.setProperty('--bg-size', bg.size);
+      box.classList.toggle('holo-anim', cfg.finish === 'holo');
+      box.style.setProperty('--accent', cfg.accent);
+      box.style.setProperty('--fragile', cfg.fragileColor);
+      box.style.setProperty('--tape', cfg.accent);
+
+      renderTyped('brand', cfg.brand);
+      renderTyped('sublabel', cfg.sublabel);
+      renderTyped('note', cfg.note);
+      set('model', cfg.model);
+      set('qty', cfg.qty);
+      set('fragile', cfg.fragileText);
+      set('labelTo', cfg.labelTo);
+      set('labelFrom', cfg.from);
+
+      const patClass = 'front-fx ' + (cfg.pattern && cfg.pattern !== 'none' ? cfg.pattern : 'hidden');
+      box.querySelectorAll('[data-role="pattern"],[data-role="patternR"]').forEach(el => el.className = patClass);
+      box.querySelectorAll('[data-role="sheen"],[data-role="sheenR"]').forEach(el => el.classList.toggle('hidden', !cfg.sheen));
+      box.querySelector('[data-role="fragile"]').classList.toggle('hidden', !cfg.fragile);
+      box.querySelector('[data-role="note"]').classList.toggle('hidden', !cfg.note);
+      box.querySelector('[data-role="brand"]').parentElement.style.opacity = cfg.brand ? 1 : 0.5;
+
+      // keep the borealis backdrop matched to the box — eases to the new colours
+      if (window.GIIIFTSet && window.GIIIFTSet.setColors) window.GIIIFTSet.setColors(cfg.cardboard, cfg.cardboard2, cfg.accent);
+    }
+
+    // ---------- asset grid + search ----------
+    const assetGrid = document.getElementById('asset-grid');
+    const searchInput = document.getElementById('asset-search');
+
+    // reflect the selected coin in the amount field (logo + ticker suffix)
+    function setDepositCoin() {
+      const a = ASSETS.find(x => x.ticker === selectedTicker) || ASSETS[0];
+      const slot = document.getElementById('amount-coin');
+      slot.innerHTML = '';
+      slot.appendChild(makeCoin(a, 'coin'));
+      document.getElementById('amount-suffix').textContent = a.ticker;
+    }
+
+    function renderAssets() {
+      const q = (searchInput.value || '').trim().toLowerCase();
+      const list = ASSETS.filter(a => !q || a.ticker.toLowerCase().includes(q) || a.name.toLowerCase().includes(q));
+      assetGrid.innerHTML = '';
+      if (!list.length) {
+        const d = document.createElement('div');
+        d.className = 'asset-empty-search';
+        d.textContent = 'No matching assets';
+        assetGrid.appendChild(d);
+        return;
+      }
+      if (!list.some(a => a.ticker === selectedTicker)) selectedTicker = list[0].ticker;
+      list.forEach(a => {
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'asset-btn' + (a.ticker === selectedTicker ? ' sel' : '');
+        b.dataset.ticker = a.ticker;
+        b.appendChild(makeCoin(a));
+        const nm = document.createElement('span'); nm.className = 'nm'; nm.textContent = a.ticker;
+        b.appendChild(nm);
+        b.addEventListener('click', () => {
+          selectedTicker = a.ticker;
+          [...assetGrid.querySelectorAll('.asset-btn')].forEach(x => x.classList.toggle('sel', x.dataset.ticker === a.ticker));
+          setDepositCoin();
+        });
+        assetGrid.appendChild(b);
+      });
+      setDepositCoin();
+    }
+    searchInput.addEventListener('input', renderAssets);
+
+    // ---------- deposit ----------
+    const amountInput = document.getElementById('amount');
+    const contentsEl = document.getElementById('contents');
+
+    // quick-amount presets - one tap to fill the amount (verticals set their own tiers)
+    ((V && V.get('wrap.quickAmounts')) || ['0.1','0.5','1','5','10']).forEach(v => {
+      const b = document.createElement('button'); b.type = 'button'; b.textContent = v;
+      b.addEventListener('click', () => { amountInput.value = v; amountInput.focus(); });
+      document.getElementById('quick-amounts').appendChild(b);
+    });
+
+    function renderContents() {
+      contentsEl.innerHTML = '';
+      if (!contents.length) {
+        const en = document.createElement('div');
+        en.className = 'empty-note';
+        en.textContent = vtxt('emptyNote', null, 'empty, drop something in');
+        contentsEl.replaceChildren(en);
+        return;
+      }
+      contents.forEach((it, idx) => {
+        const row = document.createElement('div');
+        row.className = 'content-row';
+        row.appendChild(makeCoin(it, 'coin sm'));
+        const meta = document.createElement('div');
+        meta.className = 'meta';
+        meta.innerHTML = `<div class="a"></div><div class="b"></div>`;
+        meta.querySelector('.a').textContent = `${it.amount} ${it.ticker}`;
+        meta.querySelector('.b').textContent = it.name;
+        row.appendChild(meta);
+        const rm = document.createElement('button');
+        rm.className = 'rm'; rm.title = 'remove'; rm.textContent = '✕';
+        rm.addEventListener('click', () => { contents.splice(idx, 1); renderContents(); renderStamps(); updatePrimary(); });
+        row.appendChild(rm);
+        contentsEl.appendChild(row);
+      });
+    }
+
+    function dropCoin(a) {
+      // a coin that falls from the top of the window, then slips behind the box's
+      // open flaps so it reads as dropping inside (see .drop-coin / @keyframes drop-into)
+      const bs = document.querySelector('.box-stage');
+      const bsRect = bs.getBoundingClientRect();
+      const bxRect = box.getBoundingClientRect();
+      const coin = document.createElement('div');
+      coin.className = 'drop-coin';
+      // anchor on the box's open mouth (top-centre), relative to the stage
+      const anchorTop = (bxRect.top - bsRect.top) + bxRect.height * 0.06;
+      coin.style.left = (bxRect.left + bxRect.width / 2 - bsRect.left) + 'px';
+      coin.style.top  = anchorTop + 'px';
+      // start just above the top of the browser window
+      coin.style.setProperty('--start-y', (-(bsRect.top + anchorTop + 40)) + 'px');
+      const useGlyph = () => {
+        coin.textContent = a.glyph || a.ticker[0];
+        coin.style.background = `radial-gradient(circle at 30% 25%, rgba(255,255,255,0.45), transparent 55%), ${a.color}`;
+      };
+      if (a.glyph) { useGlyph(); }
+      else {
+        coin.style.background = '#f3f4f2';
+        const img = document.createElement('img');
+        img.src = logoUrl(a.ticker); img.alt = '';
+        img.addEventListener('error', () => { coin.innerHTML = ''; useGlyph(); });
+        coin.appendChild(img);
+      }
+      bs.appendChild(coin);
+      coin.addEventListener('animationend', () => coin.remove());
+    }
+
+    // side manifest stamps - one per asset, accent-coloured to match the front
+    const stampsEl = document.querySelector('.side-stamps');
+    function makeStamp(it) {
+      const s = document.createElement('div');
+      s.className = 'side-stamp';
+      s.textContent = it.glyph || it.ticker[0];
+      stampsEl.appendChild(s);
+    }
+    function renderStamps() { stampsEl.innerHTML = ''; contents.forEach(makeStamp); }
+    // append only stamps not shown yet (no rebuild → no re-pop)
+    function syncStamps() {
+      while (stampsEl.children.length < contents.length) makeStamp(contents[stampsEl.children.length]);
+    }
+
+    document.getElementById('add-asset').addEventListener('click', () => {
+      if (stage !== 'fill') return;
+      const a = ASSETS.find(x => x.ticker === selectedTicker) || ASSETS[0];
+      let amt = (amountInput.value || '').trim();
+      if (!amt) amt = '1';
+      contents.push({ ticker: a.ticker, name: a.name, color: a.color, glyph: a.glyph, amount: amt });
+      amountInput.value = '';
+      dropCoin(a);
+      renderContents();
+      updatePrimary();
+      setTimeout(syncStamps, 420);   // stamp the side once the coin has dropped in
+    });
+    amountInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); document.getElementById('add-asset').click(); } });
+
+    // ---------- stage machine ----------
+    const primary = document.getElementById('primary');
+    const hint = document.getElementById('hint');
+    const controlCard = document.getElementById('control-card');
+    const paneFill = document.getElementById('pane-fill');
+    const paneCustomize = document.getElementById('pane-customize');
+    const stepsEl = document.getElementById('steps');
+    const boxStage = document.querySelector('.box-stage');
+
+    function showPane(which) {
+      const fill = which === 'fill';
+      paneFill.hidden = !fill;
+      paneCustomize.hidden = fill;
+      const shown = fill ? paneFill : paneCustomize;
+      shown.classList.remove('pane-enter'); void shown.offsetWidth; shown.classList.add('pane-enter');
+    }
+
+    function setSteps(activeKeys, doneKeys) {
+      stepsEl.querySelectorAll('.step').forEach(s => {
+        const k = s.dataset.step;
+        s.classList.toggle('active', activeKeys.includes(k));
+        s.classList.toggle('done', doneKeys.includes(k));
+      });
+    }
+
+    function updatePrimary() {
+      if (stage === 'fill') {
+        primary.disabled = contents.length === 0;
+        primary.textContent = vtxt('sealBtn', null, 'Seal the box →');
+        hint.textContent = contents.length
+          ? vtxt('sealHintReady', { count: contents.length, s: contents.length > 1 ? 's' : '' }, `${contents.length} item${contents.length>1?'s':''} inside · ready to seal`)
+          : vtxt('sealHintEmpty', null, 'Add at least one asset to seal.');
+      }
+    }
+
+    function goSeal() {
+      if (contents.length === 0) return;
+      stage = 'sealing';
+      setSteps(['seal'], ['fill']);
+      primary.disabled = true; primary.textContent = vtxt('sealingBtn', null, 'Sealing…'); hint.textContent = '';
+      controlCard.classList.add('busy');
+      box.classList.remove('is-open');          // lid closes
+      boxRot = { y: -27, x: -26 }; applyRot();   // settle to a top-down 3/4 view so the taped lid shows
+      setTimeout(() => box.classList.add('is-sealed'), 650);  // tape wipes on
+      setTimeout(() => goText(), 1700);
+    }
+
+    // swap between the text and design sub-steps inside "make it yours"
+    function showSub(which) {
+      const txt = document.getElementById('sub-text');
+      const dsn = document.getElementById('sub-design');
+      const showText = which === 'text';
+      txt.hidden = !showText; dsn.hidden = showText;
+      const shown = showText ? txt : dsn;
+      shown.classList.remove('pane-enter'); void shown.offsetWidth; shown.classList.add('pane-enter');
+    }
+
+    function goText() {
+      stage = 'text';
+      setSteps(['text'], ['fill','seal']);
+      controlCard.classList.remove('busy');
+      showPane('customize');                      // the card switches to "make it yours"
+      showSub('text');
+      boxStage.classList.add('can-drag');
+      primary.style.display = ''; primary.disabled = false; primary.textContent = vtxt('continueBtn', null, 'Continue to design →');
+      hint.textContent = vtxt('textHint', null, 'Add your message, then continue to design.');
+    }
+
+    function goDesign() {
+      stage = 'design';
+      setSteps(['design'], ['fill','seal','text']);
+      showSub('design');
+      primary.disabled = false; primary.textContent = vtxt('finalizeBtn', null, 'Finalize →');
+      hint.textContent = vtxt('designHint', null, 'Dress up the box, then finalize your gift.');
+    }
+
+    // ---------- short links via Supabase (optional; falls back to the self-contained link) ----------
+    const SB = (window.GIIIFT_SUPABASE && window.GIIIFT_SUPABASE.url && window.GIIIFT_SUPABASE.key) ? window.GIIIFT_SUPABASE : null;
+    function shortCode(n = 7) {
+      const a = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789'; // no 0/O/1/I/l
+      const r = crypto.getRandomValues(new Uint8Array(n));
+      let s = ''; for (let i = 0; i < n; i++) s += a[r[i] % a.length];
+      return s;
+    }
+    async function createShortGift(payload) {
+      if (!SB) return null;
+      for (let attempt = 0; attempt < 3; attempt++) {
+        const code = shortCode(7);
+        const res = await fetch(SB.url + '/rest/v1/gifts', {
+          method: 'POST',
+          headers: { apikey: SB.key, Authorization: 'Bearer ' + SB.key, 'Content-Type': 'application/json', Prefer: 'return=minimal' },
+          body: JSON.stringify({ code, payload }),
+        });
+        if (res.ok) return code;
+        if (res.status === 409) continue;   // rare code collision - retry
+        throw new Error('supabase insert ' + res.status + ' ' + (await res.text().catch(() => '')));
+      }
+      return null;
+    }
+
+    let finishUrl = '';
+    let lastCompact = null;   // the compact payload of the finalized gift (Link delivery posts it to /api/intent)
+    function goSend() {
+      stage = 'send';
+      setSteps(['send'], ['fill','seal','text','design']);
+      // Compact, self-contained link: short keys, omit any design field left at its
+      // default, derive each asset's name/colour/icon from its ticker on the receive
+      // side. Keeps the URL short without a backend (works on static / IPFS hosting).
+      const strip = (s, re) => String(s || '').replace(re, '').trim();
+      const DEF = { finish: 'gradient', cardboard: '#7c3aed', cardboard2: '#ec4899', angle: 135, pattern: 'dots', accent: '#fde68a', sublabel: 'A GIFT FOR YOU', model: 'Model: GF-001' };
+      const lc = v => String(v).toLowerCase();
+      const d = {};
+      if (cfg.finish !== DEF.finish) d.f = cfg.finish;
+      if (lc(cfg.cardboard) !== DEF.cardboard) d.c = cfg.cardboard;
+      if (lc(cfg.cardboard2) !== DEF.cardboard2) d.k = cfg.cardboard2;
+      if (cfg.angle !== DEF.angle) d.a = cfg.angle;
+      if (cfg.pattern !== DEF.pattern) d.p = cfg.pattern;
+      if (lc(cfg.accent) !== DEF.accent) d.x = cfg.accent;
+      if (cfg.sublabel && cfg.sublabel !== DEF.sublabel) d.s = cfg.sublabel;
+      if (cfg.model && cfg.model !== DEF.model) d.md = cfg.model;
+      const compact = {
+        t: strip(cfg.labelTo, /^to:\s*/i),
+        f: strip(cfg.from, /^from:\s*/i),
+        m: (cfg.brand && cfg.brand !== 'Name Here') ? cfg.brand : '',
+        n: cfg.note || '',
+        i: contents.map(it => [it.ticker, it.amount]),
+      };
+      if (Object.keys(d).length) compact.d = d;
+      ['t', 'f', 'm', 'n'].forEach(k => { if (!compact[k]) delete compact[k]; });
+      if (giftOccasion) compact.o = giftOccasion;   // → recipient's shop lead shelf ("Birthday from Misty → …")
+      if (V) V.stamp(compact);   // the vertical travels with the gift → the receive page speaks the same language
+      lastCompact = compact;
+      let token = 'demo';
+      try { token = btoa(unescape(encodeURIComponent(JSON.stringify(compact)))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, ''); } catch (e) {}
+      // Always have a working link; upgrade to a tiny /g/<code> link if Supabase stores it.
+      const setLink = (url) => { finishUrl = url; const o = document.getElementById('fp-open'); if (o) o.href = url; };
+      setLink(location.origin + '/showcase/box.html?g=' + token);
+      createShortGift(compact).then(code => { if (code) setLink(location.origin + '/g/' + code); })
+        .catch(err => console.warn('[GIIIFT] short link unavailable, using self-contained link:', err));
+      const toName = (cfg.labelTo || '').replace(/^to:\s*/i, '').trim() || 'someone';
+      document.getElementById('fp-sub').textContent = vtxt('wrappedFor', { to: toName, count: contents.length, s: contents.length === 1 ? '' : 's' },
+        'Wrapped for ' + toName + ' · ' + contents.length + ' item' + (contents.length === 1 ? '' : 's') + '.');
+      const upkg = document.getElementById('dv-pkg-user');
+      if (upkg) { upkg.style.setProperty('--pkg1', cfg.cardboard || '#7c3aed'); upkg.style.setProperty('--pkg2', cfg.cardboard2 || cfg.cardboard || '#ec4899'); upkg.style.setProperty('--pkg-accent', cfg.accent || '#fde68a'); }
+      // ---- finalize: build the stage kit, then let the transition engine pick one ----
+      // The visual (iris fade, wormhole, …) lives in finalize-transitions.js; here we just
+      // expose the shared scene lifecycle as `ctx` and hand it to GIIIFTFinalize.run().
+      const stageEl = document.querySelector('.stage');
+      stageEl.classList.add('finalized');
+      const panel = document.getElementById('finish-panel');
+      const roadPkg = document.getElementById('dv-pkg-user');
+      const statusEl = document.getElementById('delivery-status');
+      const cardEl = document.querySelector('.fp-card');
+      const irisEl = document.getElementById('iris');
+      const deliveryEl = document.querySelector('.delivery');
+      const palette = { c1: cfg.cardboard || '#7c3aed', c2: cfg.cardboard2 || cfg.cardboard || '#ec4899', accent: cfg.accent || '#fde68a' };
+
+      // the dreamy status copy, shared by transitions that want the full three-beat timeline
+      // (the active vertical re-voices it: "Shrink-wrapping your pack…" on /tcg)
+      const STATUS = (V && V.get('copy.status.send')) || [
+        [0,     'Finalizing your GIIIFT', 'Finalizing'],
+        [5600,  'Picking up your GIIIFT', 'Picking up'],
+        [10400, 'Your GIIIFT is on its way', 'on its way'],
+      ];
+
+      function hasWebGL() {
+        try { const c = document.createElement('canvas'); return !!(window.WebGLRenderingContext && (c.getContext('webgl') || c.getContext('experimental-webgl'))); } catch (e) { return false; }
+      }
+
+      // clone the actual designed box onto the road package, in its resting pose (so the van
+      // picks up the real gift). Used by transitions that show the delivery/van scene.
+      function mountRoadBox() {
+        if (!roadPkg) return;
+        roadPkg.classList.add('pkg-is-box');
+        roadPkg.innerHTML = '';
+        const roadBox = box.cloneNode(true);
+        roadBox.removeAttribute('id');
+        roadBox.classList.remove('dragging');
+        roadBox.style.transition = 'none';
+        roadBox.style.transform = 'rotateY(-27deg) rotateX(13deg)';   // resting pose
+        roadBox.style.setProperty('--box-size', '56px');
+        roadPkg.appendChild(roadBox);
+      }
+
+      // reveal the destination scene behind the transition: drop the studio, dress the town,
+      // light the aurora. van:true places the gift on the road + freezes the van (release it
+      // with releaseVan); van:false hides the road/van scene entirely.
+      function revealScene(o) {
+        o = o || {};
+        const backdrop = o.backdrop || 'town';   // 'town' = van's night-town; 'wormhole' = transparent panel so the tunnel shows behind the card
+        controlCard.style.display = 'none';
+        boxStage.style.display = 'none';
+        document.getElementById('steps').style.display = 'none';
+        document.querySelector('.stage-action').style.display = 'none';
+        stageEl.style.gridTemplateColumns = '1fr';
+        if (o.van) { mountRoadBox(); panel.classList.add('van-hold'); }   // freeze the van until released
+        else if (deliveryEl) { deliveryEl.style.display = 'none'; }       // no road/van for this transition
+        panel.hidden = false;
+        if (backdrop !== 'town') {   // wormhole: the tunnel IS the backdrop — transparent panel, hide the town, skip aurora
+          panel.classList.add('wh-backdrop');
+          var fcity = document.querySelector('.fp-city'); if (fcity) fcity.style.display = 'none';
+          // startAurora (which normally tints the Send button to the palette) is skipped here, so tint
+          // the button to the gift / aurora colours directly — it should match the wormhole, not stay teal.
+          (function () {
+            var P = [cfg.cardboard || '#7c3aed', cfg.cardboard2 || cfg.cardboard || '#ec4899', cfg.accent || '#fde68a'];
+            var lum = function (h) { h = String(h).replace('#', ''); if (h.length === 3) h = h.split('').map(function (c) { return c + c; }).join(''); var n = parseInt(h, 16) || 0; return 0.2126 * ((n >> 16) & 255) + 0.7152 * ((n >> 8) & 255) + 0.0722 * (n & 255); };
+            var bright = P.reduce(function (m, x) { return lum(x) > lum(m) ? x : m; }, P[0]);
+            panel.style.setProperty('--bor-a', P[0]);
+            panel.style.setProperty('--bor-b', P[1]);
+            panel.style.setProperty('--bor-c', P[2]);
+            panel.style.setProperty('--bor-bright', bright);
+          })();
+          return;
+        }
+        panel.classList.remove('wh-backdrop');
+        (function () { var c = document.querySelector('.fp-city'); if (c) c.style.display = ''; })();
+        // dress the finalize backdrop with the same random town the page rolled, faded into the
+        // aurora exactly like the borealis test page (mask + cool-navy tint + black-to-clear tint).
+        (function () {
+          var t = (window.GIIIFTSet && window.GIIIFTSet.town) || null;
+          var city = document.querySelector('.fp-city');
+          if (t && city) {
+            var MASK = t.mask || "linear-gradient(to top,#000 0,#000 50%,rgba(0,0,0,.55) 74%,transparent 94%)";
+            var TINTB = t.tintB || "linear-gradient(to top,rgba(4,7,18,.58) 0%,rgba(8,12,28,.46) 60%,rgba(16,22,42,.36) 100%)";
+            var TINTA = t.tintA || "linear-gradient(to top,rgba(0,0,0,.9) 0,rgba(0,0,0,.6) 38%,rgba(0,0,0,.32) 66%,rgba(0,0,0,.12) 84%,transparent 96%)";
+            city.style.bottom = t.bottom || '-7vh';
+            city.style.height = t.height || 'clamp(310px, 55vh, 660px)';
+            city.style.background = "url('" + t.src + "') center bottom/" + (t.bgSize || 'cover') + " no-repeat";
+            city.style.webkitMaskImage = MASK; city.style.maskImage = MASK;
+            city.style.filter = 'brightness(.72) saturate(1.05)';
+            // the two night tints fade the town into the aurora (these ride inside the same mask)
+            city.innerHTML = '<div class="fpc-tint"></div><div class="fpc-tint"></div>';
+            var tints = city.querySelectorAll('.fpc-tint');
+            tints[0].style.cssText = 'position:absolute;inset:0;pointer-events:none;background:' + TINTB;
+            tints[1].style.cssText = 'position:absolute;inset:0;pointer-events:none;background:' + TINTA;
+          }
+        })();
+        startAurora();   // light the WebGL aurora behind everything (now that the panel has size)
+      }
+
+      function releaseVan() { panel.classList.remove('van-hold'); if (roadPkg) roadPkg.classList.remove('pkg-warp-hold'); }
+
+      // { x, y, size } of the road gift, or null — for transitions that "land the present"
+      function getLanding() {
+        const rb = roadPkg && roadPkg.querySelector('.box');
+        if (!rb) return null;
+        const r = rb.getBoundingClientRect();
+        if (!r.width) return null;
+        return { x: r.left + r.width / 2, y: r.top + r.height / 2, size: rb.offsetWidth };
+      }
+
+      // dreamy char-by-char status timeline. over:'panel' renders in the send panel (default);
+      // over:'wormhole' floats it above the WebGL canvas. Resolves after the last line fades out.
+      function playStatus(seq, o) {
+        o = o || {};
+        if (!statusEl) return Promise.resolve();
+        statusEl.classList.remove('gone');
+        const over = o.over === 'wormhole';
+        statusEl.classList.toggle('over-wormhole', over);
+        // #delivery-status lives in .stage (z-index:2) but the wormhole canvas is a body-level
+        // overlay (z 9998) — hoist the status to <body> so its z-index:10000 paints above the tunnel.
+        const statusHome = statusEl.parentNode, statusNext = statusEl.nextSibling;
+        if (over) document.body.appendChild(statusEl);
+        function revealStatus(full, accent) {
+          statusEl.innerHTML = '';
+          const aStart = accent ? full.indexOf(accent) : -1;
+          const aEnd = aStart >= 0 ? aStart + accent.length : -1;
+          const words = full.split(' ');
+          let i = 0; // index within `full` (incl. spaces), used for accent match + stagger
+          words.forEach((word, wi) => {
+            const w = document.createElement('span');
+            w.style.display = 'inline-block'; w.style.whiteSpace = 'nowrap';
+            for (const ch of word) {
+              const c = document.createElement('span');
+              c.className = 'dream-char' + (aStart >= 0 && i >= aStart && i < aEnd ? ' verb' : '');
+              c.textContent = ch;
+              const reveal = i * 0.05;
+              c.style.animationDelay = reveal + 's';
+              setTimeout(() => { c.classList.add('float'); c.style.animationDelay = (-Math.random() * 5).toFixed(2) + 's'; c.style.animationDuration = (6 + Math.random() * 3).toFixed(2) + 's'; }, (2.4 + reveal) * 1000);
+              w.appendChild(c); i++;
+            }
+            statusEl.appendChild(w);
+            if (wi < words.length - 1) { const sp = document.createElement('span'); sp.innerHTML = '&nbsp;'; sp.style.display = 'inline-block'; statusEl.appendChild(sp); i++; }
+          });
+        }
+        (window.__dvTimers || []).forEach(clearTimeout);
+        window.__dvTimers = seq.map(([t, full, accent]) => setTimeout(() => revealStatus(full, accent), t));
+        const last = seq.length ? seq[seq.length - 1][0] : 0;
+        return new Promise((resolve) => {
+          window.__dvTimers.push(setTimeout(() => { statusEl.classList.add('gone'); }, last + 3400));
+          window.__dvTimers.push(setTimeout(() => {
+            statusEl.classList.remove('over-wormhole');
+            if (over && statusHome) statusHome.insertBefore(statusEl, statusNext);   // restore it into the panel
+            resolve();
+          }, last + 3900));
+        });
+      }
+
+      function revealCard() { if (cardEl) cardEl.classList.add('revealed'); }
+
+      // the "stage kit" every transition composes (see finalize-transitions.js)
+      const ctx = {
+        box: box,
+        palette: palette,
+        caps: { webgl: hasWebGL(), reduceMotion: matchMedia('(prefers-reduced-motion: reduce)').matches },
+        els: { panel: panel, iris: irisEl, status: statusEl, card: cardEl, roadPkg: roadPkg, delivery: deliveryEl },
+        STATUS: STATUS,
+        revealScene: revealScene,
+        releaseVan: releaseVan,
+        getLanding: getLanding,
+        mountRoadBox: mountRoadBox,
+        playStatus: playStatus,
+        revealCard: revealCard,
+      };
+
+      if (window.GIIIFTFinalize) {
+        if (V) V.applyTransitions(window.GIIIFTFinalize);   // vertical reweights the pick (e.g. tcg rides the wormhole more often)
+        window.GIIIFTFinalize.run(ctx);
+      } else {
+        // engine script missing → minimal safe fallback (reveal van scene + status + card)
+        console.warn('[GIIIFT] finalize engine not loaded; using minimal fallback');
+        revealScene({ van: true });
+        releaseVan();
+        playStatus(STATUS, { over: 'panel' }).then(revealCard);
+      }
+    }
+
+    primary.addEventListener('click', () => {
+      if (stage === 'fill') goSeal();
+      else if (stage === 'text') goDesign();
+      else if (stage === 'design') goSend();
+    });
+    document.getElementById('to-text').addEventListener('click', goText);
+
+    document.getElementById('copy-link').addEventListener('click', async (e) => {
+      try { await navigator.clipboard.writeText(document.getElementById('lk-url').textContent); e.target.textContent = '✓ Copied'; setTimeout(()=>e.target.textContent='⧉ Copy link', 1800); } catch(err) {}
+    });
+    // ---------- Privy delivery: capture recipient → provision wallet → notify ----------
+    (function setupDelivery() {
+      const seg = document.getElementById('fp-seg');
+      const input = document.getElementById('fp-deliver');
+      const hint = document.getElementById('fp-deliver-hint');
+      const form = document.getElementById('fp-deliver-form');
+      const sendStage = document.getElementById('fp-send-stage');
+      const sentStage = document.getElementById('fp-sent-stage');
+      const sentH = document.getElementById('fp-sent-h');
+      const sentSub = document.getElementById('fp-sent-sub');
+      if (!seg || !form) return;
+
+      const MODES = {
+        email:  { type: 'email', ph: 'their@email.com', auto: 'email' },
+        phone:  { type: 'tel',   ph: '+1 555 000 1234', auto: 'tel' },
+        wallet: { type: 'text',  ph: '0x… or Solana address', auto: 'off' },
+        link:   { type: 'text',  ph: '', auto: 'off' },   // no recipient: the link itself finds them
+      };
+      let mode = 'email';
+      const sendBtn = form.querySelector('.fp-send');
+      function setMode(m) {
+        mode = m;
+        [...seg.children].forEach(b => b.classList.toggle('on', b.dataset.mode === m));
+        const cfg = MODES[m];
+        input.type = cfg.type; input.placeholder = cfg.ph; input.setAttribute('autocomplete', cfg.auto); input.value = '';
+        // Link mode needs no recipient field: the claimant identifies themself at claim time.
+        input.style.display = m === 'link' ? 'none' : '';
+        input.required = m !== 'link';
+        if (sendBtn) sendBtn.textContent = m === 'link' ? 'Create the link →' : 'Send →';
+        if (hint) [].forEach.call(hint.children, function (s) { s.classList.toggle('on', s.dataset.hint === m); });
+      }
+      seg.addEventListener('click', e => { const b = e.target.closest('[data-mode]'); if (b) setMode(b.dataset.mode); });
+
+      function valid(v) {
+        if (mode === 'email') return /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v);
+        if (mode === 'phone') return v.replace(/[^0-9]/g, '').length >= 6;
+        return /^0x[a-fA-F0-9]{40}$/.test(v) || /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(v); // EVM or Solana
+      }
+
+      // ---- Link delivery (link-gifting M1): mint an invitation intent ----
+      // No funds ride in the link. The sender must be logged in, because the
+      // approval ("hand it over") has to come back to this same identity.
+      // M1 is honest demo mode: the hand-over delivers the box + note; value
+      // attaches at approve once funding (M3) ships.
+      let mintingLink = false;
+      async function createIntentLink(btn) {
+        if (mintingLink) return;
+        const IC = window.GIIIFTIntent;
+        if (!IC || !lastCompact) { if (btn) btn.textContent = 'Link unavailable'; return; }
+        mintingLink = true;
+        if (btn) { btn.disabled = true; btn.textContent = 'Waiting for sign-in…'; }
+        const ok = await IC.ensureLogin();
+        if (!ok) { mintingLink = false; if (btn) { btn.disabled = false; btn.textContent = 'Sign in to create the link →'; } return; }
+        if (btn) btn.textContent = 'Minting your link…';
+        const senderName = (cfg.from || '').replace(/^from:\s*/i, '').trim();
+        const r = await IC.create({
+          payload: lastCompact,
+          sender_name: senderName || undefined,
+          sender_wallet: window.giiiftWalletAddress || undefined,
+          expiry_days: 14,
+        });
+        mintingLink = false;
+        if (!r.ok || !r.data || !r.data.url) {
+          if (btn) { btn.disabled = false; btn.textContent = 'Try again →'; }
+          console.error('[GIIIFT] intent create failed', r.status, r.data);
+          return;
+        }
+        if (window.giiift && window.giiift.track) window.giiift.track('intent_created', { open: true });
+        // the invitation URL becomes the link this screen shares + previews
+        const setLink2 = (url) => { finishUrl = url; const o = document.getElementById('fp-open'); if (o) o.href = url; };
+        setLink2(r.data.url);
+        if (sentH) sentH.textContent = 'Your invitation link is ready';
+        if (sentSub) sentSub.textContent = 'Share it anywhere. It carries no funds: when someone taps it and signs in, you approve the hand-over from your Vault. It rests in 14 days.';
+        const cft = document.getElementById('fp-copy-fallback-text');
+        if (cft) cft.textContent = 'Copy the invitation link';
+        if (sendStage) sendStage.hidden = true;
+        if (sentStage) sentStage.hidden = false;
+      }
+
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        if (mode === 'link') { createIntentLink(form.querySelector('.fp-send')); return; }
+        const to = input.value.trim();
+        if (!valid(to)) { input.focus(); input.style.borderColor = 'rgba(255,90,120,0.6)'; setTimeout(() => input.style.borderColor = '', 1200); return; }
+        const btn = form.querySelector('.fp-send');
+        if (btn) { btn.disabled = true; btn.textContent = 'Sending…'; }
+        // Server-side delivery (/api/send-gift): provisions the recipient's Privy
+        // embedded wallet from email/phone and emails/texts them the receive link.
+        // Returns { delivered } - false until PRIVY_APP_SECRET + an email/SMS
+        // provider are set, in which case the copy-link fallback below covers it.
+        let delivered = false;
+        try {
+          const r = await fetch('/api/send-gift', { method: 'POST', headers: { 'content-type': 'application/json' },
+            body: JSON.stringify({ to, channel: mode, link: finishUrl, from: (cfg.from || '').replace(/^from:\s*/i, '').trim(),
+              vertical: (V && V.id() !== 'core') ? V.id() : '' }) });
+          if (r.ok) { const j = await r.json().catch(() => ({})); delivered = !!j.delivered; }
+        } catch (err) {}
+        const label = mode === 'wallet' ? (to.slice(0, 6) + '…' + to.slice(-4)) : to;
+        if (sentH) sentH.textContent = 'On its way to ' + label;
+        if (sentSub) sentSub.textContent = mode === 'wallet'
+          ? 'We sent the gift to their wallet. Share this link so they can open it.'
+          : delivered
+            ? 'We created their GIIIFT wallet and ' + (mode === 'phone' ? 'texted' : 'emailed') + ' a link to open it. No app, no seed phrase.'
+            : 'We created their GIIIFT wallet. Share this link so they can open it.';
+        if (sendStage) sendStage.hidden = true;
+        if (sentStage) sentStage.hidden = false;
+      });
+
+      const cf = document.getElementById('fp-copy-fallback');
+      if (cf) cf.addEventListener('click', async () => {
+        const t = document.getElementById('fp-copy-fallback-text');
+        try { await navigator.clipboard.writeText(finishUrl); if (t) { const o = t.textContent; t.textContent = 'Copied ✓'; setTimeout(() => t.textContent = o, 1800); } } catch (err) {}
+      });
+    })();
+
+    // ---------- customize controls ----------
+    const editor = document.getElementById('editor');
+    function updateCounts() {
+      document.querySelectorAll('.tcount[data-count-for]').forEach(el => {
+        const input = editor.querySelector(`[data-field="${el.dataset.countFor}"]`);
+        if (input) el.textContent = `${(input.value || '').length}/${input.maxLength}`;
+      });
+    }
+    function syncForm() {
+      editor.querySelectorAll('[data-field]').forEach(input => {
+        const f = input.dataset.field;
+        if (input.type === 'checkbox') input.checked = !!cfg[f];
+        else input.value = cfg[f] ?? '';
+      });
+      editor.querySelectorAll('[data-hex]').forEach(el => el.textContent = cfg[el.dataset.hex]);
+      updateCounts();
+    }
+    function onEdit(e) {
+      const input = e.target; const f = input.dataset.field; if (!f) return;
+      if (input.type === 'checkbox') cfg[f] = input.checked;
+      else cfg[f] = input.value;
+      if (input.type === 'color') { const hx = editor.querySelector(`[data-hex="${f}"]`); if (hx) hx.textContent = input.value; }
+      paint();
+      updateCounts();
+      syncPresets();
+    }
+    editor.addEventListener('input', onEdit);
+    editor.addEventListener('change', onEdit);
+
+    // show a blinking caret on the box while a front-text field is focused
+    ['brand','sublabel','note'].forEach(role => {
+      const input = editor.querySelector(`[data-field="${role}"]`);
+      const target = box.querySelector(`[data-role="${role}"]`);
+      if (!input || !target) return;
+      input.addEventListener('focus', () => target.classList.add('caret'));
+      input.addEventListener('blur', () => target.classList.remove('caret'));
+    });
+
+    // theme presets - quick "looks" (a row of gradients / holo / kraft).
+    // The active vertical's recommended looks come FIRST (starred); the base set stays.
+    const BASE_PRESETS = [
+      { name:'Aurora',   finish:'gradient', cardboard:'#7c3aed', cardboard2:'#ec4899', accent:'#fde68a' },
+      { name:'Sunset',   finish:'gradient', cardboard:'#ff5f6d', cardboard2:'#ffc371', accent:'#fff3e0' },
+      { name:'Ocean',    finish:'gradient', cardboard:'#0093e9', cardboard2:'#80d0c7', accent:'#eafcff' },
+      { name:'Mint',     finish:'gradient', cardboard:'#11998e', cardboard2:'#38ef7d', accent:'#eafff4' },
+      { name:'Berry',    finish:'gradient', cardboard:'#8e2de2', cardboard2:'#f953c6', accent:'#ffe6fb' },
+      { name:'Gold',     finish:'gradient', cardboard:'#aa771c', cardboard2:'#ffd166', accent:'#fff8e1' },
+      { name:'Holo',     finish:'holo',     cardboard:'#bfa9ff', cardboard2:'#b8f0ff', accent:'#ffffff' },
+      { name:'Midnight', finish:'gradient', cardboard:'#0f2027', cardboard2:'#2c5364', accent:'#00ff9d' },
+      { name:'Kraft',    finish:'matte',    cardboard:'#6b4f33', cardboard2:'#3f2f1e', accent:'#e8d5b0' },
+    ];
+    const VERT_PRESETS = ((V && V.get('wrap.presets')) || []).map(p => Object.assign({ vertical: true }, p));
+    const PRESETS = VERT_PRESETS.concat(BASE_PRESETS);
+    const presetsEl = document.getElementById('presets');
+    function presetBg(p) {
+      if (p.finish === 'holo') return 'linear-gradient(125deg,#bfa9ff,#ffc6e9 35%,#b8f0ff 70%,#cdbcff)';
+      if (p.finish === 'matte') return p.cardboard;
+      return `linear-gradient(135deg, ${p.cardboard}, ${p.cardboard2})`;
+    }
+    function syncPresets() {
+      [...presetsEl.children].forEach((c, i) => {
+        const p = PRESETS[i];
+        c.classList.toggle('sel', !!p && p.finish === cfg.finish
+          && p.cardboard.toLowerCase() === String(cfg.cardboard).toLowerCase()
+          && p.accent.toLowerCase() === String(cfg.accent).toLowerCase());
+      });
+    }
+    PRESETS.forEach((p) => {
+      const b = document.createElement('button'); b.type = 'button'; b.className = 'preset' + (p.vertical ? ' vert' : '');
+      const sw = document.createElement('span'); sw.className = 'preset-sw'; sw.style.background = presetBg(p);
+      const nm = document.createElement('span'); nm.className = 'preset-nm'; nm.textContent = (p.vertical ? '★ ' : '') + p.name;
+      b.append(sw, nm);
+      b.addEventListener('click', () => {
+        cfg.finish = p.finish; cfg.cardboard = p.cardboard; cfg.cardboard2 = p.cardboard2; cfg.accent = p.accent;
+        if (p.pattern) cfg.pattern = p.pattern;   // vertical looks can carry their pattern
+        paint(); syncForm(); syncPresets(); syncPatterns();
+      });
+      presetsEl.appendChild(b);
+    });
+
+    // vertical-recommended pattern order: reorder the tiles so the flow's looks lead
+    (function orderPatterns() {
+      const order = V && V.get('wrap.patterns');
+      if (!order || !order.length) return;
+      const row = document.getElementById('pattern-row');
+      const byId = {};
+      row.querySelectorAll('.pat').forEach(b => { byId[b.dataset.pattern] = b; });
+      order.forEach(pn => { if (byId[pn]) row.appendChild(byId[pn]); });
+    })();
+
+    // pattern tiles (replaces the old dropdown)
+    const patternRow = document.getElementById('pattern-row');
+    function syncPatterns() { patternRow.querySelectorAll('.pat').forEach(b => b.classList.toggle('sel', b.dataset.pattern === cfg.pattern)); }
+    patternRow.querySelectorAll('.pat').forEach(btn => {
+      btn.addEventListener('click', () => { cfg.pattern = btn.dataset.pattern; paint(); syncPatterns(); });
+    });
+
+    // quick swatch palettes
+    const CARD_SW = ['#7c3aed','#ec4899','#2563eb','#06b6d4','#10b981','#f59e0b','#ef4444','#111827','#6b4f33'];
+    const ACC_SW = ['#fde68a','#ffffff','#00FF9D','#ff6fb5','#7dd3fc','#c4b5fd','#fca5a5','#e8d5b0'];
+    function buildSwatches(elId, list, field) {
+      const wrap = document.getElementById(elId);
+      list.forEach(col => {
+        const c = document.createElement('div');
+        c.className = 'sw-chip'; c.style.background = col; c.title = col;
+        c.addEventListener('click', () => {
+          cfg[field] = col;
+          if (field === 'cardboard') cfg.cardboard2 = shade(col, -0.12);
+          paint(); syncForm(); syncPresets();
+        });
+        wrap.appendChild(c);
+      });
+    }
+    buildSwatches('sw-cardboard', CARD_SW, 'cardboard');
+    buildSwatches('sw-accent', ACC_SW, 'accent');
+    syncPresets();
+    syncPatterns();
+
+    // ---------- drag to rotate ----------
+    let drag = null, dragging = false;
+    boxStage.addEventListener('pointerdown', (e) => {
+      // Record the start, but DON'T engage the drag (or pause the idle float / kill the
+      // box transition) yet - a plain click shouldn't toggle .dragging, which caused the
+      // box to jump for a split second. We only commit to a drag once the pointer moves.
+      drag = { x: e.clientX, y: e.clientY, ry: boxRot.y, rx: boxRot.x };
+    });
+    window.addEventListener('pointermove', (e) => {
+      if (!drag) return;
+      if (!dragging) {
+        if (Math.abs(e.clientX - drag.x) < 3 && Math.abs(e.clientY - drag.y) < 3) return; // ignore micro-jitter (it was a click)
+        dragging = true;
+        boxStage.classList.add('dragging');
+      }
+      boxRot.y = drag.ry + (e.clientX - drag.x) * 0.4;
+      // clamp the downward tilt so you can't rotate far enough to look inside the open box
+      boxRot.x = Math.max(-32, Math.min(60, drag.rx - (e.clientY - drag.y) * 0.4));
+      applyRot();
+    });
+    window.addEventListener('pointerup', () => {
+      if (!drag) return;
+      drag = null;
+      if (dragging) { dragging = false; boxStage.classList.remove('dragging'); }
+    });
+
+    // ---------- init ----------
+    const serialEl = document.querySelector('[data-role="serial"]');
+    if (serialEl) serialEl.textContent = 'SER · GF-' + Math.random().toString(36).slice(2, 6).toUpperCase();
+    // start every new box with a randomised design (theme + pattern + sheen).
+    // With a vertical active, randomise WITHIN its recommended looks and seed its
+    // default wrapper text, so the first thing the sender sees is on-flavor.
+    (function randomiseDesign() {
+      const pool = (V && V.get('wrap.randomFromPresets') && VERT_PRESETS.length) ? VERT_PRESETS : PRESETS;
+      const p = pool[Math.floor(Math.random() * pool.length)];
+      cfg.finish = p.finish; cfg.cardboard = p.cardboard; cfg.cardboard2 = p.cardboard2; cfg.accent = p.accent;
+      const PATS = ['stripes','dots','grid','chevron','crosshatch','waves','checker','rings','plus','diagonal','weave'];
+      cfg.pattern = p.pattern || PATS[Math.floor(Math.random() * PATS.length)];
+      cfg.sheen = true;
+      cfg.angle = [120, 135, 150][Math.floor(Math.random() * 3)];
+      const vd = V && V.get('wrap.defaults');
+      if (vd) {
+        if (vd.sublabel) cfg.sublabel = vd.sublabel;
+        if (vd.model) cfg.model = vd.model;
+        if (vd.pattern && !p.pattern) cfg.pattern = vd.pattern;
+      }
+    })();
+    // borealis-set.js is deferred, so window.GIIIFTSet usually isn't defined when the
+    // first paint() runs during parse — that left the backdrop on its default purple while
+    // the box loaded a random colourway. Sync the borealis to the present as soon as it's
+    // ready (and forever after, paint()'s setColors keeps it matched live).
+    (function syncBackdrop() {
+      if (window.GIIIFTSet && window.GIIIFTSet.setColors) window.GIIIFTSet.setColors(cfg.cardboard, cfg.cardboard2, cfg.accent);
+      else setTimeout(syncBackdrop, 60);
+    })();
+    // ---------- WebGL aurora background (finish panel) ----------
+    // Renders the borealis shader into #fp-aurora, the backmost layer behind the
+    // hills/road/house/card/text. Starts once, when the finish panel is revealed
+    // (so the canvas already has dimensions). Falls back silently to the panel's
+    // gradient if WebGL is unavailable.
+    let __auroraStarted = false;
+    function startAurora() {
+      if (__auroraStarted) return;
+      const canvas = document.getElementById('fp-aurora');
+      if (!canvas) return;
+      const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+      if (!gl) return;
+      __auroraStarted = true;
+
+      const vsSource = 'attribute vec4 aVertexPosition; void main(){ gl_Position = aVertexPosition; }';
+      const fsSource = `
+        precision highp float;
+        uniform vec2 u_resolution;
+        uniform float u_time;
+        uniform vec3 u_sky0; uniform vec3 u_sky1;     // sky gradient (dark, box-tinted)
+        uniform vec3 u_aurora1; uniform vec3 u_aurora2; // the two aurora bands
+        uniform vec3 u_glow;                            // highlight / ridge glow
+        float hash(float n) { return fract(sin(n) * 1e4); }
+        float hash(vec2 p) { return fract(1e4 * sin(17.0 * p.x + p.y * 0.1) * (0.1 + abs(sin(p.y * 13.0 + p.x)))); }
+        float noise(vec3 x) {
+          const vec3 step = vec3(110, 241, 171);
+          vec3 i = floor(x); vec3 f = fract(x);
+          float n = dot(i, step);
+          vec3 u = f * f * (3.0 - 2.0 * f);
+          return mix(mix(mix( hash(n + dot(step, vec3(0,0,0))), hash(n + dot(step, vec3(1,0,0))), u.x),
+                         mix( hash(n + dot(step, vec3(0,1,0))), hash(n + dot(step, vec3(1,1,0))), u.x), u.y),
+                     mix(mix( hash(n + dot(step, vec3(0,0,1))), hash(n + dot(step, vec3(1,0,1))), u.x),
+                         mix( hash(n + dot(step, vec3(0,1,1))), hash(n + dot(step, vec3(1,1,1))), u.x), u.y), u.z);
+        }
+        float fbm(vec3 p) { float f = 0.0; float w = 0.5; for (int i = 0; i < 5; i++) { f += w * noise(p); p *= 2.0; w *= 0.5; } return f; }
+        float grain(vec2 uv, float time) { float m = dot(uv, vec2(12.9898, 78.233)); return fract(sin(m + time) * 43758.5453) * 0.15; }
+        float makeStars(vec2 uv) { float n = hash(uv * 200.0); float stars = smoothstep(0.99, 1.0, n); stars *= (sin(u_time * 2.0 + n * 100.0) * 0.5 + 0.5); return stars; }
+        void main() {
+          vec2 uv = gl_FragCoord.xy / u_resolution.xy;
+          vec2 st = uv; st.x *= u_resolution.x / u_resolution.y;
+          float t = u_time * 0.15;
+          vec3 skyColor = mix(u_sky0, u_sky1, uv.y);
+          float stars = makeStars(st);
+          skyColor += vec3(stars) * 0.5;
+          vec2 warp = st;
+          warp.x += sin(warp.y * 3.0 + t) * 0.1;
+          warp.y += cos(warp.x * 2.0 - t * 0.5) * 0.1;
+          vec3 p = vec3(warp.x * 3.0, warp.y * 0.5 - t * 0.8, t * 0.5);
+          float n1 = fbm(p);
+          float band1 = smoothstep(0.2, 0.7, n1);
+          vec3 p2 = vec3(warp.x * 4.0 - t, warp.y * 0.6 - t * 1.2, t * 0.7);
+          float n2 = fbm(p2);
+          float band2 = smoothstep(0.3, 0.8, n2);
+          vec3 auroraColor = mix(u_aurora1 * 0.3, u_aurora1, band1);
+          auroraColor = mix(auroraColor, u_aurora2, band2 * 0.8);
+          float highlightMask = distance(uv, vec2(0.8, 0.8));
+          highlightMask = smoothstep(1.0, 0.0, highlightMask);
+          auroraColor = mix(auroraColor, u_glow, highlightMask * band1 * 0.6);
+          float edgeHighlight = smoothstep(0.6, 0.8, n1) * smoothstep(0.8, 0.6, n1);
+          auroraColor += u_glow * edgeHighlight * 0.5;
+          float alphaMask = smoothstep(-0.2, 0.8, uv.y) * 0.8;
+          vec3 finalColor = skyColor + (auroraColor * alphaMask);
+          float vignette = uv.x * uv.y * (1.0 - uv.x) * (1.0 - uv.y);
+          vignette = clamp(pow(16.0 * vignette, 0.25), 0.0, 1.0);
+          finalColor *= vignette;
+          float g = grain(uv, u_time);
+          finalColor += vec3(g) * 0.6;
+          finalColor = smoothstep(0.0, 1.0, finalColor);
+          gl_FragColor = vec4(finalColor, 1.0);
+        }
+      `;
+      function loadShader(type, src) {
+        const sh = gl.createShader(type);
+        gl.shaderSource(sh, src); gl.compileShader(sh);
+        if (!gl.getShaderParameter(sh, gl.COMPILE_STATUS)) { console.error('[GIIIFT aurora] shader:', gl.getShaderInfoLog(sh)); gl.deleteShader(sh); return null; }
+        return sh;
+      }
+      const vs = loadShader(gl.VERTEX_SHADER, vsSource);
+      const fs = loadShader(gl.FRAGMENT_SHADER, fsSource);
+      if (!vs || !fs) { __auroraStarted = false; return; }
+      const prog = gl.createProgram();
+      gl.attachShader(prog, vs); gl.attachShader(prog, fs); gl.linkProgram(prog);
+      if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) { console.error('[GIIIFT aurora] link:', gl.getProgramInfoLog(prog)); __auroraStarted = false; return; }
+      const locPos = gl.getAttribLocation(prog, 'aVertexPosition');
+      const locRes = gl.getUniformLocation(prog, 'u_resolution');
+      const locTime = gl.getUniformLocation(prog, 'u_time');
+      const locSky0 = gl.getUniformLocation(prog, 'u_sky0');
+      const locSky1 = gl.getUniformLocation(prog, 'u_sky1');
+      const locA1 = gl.getUniformLocation(prog, 'u_aurora1');
+      const locA2 = gl.getUniformLocation(prog, 'u_aurora2');
+      const locGlow = gl.getUniformLocation(prog, 'u_glow');
+      // Tie the borealis palette to the gift box being picked up (cfg colours).
+      // Each box gets a randomised design, so the aurora is effectively a
+      // randomised colourway that always matches the package.
+      const hx = (h) => { h = String(h || '').replace('#', ''); if (h.length === 3) h = h.split('').map(c => c + c).join(''); const n = parseInt(h, 16) || 0; return [((n >> 16) & 255) / 255, ((n >> 8) & 255) / 255, (n & 255) / 255]; };
+      const sc = (c, f) => [Math.min(1, c[0] * f), Math.min(1, c[1] * f), Math.min(1, c[2] * f)];
+      const mx = (a, b, t) => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t];
+      const c1 = hx(cfg.cardboard || '#7c3aed');
+      const c2 = hx(cfg.cardboard2 || cfg.cardboard || '#ec4899');
+      const ac = hx(cfg.accent || '#fde68a');
+      const pal = { a1: c1, a2: c2, glow: ac, sky0: sc(c1, 0.12), sky1: sc(mx(c1, c2, 0.5), 0.22) };
+      // Mirror the live palette onto #finish-panel as CSS vars so the send button +
+      // van neon bar + road glow track the borealis; --bor-bright = highest-luminance.
+      (function () {
+        const panel = document.getElementById('finish-panel');
+        if (!panel) return;
+        const lum = (c) => 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2];
+        const cands = [
+          { hex: cfg.cardboard || '#2c7a8b', rgb: c1 },
+          { hex: cfg.cardboard2 || cfg.cardboard || '#4ba6b3', rgb: c2 },
+          { hex: cfg.accent || '#8cdbe8', rgb: ac },
+        ];
+        const bright = cands.reduce((m, x) => (lum(x.rgb) > lum(m.rgb) ? x : m), cands[0]);
+        panel.style.setProperty('--bor-a', cands[0].hex);
+        panel.style.setProperty('--bor-b', cands[1].hex);
+        panel.style.setProperty('--bor-c', cands[2].hex);
+        panel.style.setProperty('--bor-bright', bright.hex);
+        // package colours, so the van wears the box it's carrying (stripe + lights)
+        panel.style.setProperty('--pkg1', cands[0].hex);
+        panel.style.setProperty('--pkg2', cands[1].hex);
+        panel.style.setProperty('--pkg-accent', cands[2].hex);
+      })();
+      const buf = gl.createBuffer();
+      gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+      gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, 1, 1, 1, -1, -1, 1, -1]), gl.STATIC_DRAW);
+      const start = Date.now();
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      function frame() {
+        const w = Math.round(canvas.clientWidth * dpr), h = Math.round(canvas.clientHeight * dpr);
+        if (w && h && (canvas.width !== w || canvas.height !== h)) { canvas.width = w; canvas.height = h; gl.viewport(0, 0, w, h); }
+        gl.useProgram(prog);
+        gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+        gl.vertexAttribPointer(locPos, 2, gl.FLOAT, false, 0, 0);
+        gl.enableVertexAttribArray(locPos);
+        gl.uniform2f(locRes, canvas.width || 1, canvas.height || 1);
+        gl.uniform1f(locTime, (Date.now() - start) / 1000.0);
+        gl.uniform3f(locSky0, pal.sky0[0], pal.sky0[1], pal.sky0[2]);
+        gl.uniform3f(locSky1, pal.sky1[0], pal.sky1[1], pal.sky1[2]);
+        gl.uniform3f(locA1, pal.a1[0], pal.a1[1], pal.a1[2]);
+        gl.uniform3f(locA2, pal.a2[0], pal.a2[1], pal.a2[2]);
+        gl.uniform3f(locGlow, pal.glow[0], pal.glow[1], pal.glow[2]);
+        gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+        requestAnimationFrame(frame);
+      }
+      frame();
+    }
+
+    renderAssets();
+    // Marketplace "Gift it": if an item was chosen in /shop, fund it here in USDC
+    // and show what's being gifted. (We gift the spending power for the wished
+    // item - the recipient redeems it at the shop.)
+    (function prefillFromShop() {
+      let item = null;
+      try { item = JSON.parse(sessionStorage.getItem('giiift-prefill-item') || 'null'); } catch (e) {}
+      if (!item || !item.title) return;
+      try { sessionStorage.removeItem('giiift-prefill-item'); } catch (e) {}
+      const amt = Math.max(1, Math.round(Number(item.priceUSD) || 0));
+      const stable = ASSETS.find(a => a.ticker === 'USDC') || ASSETS[0];
+      contents.push({ ticker: stable.ticker, name: stable.name, color: stable.color, glyph: stable.glyph, amount: amt });
+      if (cfg && !cfg.note) cfg.note = 'For your ' + item.title;
+      const esc = (s) => { const d = document.createElement('div'); d.textContent = String(s == null ? '' : s); return d.innerHTML; };
+      const st = document.createElement('style');
+      st.textContent = '.gift-prefill{position:fixed;top:74px;left:50%;transform:translateX(-50%);z-index:40;display:flex;align-items:center;gap:10px;max-width:min(92vw,460px);padding:9px 12px 9px 14px;border-radius:999px;border:1px solid rgba(0,255,157,0.3);background:rgba(10,16,14,0.86);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);box-shadow:0 12px 30px -12px rgba(0,0,0,0.6);font-family:var(--font-main,Inter,sans-serif);color:#eafff5;font-size:13.5px;animation:gp-in .4s cubic-bezier(.2,.7,.2,1) both}'+
+        '@keyframes gp-in{from{opacity:0;transform:translate(-50%,-8px)}to{opacity:1;transform:translateX(-50%)}}'+
+        '.gift-prefill .gp-emoji{font-size:17px}.gift-prefill .gp-text{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.gift-prefill b{font-weight:600;color:#fff}'+
+        '.gift-prefill .gp-x{margin-left:2px;background:none;border:none;color:rgba(234,255,245,0.6);font-size:18px;line-height:1;cursor:pointer;padding:0 2px}.gift-prefill .gp-x:hover{color:#fff}';
+      document.head.appendChild(st);
+      const b = document.createElement('div');
+      b.className = 'gift-prefill';
+      b.innerHTML = '<span class="gp-emoji">' + (item.emoji || '🎁') + '</span>' +
+        '<span class="gp-text">Gifting <b>' + esc(item.title) + '</b>' + (amt > 0 ? ' · funding <b>$' + amt.toLocaleString('en-US') + '</b>' : '') + '</span>' +
+        '<button type="button" class="gp-x" aria-label="Dismiss">&times;</button>';
+      document.body.appendChild(b);
+      b.querySelector('.gp-x').addEventListener('click', () => b.remove());
+    })();
+    // Landing-page handoffs: /wrap?pack=50 one-taps a suggested pack in, ?to= names
+    // the recipient (reciprocity links), ?occasion= preselects the occasion chip.
+    (function prefillFromParams() {
+      let q = null;
+      try { q = new URLSearchParams(location.search); } catch (e) { return; }
+      const pack = parseFloat(q.get('pack') || '');
+      if (isFinite(pack) && pack > 0) {
+        // a matching suggested recipe brings its whole bundle (+ seeded note);
+        // otherwise fall back to a plain USDC amount
+        const sugg = ((V && V.get('wrap.suggested')) || []).find(s => Number(s.amount) === pack);
+        setTimeout(() => applyRecipe(sugg || { ticker: 'USDC', amount: pack }, true), 300);
+      }
+      const to = (q.get('to') || '').trim().slice(0, 18);
+      if (to) cfg.labelTo = 'To: ' + to;
+      const occ = (q.get('occasion') || '').trim();
+      if (occ) setOccasion(occ.slice(0, 24));
+    })();
+    renderContents();
+    syncForm();
+    paint();
+    syncPatterns();
+    syncPresets();
+    applyRot();
+    updatePrimary();
+    boxStage.classList.add('can-drag');
+  </script>
+
+  <!-- ===================== borealis wormhole (finalize transition) =====================
+       window.GIIIFTWormhole.play({ box, palette:{c1,c2,accent}, onPortalFull, getLanding, onArrive })
+       Clones the wrapped present, opens an aurora-tunnel portal around it, dives through
+       (the tunnel is palette-matched to the gift, so it carries the box's own colours), then
+       either sets it down on the road (getLanding returns a rect) or lets it vanish into the
+       tunnel (getLanding returns null). opts.timing { appear, dive, cruise, exit } overrides the
+       phase durations (seconds). One-shot, then tears down. If three.js is unavailable the play()
+       global is never defined and the finalize engine simply skips the wormhole variant. -->
+  <script type="module">
+    import * as THREE from 'three';
+    import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+    import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+    import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
+    import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+
+    const CSS = `
+      #wh-root { position: fixed; inset: 0; z-index: 9998; pointer-events: none; }
+      #wh-canvas { position: fixed; inset: 0; width: 100%; height: 100%; display: block; opacity: 0;
+        -webkit-mask-image: radial-gradient(circle at 50% 50%, #000 0%, #000 calc(var(--pr,0%) * 0.34), transparent var(--pr,0%));
+        mask-image: radial-gradient(circle at 50% 50%, #000 0%, #000 calc(var(--pr,0%) * 0.34), transparent var(--pr,0%)); }
+      #wh-box { position: fixed; left: 50%; top: 47%; z-index: 9999; width: min(34vmin, 280px); height: min(34vmin, 280px);
+        perspective: 1200px; pointer-events: none; transform: translate(-50%, -50%); will-change: transform, opacity; }
+      #wh-box > .box { transition: none !important; }   /* rotation is driven per-frame in JS so it can settle onto the road box */
+    `;
+
+    function play(opts) {
+      opts = opts || {};
+      const P = opts.palette || {};
+      const C1 = P.c1 || '#7c3aed', C2 = P.c2 || '#ec4899', AC = P.accent || '#fde68a';
+
+      if (!document.getElementById('wh-style')) {
+        const st = document.createElement('style'); st.id = 'wh-style'; st.textContent = CSS; document.head.appendChild(st);
+      }
+      const root = document.createElement('div'); root.id = 'wh-root';
+      const canvas = document.createElement('canvas'); canvas.id = 'wh-canvas';
+      const boxWrap = document.createElement('div'); boxWrap.id = 'wh-box';
+      root.appendChild(canvas); root.appendChild(boxWrap);
+      document.body.appendChild(root);
+
+      // the actual present from the wrap studio, flying through the wormhole
+      let boxEl = null;
+      if (opts.box) {
+        boxEl = opts.box.cloneNode(true);
+        boxEl.removeAttribute('id');
+        boxEl.classList.remove('dragging');
+        boxEl.style.transform = '';                          // rotation is driven per-frame below
+        boxEl.style.setProperty('--box-size', 'min(34vmin, 280px)');
+        boxWrap.appendChild(boxEl);
+      }
+
+      THREE.ColorManagement.enabled = false;
+      const FOGC = [0.008, 0.016, 0.039];
+      const scene = new THREE.Scene();
+      scene.background = new THREE.Color(0x02040a);
+      const camera = new THREE.PerspectiveCamera(78, innerWidth / innerHeight, 0.1, 1000);
+      const renderer = new THREE.WebGLRenderer({ antialias: true, canvas });
+      renderer.outputColorSpace = THREE.LinearSRGBColorSpace;
+      renderer.setSize(innerWidth, innerHeight); renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+
+      // aurora texture straight from the gift palette so the tunnel matches the box + the send aurora
+      const hex3 = (h) => { h = h.replace('#', ''); if (h.length === 3) h = h.split('').map(c => c + c).join(''); return new THREE.Vector3(parseInt(h.slice(0, 2), 16) / 255, parseInt(h.slice(2, 4), 16) / 255, parseInt(h.slice(4, 6), 16) / 255); };
+      function buildAuroraTexture() {
+        const cv = document.createElement('canvas'); cv.width = 2048; cv.height = 2; const ctx = cv.getContext('2d');
+        const gA = ctx.createLinearGradient(0, 0, cv.width, 0); gA.addColorStop(0, C1); gA.addColorStop(0.5, C2); gA.addColorStop(1, C1); ctx.fillStyle = gA; ctx.fillRect(0, 0, cv.width, 1);
+        const gB = ctx.createLinearGradient(0, 0, cv.width, 0); gB.addColorStop(0, C2); gB.addColorStop(0.5, C1); gB.addColorStop(1, C2); ctx.fillStyle = gB; ctx.fillRect(0, 1, cv.width, 1);
+        const tex = new THREE.CanvasTexture(cv); tex.wrapS = THREE.ClampToEdgeWrapping; tex.wrapT = THREE.ClampToEdgeWrapping; tex.colorSpace = THREE.NoColorSpace; tex.minFilter = THREE.LinearFilter; tex.magFilter = THREE.LinearFilter; return tex;
+      }
+      const auroraTex = buildAuroraTexture();
+
+      const N = 200, R = 40, LEN = 130, pts = [];
+      for (let i = 0; i < N; i++) {
+        const u = i / (N - 1); const ang = u * Math.PI * 2.4; const amp = R * (1 - u * 0.92);
+        pts.push(new THREE.Vector3(Math.sin(ang) * amp + Math.sin(ang * 2.3) * 6 * (1 - u), Math.cos(ang * 1.3) * amp * 0.45, -u * LEN));
+      }
+      const curve = new THREE.CatmullRomCurve3(pts, false, 'catmullrom', 0.5);
+      const SEG = 1200;
+      const geometry = new THREE.TubeGeometry(curve, SEG, 3.0, 36, false);
+      const material = new THREE.ShaderMaterial({
+        side: THREE.BackSide,
+        uniforms: { aurora: { value: auroraTex }, time: { value: 0 }, repeat: { value: 3.0 }, glowC: { value: hex3(AC) }, fogColor: { value: new THREE.Vector3(FOGC[0], FOGC[1], FOGC[2]) }, fogNear: { value: 5.0 }, fogFar: { value: 60.0 } },
+        vertexShader: `varying vec2 vUv; varying float vFog; uniform float fogNear; uniform float fogFar;
+          void main(){ vUv=uv; vec4 mv=modelViewMatrix*vec4(position,1.0); vFog=clamp((-mv.z-fogNear)/(fogFar-fogNear),0.0,1.0); gl_Position=projectionMatrix*mv; }`,
+        fragmentShader: `
+          uniform sampler2D aurora; uniform float time; uniform float repeat; uniform vec3 glowC; uniform vec3 fogColor; varying vec2 vUv; varying float vFog;
+          float hash(float n){ return fract(sin(n)*1e4); }
+          float hash(vec2 p){ return fract(1e4*sin(17.0*p.x+p.y*0.1)*(0.1+abs(sin(p.y*13.0+p.x)))); }
+          float noise(vec3 x){ const vec3 stp=vec3(110.0,241.0,171.0); vec3 i=floor(x); vec3 f=fract(x); float n=dot(i,stp); vec3 u=f*f*(3.0-2.0*f);
+            return mix(mix(mix(hash(n+dot(stp,vec3(0,0,0))),hash(n+dot(stp,vec3(1,0,0))),u.x),mix(hash(n+dot(stp,vec3(0,1,0))),hash(n+dot(stp,vec3(1,1,0))),u.x),u.y),
+                       mix(mix(hash(n+dot(stp,vec3(0,0,1))),hash(n+dot(stp,vec3(1,0,1))),u.x),mix(hash(n+dot(stp,vec3(0,1,1))),hash(n+dot(stp,vec3(1,1,1))),u.x),u.y),u.z); }
+          float fbm(vec3 p){ float f=0.0; float w=0.5; for(int i=0;i<5;i++){ f+=w*noise(p); p*=2.0; w*=0.5; } return f; }
+          float makeStars(vec2 uv){ float n=hash(uv*200.0); float s=smoothstep(0.982,1.0,n); s*=(sin(time*2.0+n*100.0)*0.5+0.5); return s; }
+          void main(){
+            float along=vUv.x, around=vUv.y; float t=time*0.11;
+            float ang1=around*6.28318+along*31.416+time*0.05;
+            float ang2=around*6.28318-along*18.850-time*0.07;
+            vec2 r1=vec2(cos(ang1),sin(ang1)); vec2 r2=vec2(cos(ang2),sin(ang2));
+            vec2 w=r1*2.2; w.x+=sin(r1.y*3.0+t*1.3)*0.35; w.y+=cos(r1.x*2.0-t*0.9)*0.30;
+            float fold=fbm(vec3(r1*0.9,t*0.6))*0.9;
+            float n1=fbm(vec3(w,-t*0.85+fold)); float band1=smoothstep(0.20,0.72,n1);
+            vec2 w2=r2*3.0; w2.x+=sin(r2.y*4.0+t*1.6)*0.4; float n2=fbm(vec3(w2,-t*1.15)); float band2=smoothstep(0.26,0.80,n2);
+            float edge=smoothstep(0.50,0.72,n1)*smoothstep(0.80,0.56,n1);
+            float u=fract(along*repeat-time*0.02);
+            vec3 c1=texture2D(aurora,vec2(u,0.25)).rgb; vec3 c2=texture2D(aurora,vec2(fract(u+0.22),0.75)).rgb;
+            vec3 deepVoid=fogColor*1.8;
+            vec3 aur=mix(deepVoid,c1,band1); aur=mix(aur,c2,band2*0.9); aur+=glowC*edge*0.85;
+            float stars=makeStars(r1*46.0+vec2(along*34.0,along*34.0)); stars+=makeStars(r2*78.0-vec2(along*22.0,along*22.0))*0.7;
+            aur+=vec3(stars)*vec3(0.85,0.92,1.0)*(1.0-band1*0.85);
+            vec3 col=mix(aur,fogColor,vFog); col=col/(1.0+col*0.6); col=pow(col,vec3(0.85));
+            gl_FragColor=vec4(col,1.0);
+          }`
+      });
+      scene.add(new THREE.Mesh(geometry, material));
+      const frames = curve.computeFrenetFrames(SEG, false);
+
+      const composer = new EffectComposer(renderer);
+      composer.addPass(new RenderPass(scene, camera));
+      const bloom = new UnrealBloomPass(new THREE.Vector2(innerWidth, innerHeight), 0.34, 0.5, 0.5);
+      composer.addPass(bloom);
+      const grain = new ShaderPass({
+        uniforms: { tDiffuse: { value: null }, amount: { value: 0.06 }, time: { value: 0 } },
+        vertexShader: `varying vec2 vUv; void main(){ vUv=uv; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0); }`,
+        fragmentShader: `uniform sampler2D tDiffuse; uniform float amount; uniform float time; varying vec2 vUv; float rnd(vec2 p){ return fract(cos(dot(p,vec2(23.14069263277926,2.665144142690225)))*12345.6789); } void main(){ vec4 c=texture2D(tDiffuse,vUv); c.rgb-=rnd(vUv+vec2(time*0.1))*amount; gl_FragColor=c; }`
+      });
+      composer.addPass(grain);
+
+      // ---------- timeline: APPEAR (portal blooms) → DIVE (rip wide) → CRUISE → EXIT (set down) ----------
+      const TM = opts.timing || {};   // optional per-call phase-duration overrides (seconds)
+      const TA = TM.appear || 0.9, TD = TM.dive || 0.8, TC = TM.cruise || 1.8, TX = TM.exit || 1.3;
+      const tA = TA, tD = tA + TD, tC = tD + TC, tX = tC + TX;
+      const REST_Y = -27, REST_X = 13, SPIN = 150;   // present tumbles, then settles onto the road box's exact resting pose
+      const clock = new THREE.Clock(); let elapsed = 0, raf = 0;
+      const tmp = new THREE.Vector3();
+      const ease = (x) => x * x * (3 - 2 * x); const clamp01 = (x) => Math.min(1, Math.max(0, x));
+      const setDisc = (r) => canvas.style.setProperty('--pr', (clamp01(r) * 150).toFixed(1) + '%');
+      const setBox = (s, op, tx, ty) => { boxWrap.style.transform = `translate(calc(-50% + ${(tx || 0).toFixed(1)}px), calc(-50% + ${(ty || 0).toFixed(1)}px)) scale(${s.toFixed(3)})`; boxWrap.style.opacity = String(op); };
+      const place = (p) => { p = clamp01(p); camera.position.copy(curve.getPointAt(p)); camera.up.copy(frames.normals[Math.min(SEG, Math.floor(p * SEG))] || frames.normals[0]); tmp.copy(curve.getPointAt(clamp01(p + 0.02))); camera.lookAt(tmp); };
+      let baseW = 0, landing = null, portalFired = false, arriveFired = false, settling = false, settleAt = 0;
+
+      function onResize() { camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); renderer.setSize(innerWidth, innerHeight); composer.setSize(innerWidth, innerHeight); bloom.setSize(innerWidth, innerHeight); }
+      addEventListener('resize', onResize);
+      function teardown() {
+        cancelAnimationFrame(raf); removeEventListener('resize', onResize);
+        try { geometry.dispose(); material.dispose(); auroraTex.dispose(); renderer.dispose(); } catch (e) {}
+        if (root.parentNode) root.parentNode.removeChild(root);
+      }
+
+      // present rotation: a gentle forward tumble through the tunnel, easing to a stop at the
+      // road box's exact resting pose by the time it lands (so the hand-off is seamless).
+      function setSpin(el) {
+        if (!boxEl) return;
+        let ry;
+        if (opts.persist || el < tC) { ry = REST_Y + el * SPIN; }   // persist: tumble gently the whole endless ride
+        else {
+          const atExit = REST_Y + tC * SPIN;
+          const target = REST_Y + Math.ceil((atExit - REST_Y) / 360) * 360;   // next clean turn ahead → rests at REST_Y
+          ry = atExit + (target - atExit) * ease(clamp01((el - tC) / TX));
+        }
+        boxEl.style.transform = 'rotateY(' + ry.toFixed(1) + 'deg) rotateX(' + REST_X + 'deg)';
+      }
+
+      function applyPhase(el) {
+        setSpin(el);
+        if (el < tA) {                                   // APPEAR — the portal blooms around the present
+          const a = el / TA;
+          setDisc(ease(a) * 0.5); canvas.style.opacity = String(Math.min(1, a / 0.2));
+          setBox(1 - 0.24 * ease(a), 1, 0, 0); place(0.03);
+        } else if (el < tD) {                            // DIVE — the portal tears wide, present + camera surge in
+          const a = (el - tA) / TD;
+          setDisc(0.5 + Math.pow(a, 0.6) * 0.62); canvas.style.opacity = '1';
+          setBox(0.76 - 0.12 * ease(a), 1, 0, 0); place(0.03 + a * a * 0.15);
+        } else if (opts.persist) {                       // PERSIST — endless cruise; settle() ends the ride
+          if (!portalFired) { portalFired = true; if (opts.onPortalFull) opts.onPortalFull(); }
+          canvas.style.opacity = '1';
+          // grow the portal mask out past the corners → the wormhole is edge-to-edge (no bg peers through)
+          canvas.style.setProperty('--pr', Math.min(420, 150 + Math.max(0, el - tD) * 600).toFixed(0) + '%');
+          // camera flies forward at a CONSTANT rate the whole time — it never caps before the ride
+          // ends, so there's no slowdown as the text plays or as the card pops; the fog still hides the end.
+          place(Math.min(0.7, 0.16 + Math.max(0, el - tD) * 0.045));
+          if (!settling) {
+            setBox(0.6, 1, 0, 0);                        // the present rides the centre, tumbling, as the walls stream past
+          } else {
+            // settle() fired (card ready): the present spirals deep into the CENTRE of the wormhole —
+            // it arcs round the bend and recedes into the vanishing point (NOT a fade-in-place), then
+            // the tunnel blurs into the backdrop and the card pops up over it.
+            const s = clamp01((el - settleAt) / 0.7);
+            const k = s * s;                             // accelerate away from the viewer (whooshes into the depths)
+            const ang = s * Math.PI * 1.8, rad = 90 * Math.sin(s * Math.PI);   // swirl ~0.9 turn, arcing round the bend then back to centre
+            setBox(0.6 * (1 - 0.96 * k), 1, rad * Math.cos(ang), rad * Math.sin(ang));   // recede to the centre while swirling
+            if (s >= 1 && !arriveFired) {
+              arriveFired = true;
+              boxWrap.style.display = 'none';
+              canvas.style.filter = 'blur(9px) brightness(0.5) saturate(1.15)';
+              canvas.style.transform = 'scale(1.06)';    // push the blurred edges off-screen (stay edge-to-edge)
+              root.style.zIndex = '1';                   // drop below .stage (z-index:2) → behind the card
+              if (opts.onArrive) opts.onArrive();        // card pops up over the now-blurred tunnel
+            }
+          }
+        } else if (el < tC) {                            // CRUISE — the present rides the centre of the tunnel
+          if (!portalFired) { portalFired = true; setDisc(1.1); if (opts.onPortalFull) opts.onPortalFull(); }
+          const a = (el - tD) / TC;
+          canvas.style.opacity = '1'; setDisc(1.1); setBox(0.64 - 0.03 * a, 1, 0, 0); place(0.18 + a * 0.6);
+        } else if (el < tX) {                            // EXIT — the wormhole dissolves, the present drifts down to the road
+          if (!landing) { landing = (opts.getLanding && opts.getLanding()) || null; baseW = boxWrap.offsetWidth || 240; }
+          const a = (el - tC) / TX; place(0.78 + a * 0.2);
+          canvas.style.opacity = String(1 - ease(clamp01((a - 0.04) / 0.55)));   // fade out → reveal the send scene
+          if (landing) {
+            const f = ease(clamp01(a / 0.92));
+            const tx = (landing.x - innerWidth * 0.5) * f, ty = (landing.y - innerHeight * 0.47) * f;
+            const sc = 0.62 + ((landing.size / baseW) - 0.62) * f;   // shrink to the road box's exact size
+            setBox(sc, 1, tx, ty);
+          } else { setBox(0.62 - 0.5 * a, 1 - a, 0, 0); }
+        } else {                                         // ARRIVED (non-persist) — set the present down on the road
+          if (!arriveFired) {
+            arriveFired = true; canvas.style.opacity = '0';
+            if (landing) setBox(landing.size / baseW, 1, landing.x - innerWidth * 0.5, landing.y - innerHeight * 0.47);
+            if (opts.onArrive) opts.onArrive();
+            boxWrap.style.display = 'none';
+            setTimeout(teardown, 200);
+          }
+        }
+      }
+
+      setDisc(0); canvas.style.opacity = '0'; setBox(1, 1, 0, 0);
+      function render() { material.uniforms.time.value = elapsed; grain.uniforms.time.value = elapsed; applyPhase(elapsed); composer.render(); }
+      function frame() {
+        raf = requestAnimationFrame(frame);
+        elapsed += Math.min(clock.getDelta(), 0.05);   // clamp dt so a backgrounded tab resumes the journey, never jumps it
+        render();
+      }
+      clock.getDelta();   // prime: discard the startup delta
+      frame();
+      // end the ride on the caller's schedule: the present fades, then the tunnel recedes to a
+      // blurred backdrop and onArrive fires (the wormhole transition calls this after the status text).
+      function settle() { if (!settling) { settling = true; settleAt = elapsed; } }
+      return { settle: settle };
+    }
+
+    window.GIIIFTWormhole = { play };
+  </script>
+</body>
+</html>

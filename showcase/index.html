@@ -1,0 +1,225 @@
+<!doctype html>
+<html lang="en">
+<head>
+<script>/* public showcase mirror: always demo mode */try{localStorage.setItem("giiift-demo","1");localStorage.setItem("giiift-authed","1");}catch(e){}</script>
+<meta name="robots" content="noindex, nofollow, noarchive">
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="robots" content="noindex, nofollow" />
+<title>GIIIFT — Partner Showcase</title>
+<link rel="icon" href="favicon.svg" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --base:#0b0d0c; --ink:#f3f4f2; --accent:#00FF9D;
+    --pink:#FF3B6F; --yellow:#FFD93D; --teal:#4ECDC4; --partner:#4ECDC4;
+    --muted:rgba(243,244,242,.64); --faint:rgba(243,244,242,.42);
+    --line:rgba(255,255,255,.11); --card:rgba(255,255,255,.045); --card-2:rgba(255,255,255,.03);
+  }
+  *{ box-sizing:border-box; }
+  html,body{ margin:0; padding:0; background:var(--base); color:var(--ink);
+    font-family:Inter,-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,sans-serif;
+    -webkit-font-smoothing:antialiased; letter-spacing:.004em; }
+
+  .bg{ position:fixed; inset:0; z-index:-2;
+    background:
+      radial-gradient(1100px 820px at 8% 4%, hsla(152,88%,58%,.20), transparent 60%),
+      radial-gradient(1200px 920px at 94% 14%, hsla(190,86%,57%,.14), transparent 62%),
+      radial-gradient(1040px 800px at 76% 99%, hsla(265,80%,64%,.16), transparent 60%),
+      var(--base); }
+  .bg::before{ content:""; position:fixed; inset:0; z-index:-1; pointer-events:none;
+    background-image:
+      linear-gradient(rgba(255,255,255,.022) 1px,transparent 1px),
+      linear-gradient(90deg,rgba(255,255,255,.022) 1px,transparent 1px);
+    background-size:48px 48px;
+    -webkit-mask-image:radial-gradient(circle at 66% 30%,#000 0%,transparent 76%);
+            mask-image:radial-gradient(circle at 66% 30%,#000 0%,transparent 76%); }
+
+  .wrap{ max-width:1080px; margin:0 auto; padding:36px 28px 90px; }
+
+  /* lockup */
+  .word{ font-weight:900; letter-spacing:-.012em; }
+  .word .i1{ color:var(--pink); } .word .i2{ color:var(--yellow); } .word .i3{ color:var(--teal); }
+  .lockup{ display:flex; align-items:center; gap:11px; }
+  .lockup svg{ display:block; width:34px; height:34px; }
+  .lockup .word{ font-size:18px; }
+  .topbar{ display:flex; align-items:center; justify-content:space-between; margin-bottom:64px; }
+  .topbar .tag{ font-family:"JetBrains Mono",monospace; font-size:10.5px; letter-spacing:.14em;
+    text-transform:uppercase; color:var(--faint); }
+
+  .kicker{ font-size:12px; font-weight:800; letter-spacing:.2em; text-transform:uppercase;
+    color:var(--accent); margin:0 0 14px; }
+  h1{ font-size:clamp(34px,5.4vw,54px); line-height:1.04; font-weight:900; letter-spacing:-.025em; margin:0 0 16px; }
+  h1 .g{ color:var(--accent); }
+  .sub{ font-size:17.5px; line-height:1.55; color:var(--muted); max-width:680px; margin:0; }
+  .sub b{ color:var(--ink); font-weight:700; }
+  .for{ margin-top:18px; font-family:"JetBrains Mono",monospace; font-size:11px;
+    letter-spacing:.16em; text-transform:uppercase; color:var(--faint); }
+  .for b{ color:var(--partner); font-weight:700; }
+
+  /* demo entry cards */
+  .demos{ display:grid; grid-template-columns:repeat(3,1fr); gap:16px; margin:42px 0 0; }
+  @media (max-width:840px){ .demos{ grid-template-columns:1fr; } }
+  .demo{ display:block; text-decoration:none; color:inherit; background:var(--card);
+    border:1px solid var(--line); border-radius:16px; padding:22px 22px 20px; position:relative;
+    transition:border-color .15s ease, transform .15s ease; }
+  .demo:hover{ border-color:rgba(0,255,157,.45); transform:translateY(-2px); }
+  .demo .n{ font-family:"JetBrains Mono",monospace; font-size:10px; color:var(--accent); letter-spacing:.14em; text-transform:uppercase; }
+  .demo .t{ font-size:19px; font-weight:800; letter-spacing:-.01em; margin-top:9px; }
+  .demo .d{ font-size:13.5px; color:var(--muted); line-height:1.5; margin-top:7px; min-height:60px; }
+  .demo .go{ margin-top:12px; font-size:13.5px; font-weight:700; color:var(--accent); }
+  .demo.hero{ border-color:rgba(0,255,157,.35); background:var(--card); }
+  .demo.hero::after{ content:"start here"; position:absolute; top:-11px; right:14px;
+    font-family:"JetBrains Mono",monospace; font-size:9px; font-weight:700; letter-spacing:.16em;
+    text-transform:uppercase; color:#0b0d0c; background:var(--accent); border-radius:6px; padding:4px 8px; }
+
+  /* section chrome */
+  section{ margin-top:74px; }
+  h2{ font-size:26px; font-weight:900; letter-spacing:-.02em; margin:0 0 18px; }
+  h2 .g{ color:var(--accent); }
+
+  /* loop strip */
+  .flow{ display:grid; grid-template-columns:repeat(4,1fr); gap:12px; }
+  @media (max-width:840px){ .flow{ grid-template-columns:1fr 1fr; } }
+  .flow .step{ background:var(--card); border:1px solid var(--line); border-radius:13px; padding:14px 16px; }
+  .flow .step .hd{ display:flex; align-items:flex-start; justify-content:space-between; }
+  .flow .step .hd svg{ width:26px; height:26px; flex-shrink:0; margin:-2px -2px 0 0; }
+  .flow .step .n{ font-family:"JetBrains Mono",monospace; font-size:10px; color:var(--accent); letter-spacing:.12em; padding-top:3px; }
+  .flow .step .t{ font-size:14.5px; font-weight:700; margin-top:5px; }
+  .flow .step .d{ font-size:11.5px; color:var(--muted); margin-top:4px; line-height:1.4; }
+
+  /* tiers */
+  .tiers{ display:grid; grid-template-columns:repeat(3,1fr); gap:14px; }
+  @media (max-width:840px){ .tiers{ grid-template-columns:1fr; } }
+  .tier{ background:var(--card-2); border:1px solid var(--line); border-radius:13px; padding:16px; position:relative; }
+  .tier .num{ font-family:"JetBrains Mono",monospace; font-weight:700; font-size:14px; color:var(--accent); }
+  .tier .t{ font-size:15px; font-weight:800; margin-top:6px; letter-spacing:-.01em; }
+  .tier .x{ font-size:13px; line-height:1.45; margin-top:7px; color:rgba(243,244,242,.9); }
+
+  /* contact + footnote */
+  .cta{ margin-top:74px; display:flex; align-items:center; gap:20px; flex-wrap:wrap; }
+  .cta .mail{ font-size:17px; font-weight:700; color:var(--accent); text-decoration:none;
+    border:1px solid rgba(0,255,157,.42); border-radius:11px; padding:12px 20px; display:inline-block; }
+  .cta .line{ font-family:"JetBrains Mono",monospace; font-size:12px; color:var(--muted); letter-spacing:.03em; }
+  .footnote{ margin-top:46px; font-size:11.5px; color:var(--faint); line-height:1.6; max-width:760px;
+    border-top:1px solid var(--line); padding-top:18px; }
+</style>
+</head>
+<body>
+<div class="bg"></div>
+<div class="wrap">
+
+  <div class="topbar">
+    <div class="lockup">
+      <svg viewBox="0 0 64 64" role="img" aria-label="GIIIFT"><rect width="64" height="64" rx="14" fill="#0b0d0c"/><rect x="15.5" y="31" width="9.6" height="26" rx="2" fill="#FF3B6F"/><rect x="27.2" y="31" width="9.6" height="26" rx="2" fill="#FFD93D"/><rect x="38.9" y="31" width="9.6" height="26" rx="2" fill="#4ECDC4"/><rect x="12.5" y="29.5" width="39" height="7" rx="2.4" fill="#f3f4f2"/><ellipse cx="23.5" cy="18.5" rx="11" ry="7" transform="rotate(-16 23.5 18.5)" fill="#FF3B6F"/><ellipse cx="40.5" cy="18.5" rx="11" ry="7" transform="rotate(16 40.5 18.5)" fill="#4ECDC4"/><rect x="28.4" y="12.5" width="7.2" height="14.5" rx="2.2" fill="#FFD93D"/></svg>
+      <span class="word">G<span class="i1">I</span><span class="i2">I</span><span class="i3">I</span>FT</span>
+    </div>
+    <span class="tag">Partner showcase</span>
+  </div>
+
+  <p class="kicker">The gifting experience, live</p>
+  <h1>Open a gift the way <span class="g">your collectors will.</span></h1>
+  <p class="sub">Everything on this page runs the <b>real product</b>. The links open in a new tab, in your browser, with nothing to install. Start with the gift: that is the moment we manufacture, and the moment that ends on your inventory.</p>
+  <div class="for" id="for-line" hidden>Prepared for <b id="for-name"></b></div>
+
+  <div class="demos">
+    <a class="demo hero" id="open-demo" href="/showcase/box.html?g=eyJ0IjoieW91IiwiZiI6InRoZSBHSUlJRlQgdGVhbSIsIm0iOiJSaXAgc29tZXRoaW5nIHJhcmUiLCJuIjoiVGhpcyBpcyB0aGUgbW9tZW50IHlvdXIgY29sbGVjdG9ycyBnZXQuIEEgcmVhbCBwYWNrLCBhIHJlYWwgd2FsbGV0LCBubyBzZWVkIHBocmFzZS4iLCJpIjpbWyJVU0RDIiwiNTAiXV0sImQiOnsiZiI6ImhvbG8iLCJjIjoiIzEyMzU1YiIsImsiOiIjN2IyZmY3IiwieCI6IiNGRkQ5M0QiLCJhIjoxMzUsInAiOiJyaW5ncyIsInMiOiJBIFBBQ0sgRk9SIFlPVSIsIm1kIjoiTW9kZWw6IEdGLVRDRyJ9LCJ2IjoidGNnIiwibyI6InNob3djYXNlIn0" target="_blank" rel="noopener">
+      <div class="n">01 · Receive</div>
+      <div class="t">Open a gift</div>
+      <div class="d">You just got a GIIIFT link from a friend. The parcel, the reveal, the funded wallet. This is the whole pitch in ninety seconds.</div>
+      <div class="go">Open your gift →</div>
+    </a>
+    <a class="demo" href="/showcase/wrap.html" target="_blank" rel="noopener">
+      <div class="n">02 · Send</div>
+      <div class="t">Wrap one yourself</div>
+      <div class="d">The sender side: pick a value, design the box, address it to an email or phone. No wallet needed on either end.</div>
+      <div class="go">Start wrapping →</div>
+    </a>
+    <a class="demo" href="/showcase/vertical.html?v=tcg" target="_blank" rel="noopener">
+      <div class="n">03 · Spend</div>
+      <div class="t">The TCG storefront</div>
+      <div class="d">Where gift credit becomes a card pick. This is the shelf your inventory would sit on, themed to the collector's world.</div>
+      <div class="go">See the funnel →</div>
+    </a>
+  </div>
+
+  <section>
+    <h2>What you just walked through</h2>
+    <div class="flow">
+      <div class="step">
+        <div class="hd"><span class="n">01</span>
+          <svg viewBox="0 0 32 32" aria-hidden="true"><rect x="7" y="14" width="5.4" height="13" rx="1.2" fill="#FF3B6F"/><rect x="13.3" y="14" width="5.4" height="13" rx="1.2" fill="#FFD93D"/><rect x="19.6" y="14" width="5.4" height="13" rx="1.2" fill="#4ECDC4"/><rect x="5.4" y="13" width="21.2" height="3.7" rx="1.4" fill="#f3f4f2"/><ellipse cx="11.4" cy="7.4" rx="5.5" ry="3.5" transform="rotate(-16 11.4 7.4)" fill="#FF3B6F"/><ellipse cx="20.6" cy="7.4" rx="5.5" ry="3.5" transform="rotate(16 20.6 7.4)" fill="#4ECDC4"/><rect x="14.2" y="4.4" width="3.6" height="7.6" rx="1.1" fill="#FFD93D"/></svg>
+        </div>
+        <div class="t">The gift</div><div class="d">Delivered to their email or phone. No app, no signup.</div>
+      </div>
+      <div class="step">
+        <div class="hd"><span class="n">02</span>
+          <svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="10.5" cy="6.8" r="3.6" fill="#FFD93D"/><circle cx="10.5" cy="6.8" r="2" fill="none" stroke="#0b0d0c" stroke-width="1.1"/><rect x="4" y="10.5" width="24" height="16.5" rx="3.5" fill="rgba(255,255,255,.06)" stroke="#4ECDC4" stroke-width="1.6"/><rect x="19.5" y="15.5" width="8.5" height="6.5" rx="2" fill="#4ECDC4"/><circle cx="23.2" cy="18.8" r="1.5" fill="#0b0d0c"/></svg>
+        </div>
+        <div class="t">A funded wallet</div><div class="d">The rarest asset in crypto: a funded account held by a non-buyer.</div>
+      </div>
+      <div class="step">
+        <div class="hd"><span class="n">03</span>
+          <svg viewBox="0 0 32 32" aria-hidden="true"><rect x="8.5" y="4" width="15" height="24" rx="2.4" fill="rgba(255,255,255,.06)" stroke="#FFD93D" stroke-width="1.6"/><rect x="11.2" y="6.8" width="9.6" height="9.4" rx="1.4" fill="#4ECDC4"/><path d="M16 8.6l1 2 2.2.3-1.6 1.5.4 2.2-2-1-2 1 .4-2.2-1.6-1.5 2.2-.3z" fill="#FFD93D"/><rect x="11.2" y="19" width="9.6" height="1.8" rx=".9" fill="rgba(243,244,242,.55)"/><rect x="11.2" y="22.4" width="6.6" height="1.8" rx=".9" fill="rgba(243,244,242,.3)"/></svg>
+        </div>
+        <div class="t">The spend</div><div class="d">They buy a real card with the value. From your catalog.</div>
+      </div>
+      <div class="step">
+        <div class="hd"><span class="n">04</span>
+          <svg viewBox="0 0 32 32" aria-hidden="true"><path d="M25.4 13.2a9.5 9.5 0 0 0-17.3-2.4" fill="none" stroke="#00FF9D" stroke-width="2.2" stroke-linecap="round"/><path d="M7.2 6.2l.7 5 5-.7" fill="none" stroke="#00FF9D" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/><path d="M6.6 18.8a9.5 9.5 0 0 0 17.3 2.4" fill="none" stroke="#FF3B6F" stroke-width="2.2" stroke-linecap="round"/><path d="M24.8 25.8l-.7-5-5 .7" fill="none" stroke="#FF3B6F" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+        <div class="t">The loop</div><div class="d">Reciprocity and rewrap spawn the next gift.</div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>The ask: <span class="g">open your catalog, we point gifts at it</span></h2>
+    <div class="tiers">
+      <div class="tier"><div class="num">NOW</div><div class="t">Catalog in the gift flow</div><div class="x">Senders gift your packs; recipients spend their credit on them. We normalize on our side; you change nothing.</div></div>
+      <div class="tier"><div class="num">NEXT</div><div class="t">Rips, live on GIIIFT</div><div class="x">The future potential: the open happens inside our reveal instead of a link-out. Your pack, our stage.</div></div>
+      <div class="tier"><div class="num">ALWAYS</div><div class="t">Physical stays yours</div><div class="x">We link out for exactly one thing: redeeming the card to ship. Your vault, your rails.</div></div>
+    </div>
+  </section>
+
+  <div class="cta">
+    <a class="mail" href="mailto:hello@giiift.com">hello@giiift.com</a>
+    <span class="line">tell us what you'd want the pilot to look like</span>
+  </div>
+
+  <div class="footnote">
+    This page is for partner teams and is not linked from the public site. The demos above are the real product
+    surfaces running in demo mode on a sealed mirror: no accounts, no telemetry. The gift in step 01 is a
+    display gift: it opens the real reveal flow with sample contents and creates nothing on chain.
+  </div>
+
+</div>
+
+<script>
+  // Sessions that start on the showcase are demo traffic; telemetry.js reads
+  // this flag (localStorage "giiift-demo") and marks every event it sends.
+  try { localStorage.setItem("giiift-demo", "1"); } catch (e) {}
+
+  // Partner personalization. The gate sets a readable `giiift_show_p` cookie
+  // with the partner slug after PIN entry; ?p=<slug> is the local-dev override.
+  // Cosmetic only: name, accent color, recommended tier.
+  const SHOWCASE_PARTNERS = {
+    courtyard:         { name: "Courtyard",       color: "#8C5CF6" },
+    "collector-crypt": { name: "Collector Crypt", color: "#FF7C01" },
+    "rip-fun":         { name: "rip.fun",         color: "#3B7BFF" },
+    mnstr:             { name: "MNSTR",           color: "#FFD60A" },
+  };
+  (function personalize() {
+    const fromCookie = (document.cookie.match(/(?:^|;\s*)giiift_show_p=([a-z0-9-]+)/) || [])[1];
+    const slug = (new URLSearchParams(location.search).get("p") || fromCookie || "").toLowerCase();
+    const p = SHOWCASE_PARTNERS[slug];
+    if (!p) return;
+    document.documentElement.style.setProperty("--partner", p.color);
+    document.getElementById("for-name").textContent = p.name;
+    document.getElementById("for-line").hidden = false;
+  })();
+</script>
+</body>
+</html>

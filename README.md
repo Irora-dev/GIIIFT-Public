@@ -17,4 +17,12 @@ python3 -m http.server 8080
 - `crt-overlay.js` — the CRT scanline + telemetry-HUD overlay
 - `favicon.svg`
 
+### /showcase — partner demo (generated, do not edit)
+
+`showcase/**` and `netlify/edge-functions/showcase-gate.ts` are **generated** by the
+private repo's `tools/export-showcase.mjs`: a password-gated, backend-free mirror of
+the gifting flow for BD walkthroughs. Don't edit these files here — change the
+private repo and re-export. The gate runs only on the Netlify deploy (locally the
+pages serve ungated).
+
 _The gift that keeps giving — coming soon._
