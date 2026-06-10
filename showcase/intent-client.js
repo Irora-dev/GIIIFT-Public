@@ -22,16 +22,21 @@
     return !!(a && a.authenticated && token());
   }
 
-  /* Resolve true once the user is logged in (opens the Privy modal if needed). */
-  function ensureLogin(timeoutMs) {
+  /* Resolve true once the user is logged in (opens the Privy modal if needed).
+   * loginOpts (optional) rides through to the Privy modal — the claim page
+   * passes { loginMethods: ['twitter'] } to pre-select a restricted provider. */
+  function ensureLogin(timeoutMs, loginOpts) {
     return new Promise(function (resolve) {
       if (authed()) return resolve(true);
       var done = false;
       function fin(ok) { if (done) return; done = true; window.removeEventListener("giiift-auth", onAuth); resolve(ok); }
       function onAuth() { if (authed()) fin(true); }
       window.addEventListener("giiift-auth", onAuth);
-      if (typeof window.giiiftLogin === "function") window.giiiftLogin();
-      else if (typeof window.giiiftStartLogin === "function") window.giiiftStartLogin();
+      if (typeof window.giiiftLogin === "function") window.giiiftLogin(loginOpts);
+      else if (typeof window.giiiftStartLogin === "function") {
+        window.__giiiftLoginOpts = loginOpts || null; // the island reads this once it boots
+        window.giiiftStartLogin();
+      }
       else return fin(false);
       setTimeout(function () { fin(authed()); }, timeoutMs || 180000);
     });
