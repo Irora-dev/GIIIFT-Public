@@ -1,0 +1,50 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" width="1200" height="630">
+  <defs>
+    <pattern id="grid" x="0" y="0" width="60" height="60" patternUnits="userSpaceOnUse">
+      <path d="M 60 0 L 0 0 0 60" fill="none" stroke="#E8C96B" stroke-width="1" opacity="0.5"/>
+    </pattern>
+    <filter id="warp" x="-20%" y="-20%" width="140%" height="140%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.003" numOctaves="2" result="noise"/>
+      <feDisplacementMap in="SourceGraphic" in2="noise" scale="60" xChannelSelector="R" yChannelSelector="G"/>
+    </filter>
+  </defs>
+
+  <!-- Warm cream background -->
+  <rect width="1200" height="630" fill="#FFF4E0"/>
+
+  <!-- Warped grid -->
+  <g filter="url(#warp)">
+    <rect width="1200" height="630" fill="url(#grid)"/>
+  </g>
+
+  <!-- Lid + bow above the III, scaled up from the in-page logo -->
+  <g transform="translate(530 80)">
+    <!-- Lid base -->
+    <rect x="2" y="56" width="136" height="14" rx="3" fill="#111111"/>
+    <!-- Bow loops -->
+    <ellipse cx="38" cy="32" rx="32" ry="20" transform="rotate(-14 38 32)" fill="#FF3B6F"/>
+    <ellipse cx="102" cy="32" rx="32" ry="20" transform="rotate(14 102 32)" fill="#4ECDC4"/>
+    <ellipse cx="34" cy="26" rx="10" ry="5" transform="rotate(-14 34 26)" fill="rgba(255,255,255,0.45)"/>
+    <ellipse cx="106" cy="26" rx="10" ry="5" transform="rotate(14 106 26)" fill="rgba(255,255,255,0.45)"/>
+    <!-- Knot -->
+    <rect x="60" y="18" width="22" height="38" rx="5" fill="#FFD93D"/>
+    <rect x="60" y="18" width="22" height="6" fill="rgba(0,0,0,0.08)"/>
+  </g>
+
+  <!-- GIIIFT wordmark -->
+  <g transform="translate(600 410) rotate(-3)" text-anchor="middle">
+    <text font-family="Bowlby One, sans-serif" font-size="240" font-weight="800" letter-spacing="-9" fill="#111111">
+      <tspan>G</tspan><tspan fill="#FF3B6F">I</tspan><tspan fill="#FFD93D">I</tspan><tspan fill="#4ECDC4">I</tspan><tspan>FT</tspan>
+    </text>
+  </g>
+
+  <!-- Tagline -->
+  <text x="600" y="510" text-anchor="middle"
+        font-family="Inter, sans-serif" font-size="28" font-weight="500"
+        fill="rgba(17,17,17,0.6)" letter-spacing="-0.3">
+    send a gift, by link · no app, no signup
+  </text>
+
+  <!-- Tiny dot punctuation, matching the in-page logo -->
+  <circle cx="892" cy="402" r="14" fill="#111111"/>
+</svg>

@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="GIIIFT">
+  <rect width="64" height="64" rx="14" fill="#0b0d0c"/>
+  <!-- gift-box body: three colored ribbons (the III) -->
+  <rect x="15.5" y="31" width="9.6" height="26" rx="2" fill="#FF3B6F"/>
+  <rect x="27.2" y="31" width="9.6" height="26" rx="2" fill="#FFD93D"/>
+  <rect x="38.9" y="31" width="9.6" height="26" rx="2" fill="#4ECDC4"/>
+  <!-- white ribbon band across the top of the box -->
+  <rect x="12.5" y="29.5" width="39" height="7" rx="2.4" fill="#f3f4f2"/>
+  <!-- bow: pink + teal loops with a yellow knot -->
+  <ellipse cx="23.5" cy="18.5" rx="11" ry="7" transform="rotate(-16 23.5 18.5)" fill="#FF3B6F"/>
+  <ellipse cx="40.5" cy="18.5" rx="11" ry="7" transform="rotate(16 40.5 18.5)" fill="#4ECDC4"/>
+  <ellipse cx="22" cy="15.8" rx="3.6" ry="1.9" transform="rotate(-16 22 15.8)" fill="#ffffff" opacity="0.45"/>
+  <ellipse cx="42" cy="15.8" rx="3.6" ry="1.9" transform="rotate(16 42 15.8)" fill="#ffffff" opacity="0.45"/>
+  <rect x="28.4" y="12.5" width="7.2" height="14.5" rx="2.2" fill="#FFD93D"/>
+  <rect x="28.4" y="12.5" width="7.2" height="2.4" rx="1" fill="#000000" opacity="0.08"/>
+</svg>
