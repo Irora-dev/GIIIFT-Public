@@ -154,6 +154,11 @@
         base.color = hex(e.color, "#ffffff");
         base.align = enumv(ALIGN, e.align, "center");
         base.italic = !!e.italic;
+        base.lineHeight = num(e.lineHeight, e.t === "graffiti" ? 1 : 1.05, 0.7, 2.5);   // vertical spacing between wrapped/entered lines
+        base.letterSpacing = num(e.letterSpacing, 0, -0.2, 1);                          // tracking, in em
+        base.style = (e.style === "sticker") ? "sticker" : "plain";   // "sticker" = comic double-outline (fill + inner + outer edge)
+        base.outline1 = hex(e.outline1, "#ffffff");                   // inner outline (the bright halo around the fill)
+        base.outline2 = hex(e.outline2, "#111111");                   // outer edge (the dark border around the halo)
         break;
       case "stamp":
         base.value = str(e.value, 40); base.color = hex(e.color, palette.accent); base.size = num(e.size, 0.07, 0.03, 0.16);
@@ -330,8 +335,13 @@
     ".gbx-box.gbx-opened .gbx-tape{opacity:0}",
     /* layered content elements */
     ".gbx-layer{position:absolute;transform:translate(-50%,-50%) rotate(var(--rot,0deg)) scale(var(--gbx-zoom,1)) scale(var(--gbx-fx,1),var(--gbx-fy,1));transform-origin:center;z-index:3}",
-    ".gbx-text{line-height:1.05;overflow-wrap:break-word;text-shadow:0 1px 2px rgba(0,0,0,0.25)}",
-    ".gbx-graffiti{line-height:1;text-shadow:0 1px 3px rgba(0,0,0,0.3)}",
+    ".gbx-text{line-height:1.05;overflow-wrap:break-word;white-space:pre-wrap;text-shadow:0 1px 2px rgba(0,0,0,0.25)}",
+    ".gbx-graffiti{line-height:1;overflow-wrap:break-word;white-space:pre-wrap;text-shadow:0 1px 3px rgba(0,0,0,0.3)}",
+    // comic "sticker" text: fill (color) + inner halo (--ol-c1) via the element's own stroke,
+    // + outer edge (--ol-c2) via a thicker stroke on the ::before copy sitting behind it.
+    // paint-order keeps the fill crisp; strokes scale with font-size (em). drop-shadow lifts it off the box.
+    ".gbx-text.gbx-ol,.gbx-graffiti.gbx-ol{position:relative;text-shadow:none;color:var(--gbx-ol-fill,inherit);-webkit-text-stroke:var(--ol-w1,0.11em) var(--ol-c1,#fff);paint-order:stroke fill;filter:drop-shadow(0 3px 2px rgba(0,0,0,0.4))}",
+    ".gbx-ol::before{content:attr(data-text);position:absolute;left:0;top:0;width:100%;z-index:-1;color:transparent;-webkit-text-stroke:var(--ol-w2,0.24em) var(--ol-c2,#111);paint-order:stroke fill;text-align:inherit;white-space:pre-wrap;line-height:inherit;letter-spacing:inherit;pointer-events:none}",
     ".gbx-stamp{border:calc(var(--gbx-size)*0.006) solid currentColor;border-radius:6px;padding:.28em .5em;font-family:var(--font-mono,'VT323',monospace);text-transform:uppercase;letter-spacing:.08em;font-weight:700;line-height:1;text-align:center}",
     ".gbx-note{background:rgba(0,0,0,0.18);border-left:calc(var(--gbx-size)*0.01) solid currentColor;border-radius:4px;padding:.5em .6em;backdrop-filter:blur(2px)}",
     ".gbx-note .gbx-note-l{display:block;font-family:var(--font-mono,monospace);font-size:.7em;letter-spacing:.14em;text-transform:uppercase;opacity:.7;margin-bottom:.2em}",
@@ -457,7 +467,15 @@
         n.style.fontWeight = e.weight;
         n.style.color = e.color;
         n.style.textAlign = e.align;
+        if (e.lineHeight != null) n.style.lineHeight = e.lineHeight;
+        if (e.letterSpacing) n.style.letterSpacing = e.letterSpacing + "em";
         if (e.italic) n.style.fontStyle = "italic";
+        if (e.style === "sticker") {                          // comic double-outline: fill + inner halo + outer edge
+          n.classList.add("gbx-ol");
+          n.setAttribute("data-text", e.value);               // the ::before edge copy reads this
+          n.style.setProperty("--ol-c1", e.outline1 || "#ffffff");
+          n.style.setProperty("--ol-c2", e.outline2 || "#111111");
+        }
         break;
       case "stamp":
         n = document.createElement("div"); n.className = "gbx-stamp"; n.textContent = e.value;
@@ -561,13 +579,24 @@
     }
     return svg;
   }
-  // dark neutral used behind a full-coverage panel, so the bright palette can't bleed at the rounded 3D seams/edges
+  // dark neutral used behind full coverage (a panel OR a cover-fit art layer), so the bright
+  // palette can't bleed at the rounded 3D seams/edges as a coloured rim
   var NEUTRAL_BASE = { c1: "#202227", c2: "#141619", angle: 135, finish: "gradient" };
+  // a face reads as "fully covered" when a full-bleed panel sits on it, or when an opaque
+  // cover-fit art layer spans (≈) the whole face — both want the neutral base, not the palette.
+  function faceCovered(face) {
+    if (face.panel && PANELS[face.panel]) return true;
+    return (face.layers || []).some(function (e) {
+      return e.t === "art" && e.src && e.fit === "cover" && !e.noShadow
+        && (e.opacity == null || e.opacity >= 1)
+        && (e.w == null || e.w >= 0.98) && (e.h == null || e.h >= 0.98);
+    });
+  }
   function buildFace(pos, face, palette, cls) {
     var el = document.createElement("div");
     el.className = "gbx-face gbx-" + cls;
     el.dataset.pos = pos;
-    var fill = (face.panel && PANELS[face.panel]) ? NEUTRAL_BASE : (face.fill || palette);
+    var fill = faceCovered(face) ? NEUTRAL_BASE : (face.fill || palette);
     var bg = faceBackground(fill, pos);
     el.style.background = bg.bg;
     el.style.setProperty("--gbx-bg-size", bg.size);
@@ -634,7 +663,7 @@
 
     // lid (top face content rides on the flaps + a tape seam)
     var lid = document.createElement("div"); lid.className = "gbx-lid";
-    var topFill = (doc.faces.top.panel && PANELS[doc.faces.top.panel]) ? NEUTRAL_BASE : (doc.faces.top.fill || doc.palette);
+    var topFill = faceCovered(doc.faces.top) ? NEUTRAL_BASE : (doc.faces.top.fill || doc.palette);
     var topBg = faceBackground(topFill, "top");
     ["fl-left", "fl-right", "fl-back", "fl-front"].forEach(function (f) {
       var fl = document.createElement("div"); fl.className = "gbx-flap gbx-" + f;

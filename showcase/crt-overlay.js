@@ -35,6 +35,7 @@
     ".crt-bk.tr{top:14px;right:14px;border-left:0;border-bottom:0}",
     ".crt-bk.bl{bottom:14px;left:14px;border-right:0;border-top:0}",
     ".crt-bk.br{bottom:14px;right:14px;border-left:0;border-top:0}",
+    ".crt-warn{color:#ffd166;text-shadow:0 0 8px rgba(255,180,60,0.45)}",
     "@keyframes crt-blink{to{visibility:hidden}}",
     "@media(max-width:760px){.crt-tr,.crt-br{display:none}}",
   ].join("");
@@ -61,9 +62,35 @@
       '<div class="pe crt-tl"><span class="lead">GIIIFT.SYS [ACTIVE]</span><span>BOX_ENGINE_V2.0</span></div>' +
       '<div class="pe crt-tr"><span>LIVE TELEMETRY</span><span class="crt-dot"></span></div>' +
       '<div class="pe crt-bl"><span>LAT: +64.1400</span><span>LNG: -21.9283</span><span class="crt-div"></span><span>ALT: 36,576 M</span></div>' +
-      '<div class="pe crt-br"><span>BUF_SEQ: 89-B / BRAVO</span><span class="crt-div"></span><span>REALTIME_RASTER_SCAN</span></div>' +
+      '<div class="pe crt-br"><span>BUF_SEQ: 89-B / BRAVO</span><span data-crt-view></span><span class="crt-warn" data-crt-zoom hidden></span><span class="crt-div"></span><span>REALTIME_RASTER_SCAN</span></div>' +
       '<div class="crt-bk tl"></div><div class="crt-bk tr"></div><div class="crt-bk bl"></div><div class="crt-bk br"></div>';
     document.body.appendChild(hud);
+
+    telemetry();
+    window.addEventListener("resize", telemetry);
+  }
+
+  // The one REAL line in the HUD: CSS viewport + a browser page-zoom estimate.
+  // Chrome persists zoom per-site (giiift.com and localhost are different
+  // origins), so a forgotten Cmd+/- makes the live site render "too big" vs
+  // dev forever — surface it where everyone can see it instead.
+  function telemetry() {
+    var v = document.querySelector("[data-crt-view]");
+    var z = document.querySelector("[data-crt-zoom]");
+    if (!v) return;
+    var dpr = Math.round((window.devicePixelRatio || 1) * 10) / 10;
+    v.textContent = "VIEW " + window.innerWidth + "×" + window.innerHeight + " @" + dpr + "X";
+    if (!z) return;
+    // outerWidth is screen px, innerWidth is CSS px: their ratio ~= page zoom
+    // on Chromium. Rounded to 5s; Safari/Firefox report ~100 and stay quiet.
+    var pct = window.outerWidth > 0 && window.innerWidth > 0
+      ? Math.round((window.outerWidth / window.innerWidth) * 20) * 5 : 100;
+    if (pct >= 110 || pct <= 90) {
+      z.hidden = false;
+      z.textContent = "PAGE ZOOM ~" + pct + "% · CMD+0 RESETS";
+    } else {
+      z.hidden = true;
+    }
   }
 
   if (document.body) mount();
