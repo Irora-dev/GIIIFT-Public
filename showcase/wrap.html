@@ -3,7 +3,6 @@
 <head>
 <script>/* public showcase mirror: always demo mode */try{localStorage.setItem("giiift-demo","1");localStorage.setItem("giiift-authed","1");}catch(e){}</script>
 <meta name="robots" content="noindex, nofollow, noarchive">
-<style>/* mirror-only: shrink the whole surface on desktop */@media (min-width: 900px){ html{ zoom: 0.82; } }</style>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>GIIIFT - Wrap a box</title>
@@ -559,7 +558,7 @@
     .fp-main .delivery-status.gone { opacity: 0; pointer-events: none; }
     @media (max-width: 980px) { .fp-main { max-width: 640px; } }
     /* glass card (adopted design) */
-    .fp-card { position: relative; z-index: 1; width: min(720px, 94vw); max-width: 100%; padding: clamp(40px, 5vw, 64px); border-radius: 36px; text-align: center; overflow: hidden;
+    .fp-card { position: relative; z-index: 1; width: min(580px, 94vw); max-width: 100%; padding: clamp(28px, 3.2vw, 42px); border-radius: 28px; text-align: center; overflow: hidden;
       background: linear-gradient(135deg, rgba(255,255,255,0.06), rgba(255,255,255,0.012));
       border: 1px solid rgba(255,255,255,0.09); box-shadow: 0 32px 64px -16px rgba(0,0,0,0.6), inset 0 1px 1px rgba(255,255,255,0.1);
       backdrop-filter: blur(40px); -webkit-backdrop-filter: blur(40px); display: flex; flex-direction: column; align-items: center;
@@ -573,44 +572,44 @@
       -webkit-backdrop-filter: blur(40px) brightness(1.5) saturate(1.12);
       backdrop-filter: blur(40px) brightness(1.5) saturate(1.12);
       box-shadow: 0 32px 64px -16px rgba(0,0,0,0.5), inset 0 1px 1px rgba(255,255,255,0.2), 0 0 120px -10px rgba(255,255,255,0.22); }
-    .fp-title { font-family: var(--font-main); font-weight: 600; font-size: clamp(48px, 5vw, 68px); line-height: 1.05; letter-spacing: -0.025em; color: #fff; text-shadow: 0 0 30px rgba(255,255,255,0.35); }
-    .fp-sub { font-size: 20px; font-weight: 300; color: rgba(255,255,255,0.5); margin-top: 18px; }
+    .fp-title { font-family: var(--font-main); font-weight: 600; font-size: clamp(32px, 3.4vw, 44px); line-height: 1.05; letter-spacing: -0.025em; color: #fff; text-shadow: 0 0 30px rgba(255,255,255,0.35); }
+    .fp-sub { font-size: 16px; font-weight: 300; color: rgba(255,255,255,0.5); margin-top: 12px; }
     .fp-sub b { color: rgba(255,255,255,0.85); font-weight: 500; }
-    .fp-divider { width: 100%; height: 1px; border: 0; background: linear-gradient(90deg, transparent, rgba(255,255,255,0.14), transparent); margin: 38px 0; }
-    .fp-field-label { font-family: var(--font-main); font-size: 18px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; color: rgba(255,255,255,0.65); text-align: center; margin: 0 0 22px; }
+    .fp-divider { width: 100%; height: 1px; border: 0; background: linear-gradient(90deg, transparent, rgba(255,255,255,0.14), transparent); margin: 26px 0; }
+    .fp-field-label { font-family: var(--font-main); font-size: 13px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; color: rgba(255,255,255,0.65); text-align: center; margin: 0 0 16px; }
     .fp-link { width: 100%; display: flex; align-items: center; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.07); border-radius: 18px; padding: 8px; box-shadow: inset 0 2px 10px rgba(0,0,0,0.5); transition: border-color .25s; }
     .fp-link:hover { border-color: rgba(255,255,255,0.15); }
-    .fp-link-icon { flex-shrink: 0; width: 40px; height: 40px; display: grid; place-items: center; border-radius: 12px; background: rgba(255,255,255,0.05); color: rgba(255,255,255,0.4); }
+    .fp-link-icon { flex-shrink: 0; width: 34px; height: 34px; display: grid; place-items: center; border-radius: 10px; background: rgba(255,255,255,0.05); color: rgba(255,255,255,0.4); }
     .fp-link-icon svg { width: 16px; height: 16px; }
     .fp-url { flex: 1; min-width: 0; font-family: var(--font-mono); font-size: 13px; color: rgba(255,255,255,0.8); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding: 0 14px; text-align: left; }
-    .fp-copy { flex-shrink: 0; display: inline-flex; align-items: center; gap: 7px; background: #fff; color: #000; font-family: var(--font-main); font-weight: 600; font-size: 14px; padding: 12px 22px; border-radius: 12px; border: none; cursor: pointer; box-shadow: 0 0 15px rgba(255,255,255,0.2); transition: transform .15s, background .2s; }
+    .fp-copy { flex-shrink: 0; display: inline-flex; align-items: center; gap: 7px; background: #fff; color: #000; font-family: var(--font-main); font-weight: 600; font-size: 13px; padding: 10px 18px; border-radius: 10px; border: none; cursor: pointer; box-shadow: 0 0 15px rgba(255,255,255,0.2); transition: transform .15s, background .2s; }
     .fp-copy:hover { background: rgba(255,255,255,0.9); }
     .fp-copy:active { transform: scale(.96); }
     .fp-copy svg { width: 15px; height: 15px; }
-    .fp-email { width: 100%; display: flex; flex-direction: column; gap: 20px; margin-top: 26px; }
-    .fp-email input { width: 100%; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.08); border-radius: 18px; padding: 23px 26px; color: #fff; font-family: var(--font-main); font-size: 21px; box-shadow: inset 0 2px 10px rgba(0,0,0,0.5); transition: border-color .2s, box-shadow .2s; }
+    .fp-email { width: 100%; display: flex; flex-direction: column; gap: 14px; margin-top: 18px; }
+    .fp-email input { width: 100%; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.08); border-radius: 14px; padding: 14px 18px; color: #fff; font-family: var(--font-main); font-size: 16px; box-shadow: inset 0 2px 10px rgba(0,0,0,0.5); transition: border-color .2s, box-shadow .2s; }
     .fp-email input::placeholder { color: rgba(255,255,255,0.3); }
     .fp-email input:focus { outline: none; border-color: rgba(140,219,232,0.5); box-shadow: inset 0 2px 10px rgba(0,0,0,0.5), 0 0 0 3px rgba(140,219,232,0.14); }
     /* Send: full-width, bottom of the card, glowing/animating in borealis colours */
-    .fp-send { width: 100%; margin-top: 24px; color: #fff; border: 1px solid color-mix(in srgb, var(--bor-bright, #8cdbe8) 45%, transparent); font-family: var(--font-main); font-weight: 700; font-size: 20px; padding: 21px; border-radius: 18px; cursor: pointer; text-shadow: 0 1px 6px rgba(0,0,0,0.45);
+    .fp-send { width: 100%; margin-top: 18px; color: #fff; border: 1px solid color-mix(in srgb, var(--bor-bright, #8cdbe8) 45%, transparent); font-family: var(--font-main); font-weight: 700; font-size: 16px; padding: 14px; border-radius: 14px; cursor: pointer; text-shadow: 0 1px 6px rgba(0,0,0,0.45);
       background: linear-gradient(90deg, var(--bor-a, #2c7a8b), var(--bor-b, #4ba6b3), var(--bor-c, #8cdbe8), var(--bor-b, #4ba6b3), var(--bor-a, #2c7a8b)); background-size: 280% 100%;
       animation: borealis-shift 7s linear infinite, borealis-glow 3.6s ease-in-out infinite alternate; transition: transform .15s; }
     .fp-send:hover { transform: translateY(-2px); }
     .fp-send:active { transform: scale(.98); }
     @keyframes borealis-shift { to { background-position: 280% 50%; } }
     @keyframes borealis-glow { 0% { box-shadow: 0 0 22px -4px color-mix(in srgb, var(--bor-b, #4ba6b3) 45%, transparent); } 100% { box-shadow: 0 0 42px 2px color-mix(in srgb, var(--bor-bright, #8cdbe8) 62%, transparent); } }
-    .fp-open { display: inline-flex; align-items: center; gap: 8px; font-size: 16px; color: rgba(255,255,255,0.4); text-decoration: none; margin-top: 30px; align-self: center; transition: color .2s; }
+    .fp-open { display: inline-flex; align-items: center; gap: 8px; font-size: 14px; color: rgba(255,255,255,0.4); text-decoration: none; margin-top: 22px; align-self: center; transition: color .2s; }
     .fp-open:hover { color: rgba(255,255,255,0.8); }
     .fp-open svg { width: 16px; height: 16px; }
     /* recipient capture (Privy delivery): segmented channel toggle + hint + sent state */
-    .fp-seg { display: inline-flex; gap: 5px; padding: 5px; border-radius: 16px; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.07); margin-bottom: 4px; }
-    .fp-seg button { font-family: var(--font-mono); font-size: 17px; letter-spacing: 0.06em; text-transform: uppercase; color: rgba(255,255,255,0.5); background: none; border: none; padding: 13px 30px; border-radius: 12px; cursor: pointer; transition: background .2s, color .2s; }
+    .fp-seg { display: inline-flex; gap: 4px; padding: 4px; border-radius: 13px; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.07); margin-bottom: 4px; }
+    .fp-seg button { font-family: var(--font-mono); font-size: 13px; letter-spacing: 0.06em; text-transform: uppercase; color: rgba(255,255,255,0.5); background: none; border: none; padding: 10px 22px; border-radius: 10px; cursor: pointer; transition: background .2s, color .2s; }
     .fp-seg button.on { background: rgba(255,255,255,0.12); color: #fff; }
     .fp-seg button:hover:not(.on) { color: rgba(255,255,255,0.8); }
     /* all three channel hints share one grid cell, so the block is always as tall as
        the tallest one and toggling email/phone/wallet never nudges the Send button */
-    .fp-hint { display: grid; max-width: 56ch; margin: 0 auto; font-size: 16px; }
-    .fp-hint > span { grid-area: 1 / 1; font-size: 16px; font-weight: 300; line-height: 1.6; color: rgba(255,255,255,0.45); text-align: center; visibility: hidden; }
+    .fp-hint { display: grid; max-width: 56ch; margin: 0 auto; font-size: 13.5px; }
+    .fp-hint > span { grid-area: 1 / 1; font-size: 13.5px; font-weight: 300; line-height: 1.6; color: rgba(255,255,255,0.45); text-align: center; visibility: hidden; }
     .fp-hint > span.on { visibility: visible; }
     .fp-hint b { color: rgba(255,255,255,0.7); font-weight: 500; }
     /* Link mode: optional claim lock (M2 restrictions — email / X / Discord) */
@@ -618,7 +617,7 @@
     .fp-lock-label { font-family: var(--font-mono); font-size: 13px; letter-spacing: 0.14em; text-transform: uppercase; color: rgba(255,255,255,0.45); margin: 0; }
     .fp-lock-seg { margin-bottom: 0; }
     .fp-lock-seg button { font-size: 13px; padding: 9px 16px; }
-    .fp-lock input { max-width: 420px; font-size: 17px; padding: 15px 20px; }
+    .fp-lock input { max-width: 420px; font-size: 15px; padding: 12px 16px; }
     .fp-sent { display: flex; align-items: flex-start; gap: 14px; padding: 18px; border-radius: 18px; background: rgba(0,255,157,0.06); border: 1px solid rgba(0,255,157,0.22); }
     .fp-sent-ic { flex: 0 0 auto; width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; background: rgba(0,255,157,0.16); color: #6fe6c0; font-weight: 700; }
     .fp-sent-h { font-weight: 600; font-size: 16px; color: #fff; }
@@ -627,8 +626,17 @@
     .fp-copy-fallback:hover { color: rgba(255,255,255,0.85); }
     .fp-copy-fallback svg { width: 14px; height: 14px; }
     /* ===================== delivery animation (GIIIFT van) ===================== */
-    .delivery { position: absolute; left: 0; bottom: 0; z-index: 1; width: 100vw; height: 230px; overflow: hidden; pointer-events: none; }
-    .delivery-status { position: relative; z-index: 1; font-family: var(--font-serif); font-style: italic; font-weight: 600; font-size: clamp(42px, 5.4vw, 72px); color: var(--ink); text-align: center; letter-spacing: -0.02em; line-height: 1.02; min-height: 1.1em; text-shadow: 0 3px 30px rgba(0,0,0,0.5); }
+    /* The town art scales with the viewport (the quay panorama is 100%-width), so the
+       street props (van, road packages) must grow with it or they read toy-sized on
+       wide screens. Applied via the independent `scale` property so it composes under
+       the transform keyframe animations; the van's parking translateX stays on the
+       unscaled .dv-van parent, and the rig scales around its own centre-bottom. */
+    :root { --street-scale: 1; }
+    @media (min-width: 1600px) { :root { --street-scale: 1.18; } }
+    @media (min-width: 1920px) { :root { --street-scale: 1.32; } }
+    @media (min-width: 2400px) { :root { --street-scale: 1.5; } }
+    .delivery { position: absolute; left: 0; bottom: 0; z-index: 1; width: 100vw; height: calc(230px * var(--street-scale)); overflow: hidden; pointer-events: none; }
+    .delivery-status { position: relative; z-index: 1; font-family: var(--font-serif); font-style: italic; font-weight: 600; font-size: clamp(34px, 4.2vw, 54px); color: var(--ink); text-align: center; letter-spacing: -0.02em; line-height: 1.02; min-height: 1.1em; text-shadow: 0 3px 30px rgba(0,0,0,0.5); }
     /* status floated above the WebGL wormhole canvas — the "text around the wormhole" */
     .delivery-status.over-wormhole { position: fixed; z-index: 10000; left: 50%; top: 50%; transform: translate(-50%, -50%); width: min(92vw, 760px); margin: 0; pointer-events: none; }
     .delivery-status .dv-verb { font-style: inherit; color: #4ECDC4; }
@@ -671,7 +679,7 @@
       70%  { transform: translateX(calc(50vw - 165px)); animation-timing-function: cubic-bezier(.45,.1,.6,1); }
       100% { transform: translateX(calc(100vw + 240px)); }
     }
-    .dv-rig { position: relative; display: flex; align-items: flex-end; animation: dv-susp 12s 2s both; transform-origin: center bottom; }
+    .dv-rig { position: relative; display: flex; align-items: flex-end; animation: dv-susp 12s 2s both; transform-origin: center bottom; scale: var(--street-scale); }
     @keyframes dv-susp {
       0%,20% { transform: translateY(0) rotate(0deg); }
       26% { transform: translateY(3px) rotate(1deg); }
@@ -729,7 +737,7 @@
       100% { transform: rotate(7200deg); }
     }
     /* packages on the road - the van picks up the user's box */
-    .dv-packages { position: absolute; bottom: 46px; left: 50%; transform: translateX(calc(-50% - 50px)); z-index: 3; display: flex; align-items: flex-end; gap: 7px; }
+    .dv-packages { position: absolute; bottom: 46px; left: 50%; transform: translateX(calc(-50% - 50px)); z-index: 3; display: flex; align-items: flex-end; gap: 7px; scale: var(--street-scale); transform-origin: 50% 100%; }
     .dv-packages::after { content: ''; position: absolute; left: -12px; right: -12px; bottom: -9px; height: 11px; background: rgba(0,0,0,0.6); filter: blur(7px); border-radius: 100%; z-index: -1; }
     .dv-pkg { position: relative; border-radius: 4px; box-shadow: 0 7px 14px rgba(0,0,0,0.7), inset 0 1px 0 rgba(255,255,255,0.2), inset 0 0 0 1px rgba(255,255,255,0.08); }
     .dv-pkg-user { width: 52px; height: 46px; overflow: hidden; background: linear-gradient(135deg, var(--pkg1, #7c3aed), var(--pkg2, #ec4899)); box-shadow: 0 8px 18px rgba(0,0,0,0.7), 0 0 16px -2px var(--pkg-accent, #fde68a), inset 0 0 0 1px rgba(255,255,255,0.22); animation: dv-pickup 12s 2s both; }

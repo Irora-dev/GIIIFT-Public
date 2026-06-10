@@ -3,7 +3,6 @@
 <head>
 <script>/* public showcase mirror: always demo mode */try{localStorage.setItem("giiift-demo","1");localStorage.setItem("giiift-authed","1");}catch(e){}</script>
 <meta name="robots" content="noindex, nofollow, noarchive">
-<style>/* mirror-only: shrink the whole surface on desktop */@media (min-width: 900px){ html{ zoom: 0.82; } }</style>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>You've got a gift - GIIIFT</title>
@@ -347,6 +346,14 @@
        drops a clickable package, drives off; clicking it reveals the
        gift box centre-stage. Reuses the send page's van/city/aurora.
        ============================================================ */
+    /* street scene scale — the town art scales with viewport width (the quay panorama
+       is 100%-width), so the van / dropped package / tap hint grow with it or they
+       read toy-sized on wide screens. Same steps as the send page; applied via the
+       independent `scale` property so the transform keyframe animations compose. */
+    :root { --street-scale: 1; }
+    @media (min-width: 1600px) { :root { --street-scale: 1.18; } }
+    @media (min-width: 1920px) { :root { --street-scale: 1.32; } }
+    @media (min-width: 2400px) { :root { --street-scale: 1.5; } }
     .receive-intro { position: fixed; inset: 0; z-index: 40; overflow: hidden; background: transparent; transition: opacity .7s ease; }
     .receive-intro.gone { opacity: 0; pointer-events: none; }
     /* the aurora is a PERSISTENT full-page background (lives outside the intro) so it
@@ -370,7 +377,7 @@
     .ri-road-glow { position: absolute; bottom: 49px; left: 0; width: 100%; height: 2px; z-index: 1; background: color-mix(in srgb, var(--pkg-accent, #00FF9D) 30%, transparent); filter: blur(1.5px); }
 
     /* the dropped, clickable package */
-    .ri-package { position: absolute; bottom: 44px; left: 50%; z-index: 4; width: 72px; height: 60px; transform: translateX(-50%); opacity: 0; animation: ri-drop 7s 2.4s both; }
+    .ri-package { position: absolute; bottom: 44px; left: 50%; z-index: 4; width: 72px; height: 60px; transform: translateX(-50%); opacity: 0; animation: ri-drop 7s 2.4s both; scale: var(--street-scale); transform-origin: 50% 100%; }
     @keyframes ri-drop {
       0%, 52% { opacity: 0; transform: translateX(-50%) translateY(-40px) scale(.5) rotate(-7deg); }
       66% { opacity: 1; transform: translateX(-50%) translateY(8px) scale(1.08) rotate(1.5deg); }
@@ -391,7 +398,7 @@
       0%,100% { box-shadow: 0 10px 22px rgba(0,0,0,0.6), 0 0 22px -3px var(--pkg-accent, #fde68a), inset 0 0 0 1px rgba(255,255,255,0.2); transform: translateY(0); }
       50% { box-shadow: 0 13px 28px rgba(0,0,0,0.6), 0 0 40px 2px var(--pkg-accent, #fde68a), inset 0 0 0 1px rgba(255,255,255,0.32); transform: translateY(-3px); }
     }
-    .ri-hint { position: absolute; left: 50%; bottom: 122px; z-index: 5; transform: translateX(-50%) translateY(6px); opacity: 0; transition: opacity .4s, transform .4s; pointer-events: none; font-family: var(--font-main); font-weight: 700; font-size: 14px; color: #fff; background: rgba(0,0,0,0.42); border: 1px solid rgba(255,255,255,0.16); padding: 9px 17px; border-radius: 99px; -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); display: inline-flex; align-items: center; gap: 8px; white-space: nowrap; }
+    .ri-hint { position: absolute; left: 50%; bottom: calc(44px + 78px * var(--street-scale)); z-index: 5; transform: translateX(-50%) translateY(6px); opacity: 0; transition: opacity .4s, transform .4s; pointer-events: none; font-family: var(--font-main); font-weight: 700; font-size: 14px; color: #fff; background: rgba(0,0,0,0.42); border: 1px solid rgba(255,255,255,0.16); padding: 9px 17px; border-radius: 99px; -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); display: inline-flex; align-items: center; gap: 8px; white-space: nowrap; scale: var(--street-scale); transform-origin: 50% 100%; }
     .ri-hint .pip { width: 7px; height: 7px; border-radius: 50%; background: var(--bor-bright, #00FF9D); box-shadow: 0 0 8px var(--bor-bright, #00FF9D); }
     .receive-intro.armed .ri-hint { opacity: 1; animation: hint-bob 2.4s ease-in-out infinite; }
     @keyframes hint-bob { 0%,100% { transform: translateX(-50%) translateY(0); } 50% { transform: translateX(-50%) translateY(-6px); } }
@@ -431,7 +438,7 @@
       70%  { transform: translateX(calc(50vw - 165px)); animation-timing-function: cubic-bezier(.45,.1,.6,1); }
       100% { transform: translateX(calc(100vw + 240px)); }
     }
-    .dv-rig { position: relative; display: flex; align-items: flex-end; animation: dv-susp 7s 2.4s both; transform-origin: center bottom; }
+    .dv-rig { position: relative; display: flex; align-items: flex-end; animation: dv-susp 7s 2.4s both; transform-origin: center bottom; scale: var(--street-scale); }
     @keyframes dv-susp {
       0%,20% { transform: translateY(0) rotate(0deg); } 26% { transform: translateY(3px) rotate(1deg); }
       30% { transform: translateY(8px) rotate(2.4deg); } 32% { transform: translateY(-5px) rotate(-1.4deg); }

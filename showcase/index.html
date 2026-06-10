@@ -3,7 +3,6 @@
 <head>
 <script>/* public showcase mirror: always demo mode */try{localStorage.setItem("giiift-demo","1");localStorage.setItem("giiift-authed","1");}catch(e){}</script>
 <meta name="robots" content="noindex, nofollow, noarchive">
-<style>/* mirror-only: shrink the whole surface on desktop */@media (min-width: 900px){ html{ zoom: 0.82; } }</style>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <meta name="robots" content="noindex, nofollow" />
@@ -49,15 +48,15 @@
   .lockup{ display:flex; align-items:center; gap:11px; }
   .lockup svg{ display:block; width:34px; height:34px; }
   .lockup .word{ font-size:18px; }
-  .topbar{ display:flex; align-items:center; justify-content:space-between; margin-bottom:64px; }
+  .topbar{ display:flex; align-items:center; justify-content:space-between; margin-bottom:52px; }
   .topbar .tag{ font-family:"JetBrains Mono",monospace; font-size:10.5px; letter-spacing:.14em;
     text-transform:uppercase; color:var(--faint); }
 
   .kicker{ font-size:12px; font-weight:800; letter-spacing:.2em; text-transform:uppercase;
     color:var(--accent); margin:0 0 14px; }
-  h1{ font-size:clamp(34px,5.4vw,54px); line-height:1.04; font-weight:900; letter-spacing:-.025em; margin:0 0 16px; }
+  h1{ font-size:clamp(30px,4vw,44px); line-height:1.04; font-weight:900; letter-spacing:-.025em; margin:0 0 14px; }
   h1 .g{ color:var(--accent); }
-  .sub{ font-size:17.5px; line-height:1.55; color:var(--muted); max-width:680px; margin:0; }
+  .sub{ font-size:15.5px; line-height:1.55; color:var(--muted); max-width:640px; margin:0; }
   .sub b{ color:var(--ink); font-weight:700; }
   .for{ margin-top:18px; font-family:"JetBrains Mono",monospace; font-size:11px;
     letter-spacing:.16em; text-transform:uppercase; color:var(--faint); }
@@ -72,17 +71,17 @@
     transition:border-color .15s ease, transform .15s ease; }
   .demo:hover{ border-color:rgba(0,255,157,.45); transform:translateY(-2px); }
   .demo .n{ font-family:"JetBrains Mono",monospace; font-size:10px; color:var(--accent); letter-spacing:.14em; text-transform:uppercase; }
-  .demo .t{ font-size:19px; font-weight:800; letter-spacing:-.01em; margin-top:9px; }
-  .demo .d{ font-size:13.5px; color:var(--muted); line-height:1.5; margin-top:7px; min-height:60px; }
-  .demo .go{ margin-top:12px; font-size:13.5px; font-weight:700; color:var(--accent); }
+  .demo .t{ font-size:17px; font-weight:800; letter-spacing:-.01em; margin-top:8px; }
+  .demo .d{ font-size:12.5px; color:var(--muted); line-height:1.5; margin-top:6px; min-height:56px; }
+  .demo .go{ margin-top:11px; font-size:12.5px; font-weight:700; color:var(--accent); }
   .demo.hero{ border-color:rgba(0,255,157,.35); }
   .demo.hero::after{ content:"start here"; position:absolute; top:-11px; right:14px;
     font-family:"JetBrains Mono",monospace; font-size:9px; font-weight:700; letter-spacing:.16em;
     text-transform:uppercase; color:#0b0d0c; background:var(--accent); border-radius:6px; padding:4px 8px; }
 
   /* section chrome */
-  section{ margin-top:74px; }
-  h2{ font-size:26px; font-weight:900; letter-spacing:-.02em; margin:0 0 18px; }
+  section{ margin-top:60px; }
+  h2{ font-size:22px; font-weight:900; letter-spacing:-.02em; margin:0 0 16px; }
   h2 .g{ color:var(--accent); }
 
   /* journey strip — the five beats */
@@ -117,9 +116,9 @@
   @media (max-width:840px){ .vert{ flex-direction:column; align-items:flex-start; } }
 
   /* contact + footnote */
-  .cta{ margin-top:74px; display:flex; align-items:center; gap:20px; flex-wrap:wrap; }
-  .cta .mail{ font-size:17px; font-weight:700; color:var(--accent); text-decoration:none;
-    border:1px solid rgba(0,255,157,.42); border-radius:11px; padding:12px 20px; display:inline-block; }
+  .cta{ margin-top:60px; display:flex; align-items:center; gap:20px; flex-wrap:wrap; }
+  .cta .mail{ font-size:15px; font-weight:700; color:var(--accent); text-decoration:none;
+    border:1px solid rgba(0,255,157,.42); border-radius:11px; padding:11px 18px; display:inline-block; }
   .cta .line{ font-family:"JetBrains Mono",monospace; font-size:12px; color:var(--muted); letter-spacing:.03em; }
   .footnote{ margin-top:46px; font-size:11.5px; color:var(--faint); line-height:1.6; max-width:760px;
     border-top:1px solid var(--line); padding-top:18px; }
