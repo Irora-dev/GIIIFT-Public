@@ -1495,11 +1495,13 @@
       rot.x = Math.max(-30, Math.min(40, drag.rx - (e.clientY - drag.y) * 0.4));
       box.style.transform = `rotateY(${rot.y}deg) rotateX(${rot.x}deg)`;
     });
-    window.addEventListener("pointerup", () => {
+    function endDrag() {
       if (!drag) return;
       const live = drag.live; drag = null;
       if (live) { stage.classList.remove("dragging"); box.style.transition = ""; }
-    });
+    }
+    window.addEventListener("pointerup", endDrag);
+    window.addEventListener("pointercancel", endDrag);   // touch drags can end in a scroll takeover
 
     // ---------- delivery intro: van arrives, drops the package, drives off ----------
     // Opposite of the send flow (which picks a package up). The borealis is tied to
