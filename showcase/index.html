@@ -56,7 +56,7 @@
     color:var(--accent); margin:0 0 10.5px; }
   h1{ font-size:clamp(30px,4vw,41px); line-height:1.04; font-weight:900; letter-spacing:-.025em; margin:0 0 10.5px; max-width:480px; }
   h1 .g{ color:var(--accent); }
-  .sub{ font-size:13.1px; line-height:1.55; color:var(--muted); max-width:480px; margin:0; }
+  .sub{ font-size:15px; line-height:1.55; color:var(--muted); max-width:480px; margin:0; }
   .sub b{ color:var(--ink); font-weight:700; }
   .for{ margin-top:13.5px; font-family:"JetBrains Mono",monospace; font-size:8.3px;
     letter-spacing:.16em; text-transform:uppercase; color:var(--faint); }
@@ -78,15 +78,15 @@
   /* demo entry cards */
   .demos{ display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin:32px 0 0; }
   @media (max-width:630px){ .demos{ grid-template-columns:1fr; } }
-  .demo{ display:block; text-decoration:none; color:inherit; background:var(--card);
+  .demo{ display:flex; flex-direction:column; text-decoration:none; color:inherit; background:var(--card);
     border:1px solid var(--line); border-radius:12px; padding:16.5px 16.5px 15px; position:relative;
     -webkit-backdrop-filter:blur(6px); backdrop-filter:blur(6px);
     transition:border-color .15s ease, transform .15s ease; }
   .demo:hover{ border-color:rgba(0,255,157,.45); transform:translateY(-2px); }
-  .demo .n{ font-family:"JetBrains Mono",monospace; font-size:7.5px; color:var(--accent); letter-spacing:.14em; text-transform:uppercase; }
-  .demo .t{ font-size:12.8px; font-weight:800; letter-spacing:-.01em; margin-top:6px; }
-  .demo .d{ font-size:9.4px; color:var(--muted); line-height:1.5; margin-top:4.5px; min-height:42px; }
-  .demo .go{ margin-top:8.3px; font-size:9.4px; font-weight:700; color:var(--accent); }
+  .demo .n{ font-family:"JetBrains Mono",monospace; font-size:8.5px; color:var(--accent); letter-spacing:.14em; text-transform:uppercase; }
+  .demo .t{ font-size:16px; font-weight:800; letter-spacing:-.01em; margin-top:7px; }
+  .demo .d{ font-size:12.5px; color:var(--muted); line-height:1.5; margin-top:6px; }
+  .demo .go{ margin-top:auto; padding-top:11px; font-size:12px; font-weight:700; color:var(--accent); }
   .demo.hero{ border-color:rgba(0,255,157,.35); }
   .demo.hero::after{ content:"start here"; position:absolute; top:-8.3px; right:10.5px;
     font-family:"JetBrains Mono",monospace; font-size:6.8px; font-weight:700; letter-spacing:.16em;
@@ -94,20 +94,20 @@
 
   /* section chrome */
   section{ margin-top:45px; }
-  h2{ font-size:19.5px; font-weight:900; letter-spacing:-.02em; margin:0 0 12px; }
+  h2{ font-size:23px; font-weight:900; letter-spacing:-.02em; margin:0 0 14px; }
   h2 .g{ color:var(--accent); }
 
   /* journey strip — the five beats */
   .flow{ display:grid; grid-template-columns:repeat(5,1fr); gap:9px; }
   @media (max-width:690px){ .flow{ grid-template-columns:1fr 1fr; } }
-  .flow .step{ background:var(--card); border:1px solid var(--line); border-radius:9.8px; padding:10.5px 12px;
+  .flow .step{ display:flex; flex-direction:column; background:var(--card); border:1px solid var(--line); border-radius:9.8px; padding:12px 13px;
     -webkit-backdrop-filter:blur(6px); backdrop-filter:blur(6px); }
   .flow .step .hd{ display:flex; align-items:flex-start; justify-content:space-between; }
-  .flow .step .hd svg{ width:19.5px; height:19.5px; flex-shrink:0; margin:-2px -2px 0 0; }
-  .flow .step .n{ font-family:"JetBrains Mono",monospace; font-size:7.5px; color:var(--accent); letter-spacing:.12em; padding-top:2.3px; }
-  .flow .step .t{ font-size:10.9px; font-weight:700; margin-top:3.8px; }
-  .flow .step .d{ font-size:8.6px; color:var(--muted); margin-top:3px; line-height:1.4; }
-  .flow .step .try{ display:inline-block; margin-top:6px; font-size:8.6px; font-weight:700;
+  .flow .step .hd svg{ width:21px; height:21px; flex-shrink:0; margin:-2px -2px 0 0; }
+  .flow .step .n{ font-family:"JetBrains Mono",monospace; font-size:8.5px; color:var(--accent); letter-spacing:.12em; padding-top:2.3px; }
+  .flow .step .t{ font-size:13px; font-weight:700; margin-top:5px; }
+  .flow .step .d{ font-size:11.5px; color:var(--muted); margin-top:4px; line-height:1.45; }
+  .flow .step .try{ display:inline-block; margin-top:auto; padding-top:9px; font-size:11px; font-weight:700;
     color:var(--accent); text-decoration:none; }
 
   /* tiers */
@@ -115,17 +115,17 @@
   @media (max-width:630px){ .tiers{ grid-template-columns:1fr; } }
   .tier{ background:var(--card-2); border:1px solid var(--line); border-radius:9.8px; padding:12px; position:relative;
     -webkit-backdrop-filter:blur(6px); backdrop-filter:blur(6px); }
-  .tier .num{ font-family:"JetBrains Mono",monospace; font-weight:700; font-size:10.5px; color:var(--accent); }
-  .tier .t{ font-size:11.3px; font-weight:800; margin-top:4.5px; letter-spacing:-.01em; }
-  .tier .x{ font-size:9.8px; line-height:1.45; margin-top:5.3px; color:rgba(243,244,242,.9); }
+  .tier .num{ font-family:"JetBrains Mono",monospace; font-weight:700; font-size:11px; color:var(--accent); }
+  .tier .t{ font-size:14px; font-weight:800; margin-top:5px; letter-spacing:-.01em; }
+  .tier .x{ font-size:12.5px; line-height:1.5; margin-top:6px; color:rgba(243,244,242,.9); }
 
   /* vertical aside — the themed funnels, one slim row */
   .vert{ margin-top:19.5px; display:flex; align-items:center; justify-content:space-between; gap:13.5px;
     background:var(--card-2); border:1px solid var(--line); border-radius:9.8px; padding:10.5px 13.5px;
     -webkit-backdrop-filter:blur(6px); backdrop-filter:blur(6px); }
-  .vert .vx{ font-size:9.8px; color:var(--muted); line-height:1.5; }
+  .vert .vx{ font-size:12px; color:var(--muted); line-height:1.5; }
   .vert .vx b{ color:var(--ink); }
-  .vert a{ flex-shrink:0; font-size:9.8px; font-weight:700; color:var(--accent); text-decoration:none; }
+  .vert a{ flex-shrink:0; font-size:12px; font-weight:700; color:var(--accent); text-decoration:none; }
   @media (max-width:630px){ .vert{ flex-direction:column; align-items:flex-start; } }
 
   /* contact + footnote */
@@ -153,26 +153,26 @@
 
   <p class="kicker">The gifting experience, live</p>
   <h1>Open a gift the way<br><span class="g">your people will.</span></h1>
-  <p class="sub">Everything on this page runs the <b>real product</b>, in your browser, nothing to install. Walk it the way a gift does: <b>customize the box</b>, add a note, send it, then open it like the recipient and see what they walk away with.</p>
+  <p class="sub">Everything here is the <b>real product</b>, running in your browser. <b>Wrap a gift</b>, send it, then open it like your recipient will.</p>
   <div class="for" id="for-line" hidden>Prepared for <b id="for-name"></b></div>
 
   <div class="demos">
     <a class="demo hero" id="wrap-demo" href="/showcase/wrap.html" target="_blank" rel="noopener">
       <div class="n">01 · The send side</div>
       <div class="t">Build &amp; send a gift</div>
-      <div class="d">Put their name on the box, pick a design, drop a note and the assets inside, address it to an email or phone. The whole sender flow in two minutes.</div>
+      <div class="d">Their name on the box, a note and assets inside. Sent to an email or phone in two minutes.</div>
       <div class="go">Start wrapping →</div>
     </a>
     <a class="demo" id="open-demo" href="/showcase/box.html?g=eyJ0IjoieW91IiwiZiI6ImEgZnJpZW5kIiwibSI6IkNyYWNrIGl0IG9wZW4iLCJuIjoiVGhpcyBpcyB0aGUgbW9tZW50IEdJSUlGVCBtYW51ZmFjdHVyZXMuIEEgcmVhbCByZXZlYWwsIGEgcmVhbCBub3RlLCBhIHJlYWwgd2FsbGV0LiBObyBhcHAsIG5vIHNlZWQgcGhyYXNlLiIsImkiOltbIlVTREMiLCI1MCJdXSwiZCI6eyJmIjoiaG9sbyIsImMiOiIjMTIzYzViIiwiayI6IiM3YjJmZjciLCJ4IjoiI0ZGRDkzRCIsInAiOiJyaW5ncyIsInMiOiJBIEdJRlQgRk9SIFlPVSJ9LCJvIjoic2hvd2Nhc2UifQ" target="_blank" rel="noopener">
       <div class="n">02 · The claim</div>
       <div class="t">Open one like a recipient</div>
-      <div class="d">You just got a GIIIFT link. The parcel over the night town, the rip, the note pinned to the box. This is the moment that gets forwarded.</div>
+      <div class="d">The parcel, the rip, the note on the box. The moment that gets forwarded.</div>
       <div class="go">Open your gift →</div>
     </a>
     <a class="demo" href="/showcase/box.html?g=eyJ0IjoieW91IiwiZiI6InRoZSBHSUlJRlQgdGVhbSIsIm0iOiJBIGxpdHRsZSBwb3J0Zm9saW8iLCJuIjoiVGhyZWUgYXNzZXRzLCBvbmUgYm94LiBFdmVyeXRoaW5nIGxhbmRzIGluIGEgd2FsbGV0IHRoZXkgaG9sZCBmcm9tIHRoZSBzZWNvbmQgaXQgb3BlbnMuIFJlYWR5IHRvIHNwZW5kLCBvciBrZWVwLiIsImkiOltbIlVTREMiLCI3NSJdLFsiRVRIIiwiMC4wNSJdLFsiU09MIiwiMSJdXSwiZCI6eyJmIjoiZ3JhZGllbnQiLCJjIjoiIzBlNzQ5MCIsImsiOiIjN2MzYWVkIiwieCI6IiNmZGU2OGEiLCJwIjoicGx1cyIsInMiOiJUSEUgVU5MT0NLIn0sIm8iOiJzaG93Y2FzZSJ9" target="_blank" rel="noopener">
       <div class="n">03 · The unlock</div>
       <div class="t">What they walk away with</div>
-      <div class="d">A funded wallet they hold from the second it opens: real assets, a note from someone they know, and somewhere to spend it. No app, no seed phrase.</div>
+      <div class="d">A funded wallet the moment it opens: real assets and somewhere to spend them. No app, no seed phrase.</div>
       <div class="go">See the unlock →</div>
     </a>
   </div>
@@ -184,35 +184,35 @@
         <div class="hd"><span class="n">01</span>
           <svg viewBox="0 0 32 32" aria-hidden="true"><rect x="6" y="10" width="20" height="16" rx="2.4" fill="rgba(255,255,255,.06)" stroke="#4ECDC4" stroke-width="1.6"/><path d="M6 15h20" stroke="#4ECDC4" stroke-width="1.4"/><path d="M11 5.5l3 4.5M21 5.5l-3 4.5" stroke="#FF3B6F" stroke-width="1.8" stroke-linecap="round"/><circle cx="22" cy="21" r="2.6" fill="#FFD93D"/></svg>
         </div>
-        <div class="t">Customize the box</div><div class="d">Their name on it, a designed box: crates, manga wraps, holo foil, your colours.</div>
+        <div class="t">Customize the box</div><div class="d">Their name on it. Crates, manga wraps, holo foil.</div>
         <a class="try" href="/showcase/wrap.html" target="_blank" rel="noopener">try it →</a>
       </div>
       <div class="step">
         <div class="hd"><span class="n">02</span>
           <svg viewBox="0 0 32 32" aria-hidden="true"><rect x="7" y="6" width="18" height="20" rx="2" fill="rgba(255,255,255,.06)" stroke="#FFD93D" stroke-width="1.6"/><path d="M11 12h10M11 16.5h10M11 21h6" stroke="#FFD93D" stroke-width="1.6" stroke-linecap="round"/><circle cx="24.5" cy="7.5" r="3" fill="#FF3B6F"/></svg>
         </div>
-        <div class="t">Add a note</div><div class="d">The personal layer that rides the box. It's the part recipients screenshot.</div>
+        <div class="t">Add a note</div><div class="d">The personal layer. It's what recipients screenshot.</div>
         <a class="try" href="/showcase/wrap.html" target="_blank" rel="noopener">try it →</a>
       </div>
       <div class="step">
         <div class="hd"><span class="n">03</span>
           <svg viewBox="0 0 32 32" aria-hidden="true"><path d="M5 16h16" stroke="#4ECDC4" stroke-width="2" stroke-linecap="round"/><path d="M15 9l7 7-7 7" stroke="#4ECDC4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/><circle cx="26.5" cy="16" r="2.4" fill="#FFD93D"/></svg>
         </div>
-        <div class="t">Send it</div><div class="d">To an email, a phone, a wallet. No wallet needed on either end to start.</div>
+        <div class="t">Send it</div><div class="d">Email, phone or wallet. No wallet needed to start.</div>
         <a class="try" href="/showcase/wrap.html" target="_blank" rel="noopener">try it →</a>
       </div>
       <div class="step">
         <div class="hd"><span class="n">04</span>
           <svg viewBox="0 0 32 32" aria-hidden="true"><rect x="7" y="14" width="5.4" height="13" rx="1.2" fill="#FF3B6F"/><rect x="13.3" y="14" width="5.4" height="13" rx="1.2" fill="#FFD93D"/><rect x="19.6" y="14" width="5.4" height="13" rx="1.2" fill="#4ECDC4"/><rect x="5.4" y="13" width="21.2" height="3.7" rx="1.4" fill="#f3f4f2"/><ellipse cx="11.4" cy="7.4" rx="5.5" ry="3.5" transform="rotate(-16 11.4 7.4)" fill="#FF3B6F"/><ellipse cx="20.6" cy="7.4" rx="5.5" ry="3.5" transform="rotate(16 20.6 7.4)" fill="#4ECDC4"/><rect x="14.2" y="4.4" width="3.6" height="7.6" rx="1.1" fill="#FFD93D"/></svg>
         </div>
-        <div class="t">The claim</div><div class="d">The parcel arrives, they tap, the box rips open. No signup before the magic.</div>
+        <div class="t">The claim</div><div class="d">They tap, the box rips open. No signup first.</div>
         <a class="try" id="try-claim" href="#" target="_blank" rel="noopener">try it →</a>
       </div>
       <div class="step">
         <div class="hd"><span class="n">05</span>
           <svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="10.5" cy="6.8" r="3.6" fill="#FFD93D"/><circle cx="10.5" cy="6.8" r="2" fill="none" stroke="#0b0d0c" stroke-width="1.1"/><rect x="4" y="10.5" width="24" height="16.5" rx="3.5" fill="rgba(255,255,255,.06)" stroke="#4ECDC4" stroke-width="1.6"/><rect x="19.5" y="15.5" width="8.5" height="6.5" rx="2" fill="#4ECDC4"/><circle cx="23.2" cy="18.8" r="1.5" fill="#0b0d0c"/></svg>
         </div>
-        <div class="t">The unlock</div><div class="d">Real assets in a wallet they hold, and somewhere to spend them. The loop starts here.</div>
+        <div class="t">The unlock</div><div class="d">Real assets in their wallet. The loop starts here.</div>
         <a class="try" id="try-unlock" href="#" target="_blank" rel="noopener">try it →</a>
       </div>
     </div>
@@ -221,12 +221,12 @@
   <section>
     <h2>The ask: <span class="g">put your goods at the end of the journey</span></h2>
     <div class="tiers">
-      <div class="tier"><div class="num">NOW</div><div class="t">Your goods in the gift flow</div><div class="x">Senders wrap value around what you sell; recipients spend it with you. We normalize on our side; you change nothing.</div></div>
-      <div class="tier"><div class="num">NEXT</div><div class="t">Your moment on our stage</div><div class="x">The unwrap happens inside our reveal: your brand on the box, your goods in the cavity, our stagecraft around it.</div></div>
-      <div class="tier"><div class="num">ALWAYS</div><div class="t">Fulfilment stays yours</div><div class="x">We link out for exactly one thing: redeeming with you. Your inventory, your rails, your customer in the end.</div></div>
+      <div class="tier"><div class="num">NOW</div><div class="t">Your goods in the gift flow</div><div class="x">Senders wrap value around what you sell. Recipients spend it with you. You change nothing.</div></div>
+      <div class="tier"><div class="num">NEXT</div><div class="t">Your moment on our stage</div><div class="x">Your brand on the box, your goods inside, our stagecraft around the reveal.</div></div>
+      <div class="tier"><div class="num">ALWAYS</div><div class="t">Fulfilment stays yours</div><div class="x">We link out for one thing: redeeming with you. Your rails, your customer.</div></div>
     </div>
     <div class="vert">
-      <div class="vx"><b>Building for collectors?</b> The same flow speaks a collector's language end to end: themed boxes, pack-credit gifts, a card shelf at the unlock.</div>
+      <div class="vx"><b>Building for collectors?</b> Themed boxes, pack-credit gifts, a card shelf at the unlock.</div>
       <a href="/showcase/vertical.html?v=tcg" target="_blank" rel="noopener">See the TCG vertical →</a>
     </div>
   </section>
