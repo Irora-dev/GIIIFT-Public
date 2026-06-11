@@ -24,6 +24,7 @@
   <script src="/showcase/box-panels.js"></script>
   <script src="/showcase/box-engine.js"></script>
   <script src="/showcase/box-templates.js"></script>
+  <script src="/showcase/asset-visuals.js"></script><!-- kind-aware asset shapes: digital card / art frame / booster pack -->
   <script defer src="/showcase/brand.js"></script>
   <script defer src="/showcase/site-nav.js"></script>
   <script defer src="/showcase/intent-client.js"></script><!-- link-gifting: invitation-link delivery mode -->
@@ -362,6 +363,10 @@
       animation: drop-into 0.85s cubic-bezier(.45,.08,.62,1) forwards;
     }
     .drop-coin img { width: 100%; height: 100%; object-fit: cover; }
+    /* kind-shape variant of the deposit (asset-visuals.js): same fall, no disc chrome */
+    .drop-thing { position: absolute; z-index: 20; pointer-events: none; display: flex; align-items: center; justify-content: center;
+      animation: drop-into 0.85s cubic-bezier(.45,.08,.62,1) forwards; }
+    .drop-thing .av { --av-h: 52px; }
     /* Falls from above the top of the window (z-index 20, in front of everything),
        then at the flap line slips BEHIND the open flaps / box (z-index 0) so it
        disappears inside. --start-y (set in JS) places the start above the viewport. */
@@ -1880,31 +1885,42 @@
     }
 
     function dropCoin(a) {
-      // a coin that falls from the top of the window, then slips behind the box's
-      // open flaps so it reads as dropping inside (see .drop-coin / @keyframes drop-into)
+      // the deposit falls from the top of the window as the THING it is (digital
+      // card / art frame / booster pack via asset-visuals.js; disc fallback), then
+      // slips behind the box's open flaps so it reads as dropping inside
+      // (see .drop-coin/.drop-thing + @keyframes drop-into)
       const bs = document.querySelector('.box-stage');
       const bsRect = bs.getBoundingClientRect();
       const bxRect = box.getBoundingClientRect();
+      const AV = window.GIIIFTAssetVisuals;
       const coin = document.createElement('div');
-      coin.className = 'drop-coin';
+      if (AV) {
+        coin.className = 'drop-thing';
+        coin.appendChild(AV.build(
+          { ticker: a.ticker, amount: a.amount || '', color: a.color, glyph: a.glyph, img: a.img },
+          { logo: a.glyph ? null : (a.img || (a.ticker ? logoUrl(a.ticker) : null)) }
+        ));
+      } else {
+        coin.className = 'drop-coin';
+        const useGlyph = () => {
+          coin.textContent = a.glyph || a.ticker[0];
+          coin.style.background = `radial-gradient(circle at 30% 25%, rgba(255,255,255,0.45), transparent 55%), ${a.color}`;
+        };
+        if (a.glyph) { useGlyph(); }
+        else {
+          coin.style.background = '#f3f4f2';
+          const img = document.createElement('img');
+          img.src = a.img || logoUrl(a.ticker); img.alt = '';
+          img.addEventListener('error', () => { coin.innerHTML = ''; useGlyph(); });
+          coin.appendChild(img);
+        }
+      }
       // anchor on the box's open mouth (top-centre), relative to the stage
       const anchorTop = (bxRect.top - bsRect.top) + bxRect.height * 0.06;
       coin.style.left = (bxRect.left + bxRect.width / 2 - bsRect.left) + 'px';
       coin.style.top  = anchorTop + 'px';
       // start just above the top of the browser window
       coin.style.setProperty('--start-y', (-(bsRect.top + anchorTop + 40)) + 'px');
-      const useGlyph = () => {
-        coin.textContent = a.glyph || a.ticker[0];
-        coin.style.background = `radial-gradient(circle at 30% 25%, rgba(255,255,255,0.45), transparent 55%), ${a.color}`;
-      };
-      if (a.glyph) { useGlyph(); }
-      else {
-        coin.style.background = '#f3f4f2';
-        const img = document.createElement('img');
-        img.src = a.img || logoUrl(a.ticker); img.alt = '';
-        img.addEventListener('error', () => { coin.innerHTML = ''; useGlyph(); });
-        coin.appendChild(img);
-      }
       bs.appendChild(coin);
       coin.addEventListener('animationend', () => coin.remove());
     }
