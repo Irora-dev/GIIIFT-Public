@@ -90,8 +90,16 @@
   var ALIGN = { left: 1, center: 1, right: 1 };
   var EFFECTS = { none: 1, shadow: 1, lift: 1, neon: 1, highlight: 1 };   // wave 2: one-click text effects
   var FILLKINDS = { solid: 1, linear: 1, radial: 1 };   // shape gradient fill (incl. fade to transparent)
-  var ELSHAPES = { rect: 1, ellipse: 1, line: 1, triangle: 1, star: 1, diamond: 1, heart: 1 }; // `shape` element sub-kinds (distinct from the box SHAPES above)
+  var ELSHAPES = { rect: 1, ellipse: 1, line: 1, triangle: 1, star: 1, diamond: 1, heart: 1, arrow: 1, bubble: 1, burst: 1, ribbon: 1 }; // `shape` element sub-kinds (distinct from the box SHAPES above)
   var FRAMES = { rect: 1, rounded: 1, circle: 1, heart: 1, star: 1, triangle: 1, hexagon: 1, blob: 1 };   // `frame` photo-clip shapes
+  var STROKESTYLES = { solid: 1, dashed: 1, dotted: 1 };       // shape border style
+  var TEXTFINISH = { none: 1, gold: 1, silver: 1, rosegold: 1, holo: 1 };   // metallic foil text fills
+  var FOILS = {                                                // foil gradients, clipped to the glyphs (background-clip:text)
+    gold:     "linear-gradient(105deg,#8a6a1f 0%,#f6e27a 24%,#fffbe6 38%,#d4a017 55%,#f9df7b 72%,#7c5e16 100%)",
+    silver:   "linear-gradient(105deg,#5f6468 0%,#d9dde2 24%,#ffffff 40%,#a6abb1 58%,#e8ebee 78%,#62676c 100%)",
+    rosegold: "linear-gradient(105deg,#8a5240 0%,#eebfa6 25%,#ffe9dd 42%,#d18a70 60%,#f3c6ae 78%,#8a5240 100%)",
+    holo:     "linear-gradient(115deg,#ff9ad5 0%,#ffd36e 18%,#9dff8a 36%,#7adfff 54%,#a08bff 72%,#ff8bd1 90%,#ffd36e 100%)",
+  };
   var ELTYPES = { text: 1, stamp: 1, note: 1, graffiti: 1, label: 1, barcode: 1, seal: 1, postmark: 1, sticker: 1, art: 1, decal: 1, fade: 1, shape: 1, frame: 1 };
   // curated flat-SVG decal/sticker library (defined in box-stickers.js, loaded before this file)
   var STICKERS = (typeof window !== "undefined" && window.GIIIFTBoxStickers) || {};
@@ -175,6 +183,7 @@
         base.curve = num(e.curve, 0, -180, 180);                      // wave 2b: text on an arc (degrees of total sweep)
         base.fillKind = enumv(FILLKINDS, e.fillKind, "solid");        // gradient text fill (colour -> fill2)
         if (base.fillKind !== "solid") { base.fill2 = hex(e.fill2, base.color); base.fillAngle = num(e.fillAngle, 135, 0, 360); }
+        base.finish = enumv(TEXTFINISH, e.finish, "none");            // metallic foil fill — overrides colour/gradient; curved text keeps its colour (like gradients)
         break;
       case "stamp":
         base.value = str(e.value, 40); base.color = hex(e.color, palette.accent); base.size = num(e.size, 0.07, 0.03, 0.16);
@@ -195,6 +204,10 @@
         if (e.noShadow) base.noShadow = true;                  // transparent cutouts opt out of the .gbx-art drop shadow
         base.opacity = num(e.opacity, 1, 0, 1);
         base.brightness = num(e.brightness, 1, 0, 3); base.contrast = num(e.contrast, 1, 0, 3); base.saturate = num(e.saturate, 1, 0, 3); base.blur = num(e.blur, 0, 0, 0.04);   // image adjustments (CSS filter)
+        base.sepia = num(e.sepia, 0, 0, 1);                    // warm-tone filter (the editor Looks presets lean on it)
+        base.outlineW = num(e.outlineW, 0, 0, 0.05);           // die-cut sticker outline hugging the alpha edge
+        if (base.outlineW > 0) base.outlineColor = hex(e.outlineColor, "#ffffff");
+        base.softShadow = num(e.softShadow, 0, 0, 1);          // alpha-true soft drop shadow (grounds cutouts; box-shadow would draw the rectangle)
         if (e.flipX) base.flipX = true; if (e.flipY) base.flipY = true;
         break;
       case "sticker":
@@ -222,6 +235,7 @@
         if (e.fillFade) base.fillFade = true;                       // gradient ends transparent (pro-panel fade)
         base.stroke = (e.stroke == null || e.stroke === "none") ? "none" : hex(e.stroke, "#111111");
         base.strokeW = num(e.strokeW, 0, 0, 0.06);       // border, as a fraction of box size (0 = none)
+        base.strokeStyle = enumv(STROKESTYLES, e.strokeStyle, "solid");   // border style: solid / dashed / dotted
         base.radius = num(e.radius, 0.12, 0, 0.5);       // corner radius (rect), fraction of the shorter side
         base.w = num(e.w, 0.5, 0.02, 1); base.h = num(e.h, 0.2, 0.02, 1);
         base.opacity = num(e.opacity, 1, 0, 1);
@@ -512,6 +526,10 @@
       case "heart":    return '<path d="M50,90 C16,64 6,42 18,27 C28,15 45,16 50,30 C55,16 72,15 82,27 C94,42 84,64 50,90 Z"' + attrs + '/>';
       case "hexagon":  return '<polygon points="50,2 92,26 92,74 50,98 8,74 8,26"' + attrs + '/>';
       case "blob":     return '<path d="M55,7 C75,9 95,25 93,47 C91,68 72,96 49,94 C27,92 6,74 8,50 C10,27 33,5 55,7 Z"' + attrs + '/>';
+      case "arrow":    return '<polygon points="0,32 58,32 58,12 100,50 58,88 58,68 0,68"' + attrs + '/>';
+      case "bubble":   return '<path d="M14,8 H86 Q96,8 96,18 V60 Q96,70 86,70 H40 L24,92 L29,70 H14 Q4,70 4,60 V18 Q4,8 14,8 Z"' + attrs + '/>';
+      case "burst":    return '<polygon points="50,3 59.3,15.2 73.5,9.3 75.5,24.5 90.7,26.5 84.8,40.7 97,50 84.8,59.3 90.7,73.5 75.5,75.5 73.5,90.7 59.3,84.8 50,97 40.7,84.8 26.5,90.7 24.5,75.5 9.3,73.5 15.2,59.3 3,50 15.2,40.7 9.3,26.5 24.5,24.5 26.5,9.3 40.7,15.2"' + attrs + '/>';
+      case "ribbon":   return '<polygon points="0,25 100,25 88,50 100,75 0,75 12,50"' + attrs + '/>';
       default:         return '<rect x="1" y="1" width="98" height="98"' + attrs + '/>';
     }
   }
@@ -530,6 +548,9 @@
         if ((e.fillKind === "linear" || e.fillKind === "radial") && !(e.curve && Math.abs(e.curve) > 0.5)) {   // gradient text fill via background-clip (skips when curved)
           var tg2 = e.fill2 || e.color, tgr = e.fillKind === "radial" ? "radial-gradient(circle," + e.color + "," + tg2 + ")" : "linear-gradient(" + (e.fillAngle != null ? e.fillAngle : 135) + "deg," + e.color + "," + tg2 + ")";
           n.style.backgroundImage = tgr; n.style.webkitBackgroundClip = "text"; n.style.backgroundClip = "text"; n.style.color = "transparent";
+        }
+        if (e.finish && e.finish !== "none" && FOILS[e.finish] && !(e.curve && Math.abs(e.curve) > 0.5)) {   // metallic foil — wins over colour/gradient; skipped when curved, like gradients
+          n.style.backgroundImage = FOILS[e.finish]; n.style.webkitBackgroundClip = "text"; n.style.backgroundClip = "text"; n.style.color = "transparent";
         }
         n.style.textAlign = e.align;
         if (e.lineHeight != null) n.style.lineHeight = e.lineHeight;
@@ -592,8 +613,18 @@
           n = document.createElement("img"); n.className = "gbx-art"; n.src = e.src; n.alt = ""; n.loading = "lazy";
           n.style.objectFit = e.fit; n.style.width = px(e.w); n.style.height = px(e.h);
           n.style.setProperty("--gbx-art-r", e.radius); n.style.setProperty("--gbx-zoom", e.zoom || 1);
-          var af = []; if (e.brightness != null && e.brightness !== 1) af.push("brightness(" + e.brightness + ")"); if (e.contrast != null && e.contrast !== 1) af.push("contrast(" + e.contrast + ")"); if (e.saturate != null && e.saturate !== 1) af.push("saturate(" + e.saturate + ")"); if (e.blur) af.push("blur(calc(var(--gbx-size) * " + e.blur + "))"); if (af.length) n.style.filter = af.join(" ");
-          if (e.noShadow) n.style.boxShadow = "none";          // cutout art (alpha subjects): the rectangular drop shadow gives the box away
+          var af = []; if (e.brightness != null && e.brightness !== 1) af.push("brightness(" + e.brightness + ")"); if (e.contrast != null && e.contrast !== 1) af.push("contrast(" + e.contrast + ")"); if (e.saturate != null && e.saturate !== 1) af.push("saturate(" + e.saturate + ")"); if (e.blur) af.push("blur(calc(var(--gbx-size) * " + e.blur + "))");
+          if (e.sepia) af.push("sepia(" + e.sepia + ")");
+          if (e.outlineW) {                                    // die-cut sticker outline: 8 hard drop-shadows dilate the alpha edge
+            var oc = e.outlineColor || "#ffffff", oP = function (k) { return "calc(var(--gbx-size) * " + k.toFixed(4) + ")"; }, od = e.outlineW * 0.7071;
+            af.push("drop-shadow(" + oP(e.outlineW) + " 0 0 " + oc + ")", "drop-shadow(" + oP(-e.outlineW) + " 0 0 " + oc + ")",
+                    "drop-shadow(0 " + oP(e.outlineW) + " 0 " + oc + ")", "drop-shadow(0 " + oP(-e.outlineW) + " 0 " + oc + ")",
+                    "drop-shadow(" + oP(od) + " " + oP(od) + " 0 " + oc + ")", "drop-shadow(" + oP(-od) + " " + oP(od) + " 0 " + oc + ")",
+                    "drop-shadow(" + oP(od) + " " + oP(-od) + " 0 " + oc + ")", "drop-shadow(" + oP(-od) + " " + oP(-od) + " 0 " + oc + ")");
+          }
+          if (e.softShadow) af.push("drop-shadow(0 calc(var(--gbx-size) * " + (0.018 * e.softShadow).toFixed(4) + ") calc(var(--gbx-size) * " + (0.045 * e.softShadow).toFixed(4) + ") rgba(0,0,0," + (0.3 + 0.4 * e.softShadow).toFixed(2) + "))");   // alpha-true soft shadow, drawn after the outline so the die-cut silhouette casts it
+          if (af.length) n.style.filter = af.join(" ");
+          if (e.noShadow || e.outlineW || e.softShadow) n.style.boxShadow = "none";   // cutouts + outlined/shadowed art: the rectangular box-shadow gives the box away
           if (e.opacity != null && e.opacity < 1) n.style.opacity = e.opacity;
           if (e.flipX) n.style.setProperty("--gbx-fx", -1);
           if (e.flipY) n.style.setProperty("--gbx-fy", -1);
@@ -632,15 +663,16 @@
         if (e.shape === "rect" || e.shape === "ellipse" || e.shape === "line") {   // CSS path: perfect uniform border
           n.style.background = shapeBg(e, sfill); n.style.boxSizing = "border-box";
           n.style.borderRadius = e.shape === "ellipse" ? "50%" : e.shape === "line" ? px(e.h * 0.5) : px(Math.min(e.w, e.h) * e.radius);
-          if (sStroke) n.style.border = "calc(var(--gbx-size) * " + e.strokeW + ") solid " + e.stroke;
-        } else {                                                                     // SVG path: triangle / star / diamond / heart
+          if (sStroke) n.style.border = "calc(var(--gbx-size) * " + e.strokeW + ") " + (e.strokeStyle === "dashed" ? "dashed" : e.strokeStyle === "dotted" ? "dotted" : "solid") + " " + e.stroke;
+        } else {                                                                     // SVG path: triangle / star / diamond / heart / arrow / bubble / burst / ribbon
           var gdef = "", gfill = sfill;
           if ((e.fillKind === "linear" || e.fillKind === "radial") && e.fill !== "none") {   // gradient fill for SVG-path shapes (star/heart/etc.)
             var gid = "gbxg" + (CLIP_ID++), gstart = '<stop offset="0%" stop-color="' + e.fill + '"/>', gend = e.fillFade ? '<stop offset="100%" stop-color="' + e.fill + '" stop-opacity="0"/>' : '<stop offset="100%" stop-color="' + (e.fill2 || e.fill) + '"/>';
             gdef = e.fillKind === "radial" ? '<defs><radialGradient id="' + gid + '">' + gstart + gend + '</radialGradient></defs>' : '<defs><linearGradient id="' + gid + '" gradientTransform="rotate(' + (e.fillAngle != null ? e.fillAngle : 135) + ' .5 .5)">' + gstart + gend + '</linearGradient></defs>';
             gfill = 'url(#' + gid + ')';
           }
-          var sa = ' fill="' + gfill + '"' + (sStroke ? ' stroke="' + e.stroke + '" stroke-width="' + (e.strokeW * 100).toFixed(2) + '" stroke-linejoin="round"' : '');
+          var sDash = e.strokeStyle === "dashed" ? ' stroke-dasharray="7 4"' : e.strokeStyle === "dotted" ? ' stroke-dasharray="0.5 5" stroke-linecap="round"' : '';
+          var sa = ' fill="' + gfill + '"' + (sStroke ? ' stroke="' + e.stroke + '" stroke-width="' + (e.strokeW * 100).toFixed(2) + '" stroke-linejoin="round"' + sDash : '');
           n.innerHTML = '<svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none">' + gdef + shapeSvgPath(e.shape, sa) + '</svg>';
         }
         if (e.opacity != null && e.opacity < 1) n.style.opacity = e.opacity;
