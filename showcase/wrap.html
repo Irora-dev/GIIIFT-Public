@@ -373,6 +373,32 @@
       100% { z-index: 0;  transform: translate(-50%,-50%) translateY(72px) scale(0.5) rotate(9deg); opacity: 0; }
     }
 
+    /* ---------- fill tabs: digital assets · art · packs ---------- */
+    .fill-tabs { display: inline-flex; gap: 3px; padding: 3px; border-radius: 9.8px; background: rgba(0,0,0,0.38); border: 1px solid rgba(255,255,255,0.10); align-self: flex-start; }
+    .fill-tabs button { font-family: var(--font-mono); font-size: 11.3px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); background: none; border: none; padding: 6px 12.8px; border-radius: 7.5px; cursor: pointer; transition: background .2s, color .2s; }
+    .fill-tabs button.on { background: rgba(255,255,255,0.12); color: var(--ink); }
+    .fill-tabs button:hover:not(.on) { color: var(--ink); }
+    #fill-assets, #fill-art, #fill-packs { display: flex; flex-direction: column; gap: 12px; }
+    #fill-art[hidden], #fill-packs[hidden], #fill-assets[hidden] { display: none; }
+    .pick-sub { font-size: 8.3px; font-weight: 800; letter-spacing: 0.16em; text-transform: uppercase; color: var(--muted-2); }
+    /* shared pick grid: square art cards / booster packs, one selected at a time */
+    .pick-grid { display: grid; gap: 7.5px; }
+    .pick-grid.art { grid-template-columns: repeat(3, 1fr); }
+    .pick-grid.packs { grid-template-columns: repeat(2, 1fr); }
+    .pick { position: relative; display: flex; flex-direction: column; gap: 5.3px; padding: 5.3px 5.3px 6.8px; border: 1px solid var(--line); border-radius: 9.8px; background: var(--panel-2); cursor: pointer; transition: border-color .18s, transform .15s, box-shadow .2s; color: var(--ink); }
+    .pick:hover { border-color: var(--line-strong); transform: translateY(-1px); }
+    .pick.sel { border-color: var(--accent-ui); box-shadow: 0 0 0 1px var(--accent-ui) inset, 0 6px 16px -8px rgba(0,255,157,0.4); }
+    .pick .pi { width: 100%; aspect-ratio: 1; border-radius: 6.8px; overflow: hidden; background: #0a0c0e; display: grid; place-items: center; }
+    .pick .pi img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .pick .pn { font-size: 8.3px; font-weight: 700; letter-spacing: 0.02em; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    /* booster pack: foil wrapper with crimped ends, the set logo as the art */
+    .pick.pk .pi { aspect-ratio: 0.78; background: linear-gradient(160deg, var(--pk1, #2b3f6b), var(--pk2, #101a30) 70%); position: relative; padding: 9px 7px; }
+    .pick.pk .pi::before, .pick.pk .pi::after { content: ''; position: absolute; left: 0; right: 0; height: 7px; background: repeating-linear-gradient(90deg, rgba(255,255,255,0.16) 0 2px, rgba(0,0,0,0.22) 2px 4px), linear-gradient(180deg, var(--pk1, #2b3f6b), var(--pk2, #101a30)); }
+    .pick.pk .pi::before { top: 0; border-bottom: 1px solid rgba(0,0,0,0.4); }
+    .pick.pk .pi::after { bottom: 0; border-top: 1px solid rgba(0,0,0,0.4); }
+    .pick.pk .pi .shine { position: absolute; top: -20%; bottom: -20%; left: 18%; width: 22%; background: linear-gradient(105deg, transparent, rgba(255,255,255,0.14), transparent); transform: skewX(-18deg); pointer-events: none; }
+    .pick.pk .pi img { width: 88%; height: auto; max-height: 74%; object-fit: contain; filter: drop-shadow(0 3px 6px rgba(0,0,0,0.55)); }
+
     /* ---------- asset picker ---------- */
     .search-row { position: relative; }
     .search-row input {
@@ -855,24 +881,45 @@
           <div class="suggest-chips" id="suggest-chips"></div>
         </div>
 
-        <div class="deposit">
-          <div class="deposit-label">How much?</div>
-          <div class="amount-field">
-            <span class="amount-coin" id="amount-coin"></span>
-            <input type="text" id="amount" inputmode="decimal" class="amount-input" placeholder="0.00">
-            <span class="amount-suffix" id="amount-suffix"></span>
-          </div>
-          <div class="quick-amounts" id="quick-amounts"></div>
-          <div class="value-guide" id="value-guide" hidden></div>
+        <!-- what kind of thing goes in: digital assets · art · packs -->
+        <div class="fill-tabs" id="fill-tabs" role="tablist" aria-label="What to put inside">
+          <button type="button" class="on" data-fill="assets">Digital assets</button>
+          <button type="button" data-fill="art">Art</button>
+          <button type="button" data-fill="packs">Packs</button>
         </div>
 
-        <div class="group asset-pick-head"><h4>Of what?</h4>
-          <div class="search-row search-mini">
-            <span class="si">⌕</span>
-            <input type="text" id="asset-search" placeholder="Search - BTC, Solana…" autocomplete="off">
+        <div id="fill-assets">
+          <div class="deposit">
+            <div class="deposit-label">How much?</div>
+            <div class="amount-field">
+              <span class="amount-coin" id="amount-coin"></span>
+              <input type="text" id="amount" inputmode="decimal" class="amount-input" placeholder="0.00">
+              <span class="amount-suffix" id="amount-suffix"></span>
+            </div>
+            <div class="quick-amounts" id="quick-amounts"></div>
+            <div class="value-guide" id="value-guide" hidden></div>
           </div>
+
+          <div class="group asset-pick-head"><h4>Of what?</h4>
+            <div class="search-row search-mini">
+              <span class="si">⌕</span>
+              <input type="text" id="asset-search" placeholder="Search - BTC, Solana…" autocomplete="off">
+            </div>
+          </div>
+          <div class="asset-scroll asset-rail"><div class="asset-grid" id="asset-grid"></div></div>
         </div>
-        <div class="asset-scroll asset-rail"><div class="asset-grid" id="asset-grid"></div></div>
+
+        <!-- one-of-one art (Contortions by Tristan, on-chain) -->
+        <div id="fill-art" hidden>
+          <div class="pick-sub">Contortions · by Tristan</div>
+          <div class="pick-grid art" id="art-grid"></div>
+        </div>
+
+        <!-- sealed packs (the rip happens on the partner) -->
+        <div id="fill-packs" hidden>
+          <div class="pick-sub">Sealed boosters · graded &amp; vaulted</div>
+          <div class="pick-grid packs" id="pack-grid"></div>
+        </div>
 
         <button class="add-btn" id="add-asset">Drop it in <span class="ab-arrow">↓</span></button>
 
@@ -1303,6 +1350,57 @@
       ASSETS.forEach(a => { if (aliases[a.ticker]) a.name = aliases[a.ticker]; });
     })();
 
+    // ---------- fill tabs: digital assets · art · packs ----------
+    // Art = real Contortions by Tristan pieces (Ethereum, images on Arweave);
+    // Packs = sealed boosters (the rip itself happens on the partner, per posture).
+    // Both ride the payload as NFT items, so the receive side already understands them.
+    const ART = [
+      { name: 'Contortion #7',   img: 'https://arweave.net/K34_bcDdIkyaMk0_by6GIuxrbHdIhq17gYHApPxdEmw' },
+      { name: 'Contortion #18',  img: 'https://arweave.net/yajNcT5NlrNflXLskedc5yVv5-DFMGD2nDk_rjqyWV0' },
+      { name: 'Contortion #42',  img: 'https://arweave.net/iz-jPw-_l-UonlgIDP2HjHkBD_aWpAoJkqRbKxSJs10' },
+      { name: 'Contortion #64',  img: 'https://arweave.net/UY6_cLAlSRnHVK-s3fZetSYwQ9UrV7LbKJO6byTHX38' },
+      { name: 'Contortion #111', img: 'https://arweave.net/67Otarr7ccL4T2h8ALGLSntJF570hWgFx9r6bkUKo1I' },
+      { name: 'Contortion #137', img: 'https://arweave.net/h4POGgp7v9V1X0byryLxuk5yk-yLUtjF3Hil0izk-zs' },
+    ];
+    const PACKS = [
+      { name: '151 Booster',            img: 'https://assets.tcgdex.net/en/sv/sv03.5/logo.png',  c1: '#b91d3a', c2: '#3f0a16' },
+      { name: 'Evolving Skies Booster', img: 'https://assets.tcgdex.net/en/swsh/swsh7/logo.png', c1: '#2563ab', c2: '#0c1f3e' },
+      { name: 'Lost Origin Booster',    img: 'https://assets.tcgdex.net/en/swsh/swsh11/logo.png', c1: '#6d28d9', c2: '#1e0a3c' },
+      { name: 'Base Set Booster',       img: 'https://assets.tcgdex.net/en/base/base1/logo.png', c1: '#b97a1d', c2: '#3c2606' },
+    ];
+    let fillMode = 'assets', pickedArt = 0, pickedPack = 0;
+    (function buildFillTabs() {
+      const tabs = document.getElementById('fill-tabs');
+      if (!tabs) return;
+      const panels = { assets: document.getElementById('fill-assets'), art: document.getElementById('fill-art'), packs: document.getElementById('fill-packs') };
+      tabs.addEventListener('click', (e) => {
+        const b = e.target.closest('[data-fill]'); if (!b) return;
+        fillMode = b.dataset.fill;
+        [...tabs.children].forEach(x => x.classList.toggle('on', x === b));
+        for (const k in panels) if (panels[k]) panels[k].hidden = k !== fillMode;
+      });
+      const mkGrid = (gridId, items, isPack, getSel, setSel) => {
+        const grid = document.getElementById(gridId); if (!grid) return;
+        const cards = items.map((it, i) => {
+          const c = document.createElement('button');
+          c.type = 'button'; c.className = 'pick' + (isPack ? ' pk' : '');
+          if (isPack) { c.style.setProperty('--pk1', it.c1); c.style.setProperty('--pk2', it.c2); }
+          const pi = document.createElement('span'); pi.className = 'pi';
+          const img = document.createElement('img'); img.src = it.img; img.alt = ''; img.loading = 'lazy';
+          pi.appendChild(img);
+          if (isPack) { const sh = document.createElement('span'); sh.className = 'shine'; pi.appendChild(sh); }
+          const pn = document.createElement('span'); pn.className = 'pn'; pn.textContent = it.name;
+          c.appendChild(pi); c.appendChild(pn);
+          c.addEventListener('click', () => { setSel(i); cards.forEach((x, j) => x.classList.toggle('sel', j === getSel())); });
+          grid.appendChild(c);
+          return c;
+        });
+        if (cards[0]) cards[0].classList.add('sel');
+      };
+      mkGrid('art-grid', ART, false, () => pickedArt, (i) => pickedArt = i);
+      mkGrid('pack-grid', PACKS, true, () => pickedPack, (i) => pickedPack = i);
+    })();
+
     // apply a suggested recipe: single asset ({ticker, amount}) or a BUNDLE
     // ({items: [[ticker, amount], …]}), plus an optional seeded note. Shared by
     // the one-tap chips and the ?pack= landing handoff.
@@ -1525,9 +1623,9 @@
         span.style.background = `radial-gradient(circle at 30% 25%, rgba(255,255,255,0.4), transparent 55%), ${a.color}`;
         span.textContent = a.glyph || a.ticker[0];
       };
-      if (a.glyph) { fallback(); return span; }
+      if (a.glyph && !a.img) { fallback(); return span; }
       const img = document.createElement('img');
-      img.src = logoUrl(a.ticker); img.alt = ''; img.loading = 'lazy';
+      img.src = a.img || logoUrl(a.ticker); img.alt = ''; img.loading = 'lazy';
       img.addEventListener('error', () => { span.innerHTML = ''; fallback(); });
       span.appendChild(img);
       return span;
@@ -1803,7 +1901,7 @@
       else {
         coin.style.background = '#f3f4f2';
         const img = document.createElement('img');
-        img.src = logoUrl(a.ticker); img.alt = '';
+        img.src = a.img || logoUrl(a.ticker); img.alt = '';
         img.addEventListener('error', () => { coin.innerHTML = ''; useGlyph(); });
         coin.appendChild(img);
       }
@@ -1827,6 +1925,17 @@
 
     document.getElementById('add-asset').addEventListener('click', () => {
       if (stage !== 'fill') return;
+      // art + packs drop the selected piece (always one of one); assets keep the amount flow
+      if (fillMode === 'art' || fillMode === 'packs') {
+        const it = fillMode === 'art' ? ART[pickedArt] : PACKS[pickedPack];
+        const entry = { ticker: 'NFT', name: it.name, color: '#B06CF0', img: it.img, amount: '1' };
+        contents.push(entry);
+        dropCoin(entry);
+        renderContents();
+        updatePrimary();
+        setTimeout(syncStamps, 420);
+        return;
+      }
       const a = ASSETS.find(x => x.ticker === selectedTicker) || ASSETS[0];
       let amt = (amountInput.value || '').trim();
       if (!amt) amt = '1';
