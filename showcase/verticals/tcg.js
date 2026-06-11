@@ -62,7 +62,7 @@
         notePh: 'pull something rare',
         textHint: 'Add your message, then finalize the haul.',
         valueGuide: '$25 ≈ starter slabs · $50 ≈ a graded holo · $120+ ≈ vintage territory',
-        designEyebrow: '// step 2 · foil',
+        designTag: 'foil',   // composes '// step N · foil' — the number follows the flow order
         designTitle: 'Foil the pack',
         designSub: 'A designed box, or your own foil and colours.',
         designBtn: 'Pack the box →',
