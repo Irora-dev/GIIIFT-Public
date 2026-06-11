@@ -562,6 +562,11 @@
     .pat-nm { font-size: 8.3px; font-weight: 600; color: var(--muted); }
     .pat.sel .pat-nm { color: var(--ink); }
 
+    /* design-lab step (M4): the card grows into a workbench; the wizard's box steps aside
+       (the lab brings its own 3D preview) but the action rail stays to advance the flow */
+    .stage.lab-step { grid-template-columns: minmax(680px, 1.5fr) 1fr; }
+    .stage.lab-step .box-stage { visibility: hidden; height: 0; min-height: 0; padding: 0; }
+    #lab-frame { width: 100%; height: clamp(520px, calc(100vh - 240px), 840px); border: 0; border-radius: 12px; background: transparent; }
     .stage-action { width: 100%; max-width: 345px; margin-top: 6px; display: flex; flex-direction: column; align-items: center; gap: 13.5px; padding-bottom: 18px; margin-bottom: 36px; min-height: 68px; }
     .primary {
       font-family: var(--font-main); font-size: 11.3px; font-weight: 700; letter-spacing: -0.01em;
@@ -958,6 +963,16 @@
         </div>
       </template>
     
+      <!-- DESIGN-LAB (M4, behind ?flow=lab): the engine-lab editor embedded as a step -->
+      <div class="pane" id="pane-design-lab" hidden>
+        <div class="card-head">
+          <div class="eyebrow" data-step-eyebrow="design-lab">// design</div>
+          <h2>Design it your way</h2>
+          <p>The full box lab - layers, text, stickers, foil. Your edits ride straight into the gift.</p>
+        </div>
+        <iframe id="lab-frame" title="GIIIFT box lab"></iframe>
+      </div>
+
       <!-- STEPS 1, 2 & 4 - name, design, note (one form so data-field binding spans all three) -->
       <div class="pane pane-enter" id="pane-customize">
         <form id="editor" autocomplete="off">
@@ -2317,13 +2332,53 @@
     // fill and note. The fill step gates next() until something's inside.
     GIIIFTFlow.register({ key: 'name',   rail: { label: 'Name' },   enter: stepName });
     GIIIFTFlow.register({ key: 'design', rail: { label: 'Design' }, enter: stepDesign });
+    // ---------- design-lab (M4, behind ?flow=lab): the box lab embedded as a step ----------
+    // Bridge = localStorage: the lab autosaves its live doc to giiift-lab-draft (800ms
+    // debounce) and same-origin storage events deliver it here - no postMessage, no lab
+    // refactor. enter() seeds the draft from the current design; the lab's embed mode
+    // restores it silently. Leaving the step flows the doc's palette back into cfg;
+    // an EDITED doc clears cfg.template (the link ships colours until M5 ships docs).
+    function stepDesignLab() {
+      stage = 'design';
+      document.querySelectorAll('.control-card > .pane').forEach(pn => { pn.hidden = pn.id !== 'pane-design-lab'; });
+      document.querySelector('.stage').classList.add('lab-step');
+      try {
+        const doc = (cfg.template && window.GIIIFTBoxTemplates)
+          ? GIIIFTBoxTemplates.doc(cfg.template, { c1: cfg.cardboard, c2: cfg.cardboard2, accent: cfg.accent,
+              to: tplName(), from: tplFrom(), note: cfg.note,
+              title: (cfg.brand && cfg.brand !== 'Name Here') ? cfg.brand : '' })
+          : { palette: { c1: cfg.cardboard, c2: cfg.cardboard2, accent: cfg.accent, angle: cfg.angle, finish: cfg.finish }, faces: {} };
+        localStorage.setItem('giiift-lab-draft', JSON.stringify({ t: Date.now(), doc }));
+      } catch (e) {}
+      const fr = document.getElementById('lab-frame');
+      if (fr && !fr.getAttribute('src')) fr.src = 'engine-lab.html?embed=1';   // lazy: the default flow never pays
+      updatePrimary();
+    }
+    function exitDesignLab() {
+      document.getElementById('pane-design-lab').hidden = true;
+      document.querySelector('.stage').classList.remove('lab-step');
+      const d = GIIIFTFlow.ctx().get('labDoc');
+      if (d && d.palette) {
+        cfg.cardboard = d.palette.c1 || cfg.cardboard; cfg.cardboard2 = d.palette.c2 || cfg.cardboard2;
+        cfg.accent = d.palette.accent || cfg.accent; cfg.finish = d.palette.finish || cfg.finish;
+        cfg.template = null;   // a custom doc is not a registry template
+        paint();
+      }
+    }
+    window.addEventListener('storage', (e) => {
+      if (e.key !== 'giiift-lab-draft' || !e.newValue) return;
+      try { const d = JSON.parse(e.newValue).doc; if (d) GIIIFTFlow.ctx().set('labDoc', d); } catch (err) {}
+    });
+
     GIIIFTFlow.register({ key: 'fill',   rail: { label: 'Fill' },   enter: stepFill,
       valid: () => contents.length > 0 || vtxt('sealHintEmpty', null, 'Add at least one asset to seal.') });
     GIIIFTFlow.register({ key: 'seal',   rail: false,               enter: stepSeal });
     GIIIFTFlow.register({ key: 'text',   rail: { label: 'Note' },   enter: stepText });
     GIIIFTFlow.register({ key: 'send',   rail: { label: 'Send' },   enter: stepSend });
+    GIIIFTFlow.register({ key: 'design-lab', rail: { label: 'Design' }, enter: stepDesignLab, exit: exitDesignLab });
+    const FLOW_LAB = (() => { try { return new URLSearchParams(location.search).get('flow') === 'lab'; } catch (e) { return false; } })();
     GIIIFTFlow.start({
-      steps: ['name', 'design', 'fill', 'seal', 'text', 'send'],
+      steps: FLOW_LAB ? ['name', 'design-lab', 'fill', 'seal', 'text', 'send'] : ['name', 'design', 'fill', 'seal', 'text', 'send'],
       rail: '#steps',
       initial: 'name',
       runEnter: false,   // boot matches the markup-initial name step (no autofocus on load)
