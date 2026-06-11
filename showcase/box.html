@@ -68,6 +68,9 @@
       color: var(--ink); font-family: var(--font-main); min-height: 100vh; overflow-x: hidden;
       -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale;
     }
+    /* iOS Safari ignores body-level overflow-x; the 3D box flaps extend the
+       scrollable width on landscape phones without this (desktop unaffected) */
+    html { overflow-x: clip; }
     a { color: inherit; }
     .studio-grid { position: fixed; inset: 0; z-index: 0; pointer-events: none;
       background-image: linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.025) 1px, transparent 1px);
