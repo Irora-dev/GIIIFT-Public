@@ -64,7 +64,7 @@
       },
       label: null, // the cover IS the address: title2 becomes their name
       personalize: function (x, p) {
-        if (p.to) x.front.panelText = { title2: up(p.to, 9) };
+        if (p.title || p.to) x.front.panelText = { title2: up(p.title || p.to, 9) };
         if (p.note) x.left.panelText = { saga1: up(p.note, 12) };
       },
     },
@@ -82,7 +82,7 @@
       label: null, // cel-msg carries to/message/from itself
       personalize: function (x, p) {
         x.front.panelText = {
-          to: up(p.to || "A FRIEND", 20),
+          to: up(p.title || p.to || "A FRIEND", 20),
           message: cut(p.note || "DON'T OPEN", 24),
           from: up(p.from || "YOU", 20),
         };
@@ -121,7 +121,8 @@
   }
 
   /* Build a full engine doc for a template:
-   *   doc("expedition", { c1, c2, accent, to, from, note })
+   *   doc("expedition", { c1, c2, accent, to, from, note, title })
+   *   (title = the sender's own Front text; title slots prefer it over the name)
    * Colour args override the template palette (the wrap colour pickers);
    * to/from/note personalize the template's own slots; when the template has
    * no to/from slots a PRIORITY label layer lands on `label` face (same shape

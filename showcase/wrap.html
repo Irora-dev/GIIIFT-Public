@@ -1611,7 +1611,9 @@
 
     function skinFaces() {
       const liveDoc = (cfg.template && TPLS && window.GIIIFTBox)
-        ? TPLS.doc(cfg.template, { to: tplName(), from: tplFrom(), note: cfg.note })
+        ? TPLS.doc(cfg.template, { to: tplName(), from: tplFrom(), note: cfg.note,
+            // the sender's own Front text must survive a template (it beats the name in title slots)
+            title: (cfg.brand && cfg.brand !== 'Name Here') ? cfg.brand : '' })
         : null;
       ['front', 'right', 'left', 'back', 'bottom'].forEach(f => {
         const faceEl = box.querySelector('.face.' + f);
