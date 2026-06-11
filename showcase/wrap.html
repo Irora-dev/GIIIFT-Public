@@ -25,6 +25,7 @@
   <script src="/showcase/box-engine.js"></script>
   <script src="/showcase/box-templates.js"></script>
   <script src="/showcase/asset-visuals.js"></script><!-- kind-aware asset shapes: digital card / art frame / booster pack -->
+  <script src="/showcase/wrap-flow.js"></script><!-- sender-wizard flow engine: steps as modules, order as data (docs/WRAP_FLOW_ENGINE.md) -->
   <script defer src="/showcase/brand.js"></script>
   <script defer src="/showcase/site-nav.js"></script>
   <script defer src="/showcase/intent-client.js"></script><!-- link-gifting: invitation-link delivery mode -->
@@ -1083,17 +1084,9 @@
 
     <!-- RIGHT: step tracker + big box + action -->
     <section class="stage-right">
-      <div class="steps-card" id="steps">
-        <div class="step active" data-step="name"><span class="num">1</span><span class="lbl">Name</span></div>
-        <span class="bar"></span>
-        <div class="step" data-step="design"><span class="num">2</span><span class="lbl">Design</span></div>
-        <span class="bar"></span>
-        <div class="step" data-step="fill"><span class="num">3</span><span class="lbl">Fill</span></div>
-        <span class="bar"></span>
-        <div class="step" data-step="text"><span class="num">4</span><span class="lbl">Note</span></div>
-        <span class="bar"></span>
-        <div class="step" data-step="send"><span class="num">5</span><span class="lbl">Send</span></div>
-      </div>
+      <!-- step rail: rendered by GIIIFTFlow from the flow config — the wizard ORDER
+           lives in ONE array at the registry block (search GIIIFTFlow.start) -->
+      <div class="steps-card" id="steps"></div>
 
       <div class="box-stage">
         <div class="scene">
@@ -2068,13 +2061,7 @@
       shown.classList.remove('pane-enter'); void shown.offsetWidth; shown.classList.add('pane-enter');
     }
 
-    function setSteps(activeKeys, doneKeys) {
-      stepsEl.querySelectorAll('.step').forEach(s => {
-        const k = s.dataset.step;
-        s.classList.toggle('active', activeKeys.includes(k));
-        s.classList.toggle('done', doneKeys.includes(k));
-      });
-    }
+    // (the step rail is rendered + painted by GIIIFTFlow from the flow config)
 
     function updatePrimary() {
       if (stage === 'name') {
@@ -2094,9 +2081,8 @@
       }
     }
 
-    function goName() {
+    function stepName() {
       stage = 'name';
-      setSteps(['name'], []);
       controlCard.classList.remove('busy');
       showPane('customize');
       showSub('name');
@@ -2105,23 +2091,21 @@
       if (ti) setTimeout(() => ti.focus(), 60);
     }
 
-    function goFill() {
+    function stepFill() {
       stage = 'fill';
-      setSteps(['fill'], ['name', 'design']);
       showPane('fill');
       updatePrimary();
     }
 
-    function goSeal() {
+    function stepSeal() {
       if (contents.length === 0) return;
       stage = 'sealing';
-      setSteps([], ['name', 'design', 'fill']);
       primary.disabled = true; primary.textContent = vtxt('sealingBtn', null, 'Sealing…'); hint.textContent = '';
       controlCard.classList.add('busy');
       box.classList.remove('is-open');          // lid closes
       boxRot = { y: -27, x: -26 }; applyRot();   // settle to a top-down 3/4 view so the taped lid shows
       setTimeout(() => box.classList.add('is-sealed'), 650);  // tape wipes on
-      setTimeout(() => goText(), 1700);
+      setTimeout(() => GIIIFTFlow.go('text'), 1700);
     }
 
     // swap between the name / design / note sub-steps inside the editor card
@@ -2137,9 +2121,8 @@
       if (shown) { shown.classList.remove('pane-enter'); void shown.offsetWidth; shown.classList.add('pane-enter'); }
     }
 
-    function goText() {
+    function stepText() {
       stage = 'text';
-      setSteps(['text'], ['name', 'design', 'fill']);
       controlCard.classList.remove('busy');
       showPane('customize');                      // the card switches to the note
       showSub('text');
@@ -2148,9 +2131,8 @@
       hint.textContent = vtxt('textHint', null, 'Add your note, then finalize your gift.');
     }
 
-    function goDesign() {
+    function stepDesign() {
       stage = 'design';
-      setSteps(['design'], ['name']);
       showPane('customize');
       showSub('design');
       updatePrimary();
@@ -2182,9 +2164,8 @@
 
     let finishUrl = '';
     let lastCompact = null;   // the compact payload of the finalized gift (Link delivery posts it to /api/intent)
-    function goSend() {
+    function stepSend() {
       stage = 'send';
-      setSteps(['send'], ['name','design','fill','text']);
       // Compact, self-contained link: short keys, omit any design field left at its
       // default, derive each asset's name/colour/icon from its ticker on the receive
       // side. Keeps the URL short without a backend (works on static / IPFS hosting).
@@ -2421,13 +2402,25 @@
       }
     }
 
-    primary.addEventListener('click', () => {
-      if (stage === 'name') goDesign();
-      else if (stage === 'design') goFill();
-      else if (stage === 'fill') goSeal();
-      else if (stage === 'text') goSend();
+    // ---------- the flow, as data (docs/WRAP_FLOW_ENGINE.md) ----------
+    // Reordering the wizard = editing the steps array below. 'seal' is the
+    // off-rail interstitial (rail:false): the lid/tape choreography between
+    // fill and note. The fill step gates next() until something's inside.
+    GIIIFTFlow.register({ key: 'name',   rail: { label: 'Name' },   enter: stepName });
+    GIIIFTFlow.register({ key: 'design', rail: { label: 'Design' }, enter: stepDesign });
+    GIIIFTFlow.register({ key: 'fill',   rail: { label: 'Fill' },   enter: stepFill,
+      valid: () => contents.length > 0 || vtxt('sealHintEmpty', null, 'Add at least one asset to seal.') });
+    GIIIFTFlow.register({ key: 'seal',   rail: false,               enter: stepSeal });
+    GIIIFTFlow.register({ key: 'text',   rail: { label: 'Note' },   enter: stepText });
+    GIIIFTFlow.register({ key: 'send',   rail: { label: 'Send' },   enter: stepSend });
+    GIIIFTFlow.start({
+      steps: ['name', 'design', 'fill', 'seal', 'text', 'send'],
+      rail: '#steps',
+      initial: 'name',
+      runEnter: false,   // boot matches the markup-initial name step (no autofocus on load)
     });
-    document.getElementById('to-text').addEventListener('click', goName);   // "← Back to name" on the design step
+    primary.addEventListener('click', () => GIIIFTFlow.next());
+    document.getElementById('to-text').addEventListener('click', () => GIIIFTFlow.go('name'));   // "← Back to name" on the design step
 
     document.getElementById('copy-link').addEventListener('click', async (e) => {
       try { await navigator.clipboard.writeText(document.getElementById('lk-url').textContent); e.target.textContent = '✓ Copied'; setTimeout(()=>e.target.textContent='⧉ Copy link', 1800); } catch(err) {}
