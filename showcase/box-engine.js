@@ -90,8 +90,8 @@
   var ALIGN = { left: 1, center: 1, right: 1 };
   var EFFECTS = { none: 1, shadow: 1, lift: 1, neon: 1, highlight: 1 };   // wave 2: one-click text effects
   var FILLKINDS = { solid: 1, linear: 1, radial: 1 };   // shape gradient fill (incl. fade to transparent)
-  var SHAPES = { rect: 1, ellipse: 1, line: 1, triangle: 1, star: 1, diamond: 1, heart: 1 };   // `shape` element sub-kinds
-  var FRAMES = { rect: 1, rounded: 1, circle: 1, heart: 1, star: 1, triangle: 1 };             // `frame` photo-clip shapes
+  var ELSHAPES = { rect: 1, ellipse: 1, line: 1, triangle: 1, star: 1, diamond: 1, heart: 1 }; // `shape` element sub-kinds (distinct from the box SHAPES above)
+  var FRAMES = { rect: 1, rounded: 1, circle: 1, heart: 1, star: 1, triangle: 1, hexagon: 1, blob: 1 };   // `frame` photo-clip shapes
   var ELTYPES = { text: 1, stamp: 1, note: 1, graffiti: 1, label: 1, barcode: 1, seal: 1, postmark: 1, sticker: 1, art: 1, decal: 1, fade: 1, shape: 1, frame: 1 };
   // curated flat-SVG decal/sticker library (defined in box-stickers.js, loaded before this file)
   var STICKERS = (typeof window !== "undefined" && window.GIIIFTBoxStickers) || {};
@@ -214,7 +214,7 @@
         base.w = num(e.w, 1, 0.05, 1); base.h = num(e.h, 0.6, 0.05, 1);
         break;
       case "shape":                                      // vector shape: colour block / badge / divider / star, etc.
-        base.shape = enumv(SHAPES, e.shape, "rect");
+        base.shape = enumv(ELSHAPES, e.shape, "rect");
         base.fill = e.fill === "none" ? "none" : hex(e.fill, palette.accent);
         base.fillKind = enumv(FILLKINDS, e.fillKind, "solid");      // solid / linear / radial
         base.fill2 = hex(e.fill2, base.fill === "none" ? palette.c2 : base.fill);   // second gradient stop
@@ -510,6 +510,8 @@
       case "diamond":  return '<polygon points="50,4 96,50 50,96 4,50"' + attrs + '/>';
       case "star":     return '<polygon points="50,3 61.8,37.6 98.2,37.6 68.8,59.2 80.4,94 50,72.4 19.6,94 31.2,59.2 1.8,37.6 38.2,37.6"' + attrs + '/>';
       case "heart":    return '<path d="M50,90 C16,64 6,42 18,27 C28,15 45,16 50,30 C55,16 72,15 82,27 C94,42 84,64 50,90 Z"' + attrs + '/>';
+      case "hexagon":  return '<polygon points="50,2 92,26 92,74 50,98 8,74 8,26"' + attrs + '/>';
+      case "blob":     return '<path d="M55,7 C75,9 95,25 93,47 C91,68 72,96 49,94 C27,92 6,74 8,50 C10,27 33,5 55,7 Z"' + attrs + '/>';
       default:         return '<rect x="1" y="1" width="98" height="98"' + attrs + '/>';
     }
   }
@@ -828,7 +830,7 @@
 
   /* ------------------------------ export -------------------------------- */
   var API = {
-    FACES: FACES, PATTERNS: PATTERNS, SHAPES: SHAPES, FINISHES: FINISHES, FONTS: FONTS, FONT_META: FONT_META, STICKERS: STICKERS, PANELS: PANELS,
+    FACES: FACES, PATTERNS: PATTERNS, SHAPES: SHAPES, ELSHAPES: ELSHAPES, FRAMES: FRAMES, FINISHES: FINISHES, FONTS: FONTS, FONT_META: FONT_META, STICKERS: STICKERS, PANELS: PANELS,
     normalize: normalize, fromLegacy: fromLegacy, render: render,
     ensureFonts: ensureFonts, docFonts: docFonts,
     faceBackground: faceBackground, shadeHex: shadeHex, panelSVG: panelSVG,
