@@ -70,6 +70,11 @@
   var current = null;
   var railHost = null;
   var ctx = null;
+  // DETOUR (M4.5): go() into a registered step that is NOT in the order array
+  // anchors to the step it left from — the rail keeps that anchor active, and
+  // next()/number() resolve from the anchor, so an escape hatch (e.g. the
+  // design step's "Open the full lab") behaves like a view OVER its rail slot.
+  var detourFrom = null;
 
   function def(key) {
     var d = steps[key];
@@ -94,15 +99,21 @@
     railHost.innerHTML = html.join("");
   }
 
+  // the rail/advance position of `current`, seeing through an active detour
+  function anchorKey() {
+    return order.indexOf(current) > -1 ? current : detourFrom;
+  }
+
   function paintRail() {
     if (!railHost) return;
-    var ci = order.indexOf(current);
+    var anchor = anchorKey();
+    var ci = order.indexOf(anchor);
     var nodes = railHost.querySelectorAll(".step");
     for (var i = 0; i < nodes.length; i++) {
       var k = nodes[i].getAttribute("data-step");
       var oi = order.indexOf(k);
-      nodes[i].classList.toggle("active", k === current);
-      nodes[i].classList.toggle("done", k !== current && oi > -1 && oi < ci);
+      nodes[i].classList.toggle("active", k === anchor);
+      nodes[i].classList.toggle("done", k !== anchor && oi > -1 && oi < ci);
     }
   }
 
@@ -112,6 +123,8 @@
     if (from && steps[from] && steps[from].exit) {
       try { steps[from].exit(api, { to: key }); } catch (e) { console.warn("[GIIIFTFlow] exit failed for", from, e); }
     }
+    if (order.indexOf(key) > -1) detourFrom = null;                       // back on the rail
+    else detourFrom = order.indexOf(from) > -1 ? from : detourFrom;       // entering/staying off-rail
     current = key;
     paintRail();
     if (!(opts && opts.runEnter === false) && d.enter) d.enter(api, { from: from });
@@ -141,13 +154,13 @@
         var v = d.valid();
         if (v !== true && v !== undefined) return api;   // blocked; v may be a hint string
       }
-      var i = order.indexOf(current);
+      var i = order.indexOf(anchorKey());   // a detour advances from its rail anchor
       if (i > -1 && i < order.length - 1) go(order[i + 1]);
       return api;
     },
     back: function () {
       var rows = railSteps();
-      var i = rows.indexOf(current);
+      var i = rows.indexOf(anchorKey());
       if (i > 0) go(rows[i - 1]);
       return api;
     },
@@ -158,7 +171,7 @@
     // number for eyebrows/copy, so reordering the array renumbers everything
     number: function (k) {
       var rows = railSteps();
-      var i = rows.indexOf(k || current);
+      var i = rows.indexOf(k || anchorKey());
       return i < 0 ? null : i + 1;
     },
     // Mount <template data-step-pane data-host="#sel"> pane templates into their

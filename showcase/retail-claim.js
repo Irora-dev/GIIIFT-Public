@@ -242,7 +242,8 @@
       var card = el("div", "rgc");
       card.appendChild(el("h4", null, (opts.from ? opts.from + " picked" : "Your gift suggests") + ": " + product.title));
       card.appendChild(el("p", "rgc-sub",
-        product.blurb + " From " + product.merchant + ". Take it, or keep the value: your balance covers either."));
+        product.blurb + " You'll buy it from " + product.merchant.replace(/\s*\(PLACEHOLDER\)/i, "") +
+        "; your gift funded enough to cover it. Take it, or keep the value to spend on anything."));
 
       // variant picker (only when there is a real choice)
       var variantSel = null;
@@ -277,15 +278,18 @@
 
       var go = el("button", "rgc-go", "Continue to " + product.merchant.replace(/\s*\(PLACEHOLDER\)/i, "") + " checkout →");
       var price = el("div", "rgc-price",
-        "$" + product.priceUSD + " item · your balance was funded with $" + product.fundUSD + " to cover shipping");
+        "$" + product.priceUSD + " item · your GIIIFT wallet was funded with $" + product.fundUSD + " (item + a shipping buffer)");
       card.appendChild(price);
+      card.appendChild(el("p", "rgc-note",
+        "What happens: continue opens " + product.merchant.replace(/\s*\(PLACEHOLDER\)/i, "") +
+        "'s checkout in a window. Choose 'Pay with crypto', then GIIIFT, then approve. Your gift already covers it, so you finish in a couple of taps."));
       card.appendChild(go);
 
-      var skip = el("button", "rgc-skip", "Keep it as balance instead");
+      var skip = el("button", "rgc-skip", "Keep the value instead (spend it on anything)");
       card.appendChild(skip);
       card.appendChild(el("p", "rgc-note",
-        "Checkout happens on the merchant's own page and settles in USDC on Base from your wallet. " +
-        "Anything unspent stays in your balance. Your address goes to the merchant only, never the sender."));
+        "You pay from your GIIIFT wallet on the merchant's own page (we'll guide you through it), and you may need to " +
+        "re-enter your address there. Anything unspent stays in your balance. Your address goes to the merchant only, never the sender."));
 
       skip.addEventListener("click", function () { card.remove(); });
 
