@@ -824,6 +824,10 @@
           // box template (the wrap "Box designs" gallery); validated like the
           // vertical slug — it becomes a registry lookup, never markup
           tp: (typeof d.tp === "string" && /^[a-z0-9-]{1,24}$/.test(d.tp)) ? d.tp : "",
+          // template text-slot overrides (wrap-flow M4.5): sanitized by the shared
+          // GIIIFTBoxTemplates.cleanText at merge time — keys [a-z0-9]{1,16}, values
+          // ≤40 chars, ≤8 slots, and only keys the template's panels declare can land.
+          tt: (d.tt && typeof d.tt === "object" && !Array.isArray(d.tt)) ? d.tt : null,
           // polaroid photos: a localStorage key (same-device demo; wrap stores the
           // compressed shots under giiift-photos:<key>) OR a baked array of image
           // URLs/paths (future backend / authored demos). Never markup.
@@ -980,6 +984,9 @@
           title: String(design.brand || "").trim(),   // the sender's Front text survives the template
         })
       : null;
+    // the sender's pinned slot edits land LAST, over the personalized defaults (M4.5);
+    // applyText sanitizes internally and only writes panel-declared field keys
+    if (tplDoc && design.tt && GIIIFTBoxTemplates.applyText) GIIIFTBoxTemplates.applyText(tplDoc, design.tt);
     const engine = GIIIFTBox.render(
       document.getElementById("scene"),
       tplDoc || GIIIFTBox.fromLegacy(Object.assign({}, design, { items: items, to: gift.to, msg: gift.msg, from: design.from || gift.from })),

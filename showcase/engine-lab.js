@@ -74,7 +74,7 @@
     frame: { t: "frame", frame: "circle", src: "", stroke: "#ffffff", strokeW: 0, radius: .16, x: .5, y: .5, w: .42, h: .42, opacity: 1, rotate: 0 },
   };
   var RG = function (min, max, step, unit) { return { k: "range", min: min, max: max, step: step, unit: unit || "" }; };
-  var POS = [["x", RG(0, 1, .01)], ["y", RG(0, 1, .01)], ["rotate", RG(-180, 180, 1, "°")]];
+  var POS = [["x", RG(0, 1, .01)], ["y", RG(0, 1, .01)], ["rotate", RG(-180, 180, 1, "°")], ["anim", "anim"]];
   var LAYER_FIELDS = {
     text: [["value", "text"], ["font", "font"], ["style", "textstyle"], ["finish", "textfinish"], ["size", RG(.02, .4, .005)], ["weight", RG(100, 900, 50)], ["lineHeight", RG(.7, 2.5, .05)], ["letterSpacing", RG(-.1, .6, .01, "em")], ["color", "color"], ["outline1", "color"], ["outline2", "color"], ["effect", "texteffect"], ["effectColor", "color"], ["curve", RG(-180, 180, 1, "°")], ["fillKind", "fillkind"], ["fill2", "color"], ["fillAngle", RG(0, 360, 1, "°")], ["align", "align"], ["italic", "bool"], ["w", RG(.05, 1, .01)]].concat(POS),
     graffiti: [["value", "text"], ["font", "font"], ["style", "textstyle"], ["finish", "textfinish"], ["size", RG(.02, .4, .005)], ["lineHeight", RG(.7, 2.5, .05)], ["letterSpacing", RG(-.1, .6, .01, "em")], ["color", "color"], ["outline1", "color"], ["outline2", "color"], ["effect", "texteffect"], ["effectColor", "color"], ["curve", RG(-180, 180, 1, "°")], ["fillKind", "fillkind"], ["fill2", "color"], ["fillAngle", RG(0, 360, 1, "°")], ["w", RG(.05, 1, .01)]].concat(POS),
@@ -189,6 +189,10 @@
         };
       } },
   ];
+  // Template gallery categories (occasion/type sections in the picker). New templates set their own `cat`; the map categorises the built-in wraps without editing their entries.
+  var TPL_CATS = [["occasion", "Occasions"], ["seasonal", "Seasonal & holidays"], ["love", "Love & thanks"], ["crypto", "Crypto-native"], ["collector", "Collector & TCG"], ["style", "Wraps & styles"]];
+  var TPL_CAT = { "cel-crate": "style", "holographic": "collector", "parcel": "style", "manga": "style", "specimen": "style", "expedition": "style" };
+  function tplCat(t) { return t.cat || TPL_CAT[t.id] || "style"; }
 
   /* ---------------- state ---------------- */
   var doc = GBX.normalize(STARTER);
@@ -884,7 +888,7 @@
     body.appendChild(tip);
   }
   function buildPropControl(L, prop, kind) {
-    var label = prop === "flipX" ? "Flip ↔" : prop === "flipY" ? "Flip ↕" : prop === "outline1" ? "Outline" : prop === "outline2" ? "Edge" : prop === "effectColor" ? "Effect colour" : prop === "fillKind" ? "Fill" : prop === "fill2" ? "Fill 2" : prop === "fillAngle" ? "Angle" : prop === "fillFade" ? "Fade to clear" : prop === "saturate" ? "Saturation" : prop === "lineHeight" ? "Line height" : prop === "letterSpacing" ? "Letter spacing" : prop === "strokeStyle" ? "Border style" : prop === "outlineW" ? "Sticker outline" : prop === "outlineColor" ? "Outline colour" : prop === "softShadow" ? "Soft shadow" : prop === "finish" ? "Finish" : prop === "look" ? "Looks" : prop === "glyphs" ? "Pick a glyph" : cap(prop);
+    var label = prop === "flipX" ? "Flip ↔" : prop === "flipY" ? "Flip ↕" : prop === "outline1" ? "Outline" : prop === "outline2" ? "Edge" : prop === "effectColor" ? "Effect colour" : prop === "fillKind" ? "Fill" : prop === "fill2" ? "Fill 2" : prop === "fillAngle" ? "Angle" : prop === "fillFade" ? "Fade to clear" : prop === "saturate" ? "Saturation" : prop === "lineHeight" ? "Line height" : prop === "letterSpacing" ? "Letter spacing" : prop === "strokeStyle" ? "Border style" : prop === "outlineW" ? "Sticker outline" : prop === "outlineColor" ? "Outline colour" : prop === "softShadow" ? "Soft shadow" : prop === "finish" ? "Finish" : prop === "look" ? "Looks" : prop === "glyphs" ? "Pick a glyph" : prop === "anim" ? "Animate" : cap(prop);
     function setV(v, c) { L[prop] = v; rerender(); if (c) record(); if (prop === "value" || prop === "title" || prop === "label") updateCrumb(); }
     if (kind === "text") return textField(label, function () { return L[prop]; }, setV);
     if (kind === "textarea") return textField(label, function () { return L[prop]; }, setV, { area: true });
@@ -911,6 +915,7 @@
     if (kind === "glyphgrid") return glyphGridField(L);
     if (kind === "framekind") return segField(label, FRAME_OPTS, function () { return L.frame || "circle"; }, function (v) { setV(v, true); renderInspector(); });
     if (kind === "fillkind") return segField(label, [{ value: "solid", label: "Solid" }, { value: "linear", label: "Linear" }, { value: "radial", label: "Radial" }], function () { return L.fillKind || "solid"; }, function (v) { setV(v, true); renderInspector(); });
+    if (kind === "anim") return segField(label, [{ value: "none", label: "None" }, { value: "pop", label: "Pop" }, { value: "fade", label: "Fade" }, { value: "rise", label: "Rise" }, { value: "spin", label: "Spin" }, { value: "float", label: "Float" }], function () { return L.anim || "none"; }, function (v) { if (v === "none") delete L.anim; else L.anim = v; rerender(); record(); });
     if (kind === "framephoto") return framePhotoField(L);
     if (kind && kind.k === "range") return numField(label, function () { return L[prop] != null ? L[prop] : 0; }, setV, kind);
     return el("div");
@@ -1041,8 +1046,7 @@
   function toolTemplates(body) {
     if (ADMIN) body.appendChild(templateAuthoringGroup());
     var g = group(null, "Pick a starting point. You can change anything afterwards.");
-    var grid = el("div", "tpl-grid");
-    TEMPLATES.forEach(function (t) {
+    function tplCard(t) {
       var card = el("button", "tpl-card");
       var prev = el("div", "tpl-prev"); prev.style.background = "linear-gradient(135deg," + t.c1 + "55," + t.c2 + "55)";   // faint tint until the real mini box renders
       miniBox(prev, function () { return t.build(); });
@@ -1050,9 +1054,19 @@
       card.append(prev, meta);
       card.addEventListener("click", function () { applyTemplate(t.id); });
       armHoverPreview(card, function () { return t.build(); });
-      grid.appendChild(card);
+      return card;
+    }
+    var shown = {};
+    TPL_CATS.forEach(function (c) {                          // group the picker by occasion/type so it scales (and stays browsable) as templates are added
+      var inCat = TEMPLATES.filter(function (t) { return tplCat(t) === c[0]; });
+      if (!inCat.length) return;
+      shown[c[0]] = 1;
+      var h = el("div", "sw-h"); h.textContent = c[1]; g.appendChild(h);
+      var grid = el("div", "tpl-grid"); inCat.forEach(function (t) { grid.appendChild(tplCard(t)); }); g.appendChild(grid);
     });
-    g.appendChild(grid); body.appendChild(g);
+    var rest = TEMPLATES.filter(function (t) { return !shown[tplCat(t)]; });   // any cat not listed in TPL_CATS
+    if (rest.length) { var hr = el("div", "sw-h"); hr.textContent = "More"; g.appendChild(hr); var gr = el("div", "tpl-grid"); rest.forEach(function (t) { gr.appendChild(tplCard(t)); }); g.appendChild(gr); }
+    body.appendChild(g);
 
     /* ---- your presets: save the current box (panels and all) as a reusable template ---- */
     var gs = group("Your presets", "Save the current box, panels and all, to reuse it as a template.");

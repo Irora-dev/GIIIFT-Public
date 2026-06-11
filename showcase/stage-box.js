@@ -74,6 +74,8 @@
           // the sender's own Front text must survive a template (it beats the name in title slots)
           title: (c.brand && c.brand !== "Name Here") ? c.brand : "" })
       : null;
+    // explicit slot edits from the design step pin LAST, over the live name/note (M4.5)
+    if (liveDoc && c.tplText && TPLS.applyText) TPLS.applyText(liveDoc, c.tplText);
     ["front", "right", "left", "back", "bottom"].forEach(function (f) {
       var faceEl = els.box.querySelector(".face." + f);
       if (!faceEl) return;

@@ -120,6 +120,71 @@
     return null;
   }
 
+  /* ---- template text slots (wrap-flow M4.5) -------------------------------
+   * The light slice of the editor: a template's editable text = the union of
+   * the panel-registry `fields` metadata across its faces. slots() feeds the
+   * wrap design step's inputs; cleanText() is the ONE validator both ends use;
+   * applyText() merges sanitized overrides onto a built doc — only keys a
+   * face's panel actually declares can land, so an arbitrary `d.tt` payload
+   * can never write outside known panel text tokens. */
+  var SLOT_KEY = /^[a-z0-9]{1,16}$/;
+  var SLOT_MAX = 40;       // hard value cap (panel field max wins when smaller)
+  var SLOT_COUNT = 8;      // bound the map an attacker (or a bug) can ship
+
+  function slots(id) {
+    var t = get(id);
+    var PANELS = (global.GIIIFTBox && global.GIIIFTBox.PANELS) || {};
+    if (!t) return [];
+    var seen = {}, out = [];
+    Object.keys(t.faces).forEach(function (f) {
+      var src = t.faces[f] || {};
+      var p = src.panel && PANELS[src.panel];
+      ((p && p.fields) || []).forEach(function (fl) {
+        if (!fl || !SLOT_KEY.test(fl.key || "") || seen[fl.key]) return;
+        seen[fl.key] = 1;
+        out.push({
+          key: fl.key,
+          label: fl.label || fl.key,
+          max: Math.min(fl.max || SLOT_MAX, SLOT_MAX),
+          def: fl.value || "",
+        });
+      });
+    });
+    return out.slice(0, SLOT_COUNT);
+  }
+
+  function cleanText(tt) {
+    if (!tt || typeof tt !== "object" || Array.isArray(tt)) return null;
+    var out = {}, n = 0;
+    for (var k in tt) {
+      if (!Object.prototype.hasOwnProperty.call(tt, k)) continue;
+      if (!SLOT_KEY.test(k)) continue;
+      var v = String(tt[k] == null ? "" : tt[k]).replace(/\s+/g, " ").trim().slice(0, SLOT_MAX);
+      if (!v) continue;
+      out[k] = v;
+      if (++n >= SLOT_COUNT) break;
+    }
+    return n ? out : null;
+  }
+
+  function applyText(doc, tt) {
+    tt = cleanText(tt);
+    if (!tt || !doc || !doc.faces) return doc;
+    var PANELS = (global.GIIIFTBox && global.GIIIFTBox.PANELS) || {};
+    ["front", "back", "left", "right", "top", "bottom"].forEach(function (f) {
+      var face = doc.faces[f];
+      var p = face && face.panel && PANELS[face.panel];
+      var fl = (p && p.fields) || [];
+      for (var i = 0; i < fl.length; i++) {
+        var k = fl[i].key;
+        if (tt[k] == null) continue;
+        if (!face.panelText) face.panelText = {};
+        face.panelText[k] = tt[k].slice(0, Math.min(fl[i].max || SLOT_MAX, SLOT_MAX));
+      }
+    });
+    return doc;
+  }
+
   /* Build a full engine doc for a template:
    *   doc("expedition", { c1, c2, accent, to, from, note, title })
    *   (title = the sender's own Front text; title slots prefer it over the name)
@@ -161,5 +226,5 @@
     };
   }
 
-  global.GIIIFTBoxTemplates = { list: TEMPLATES, get: get, doc: doc };
+  global.GIIIFTBoxTemplates = { list: TEMPLATES, get: get, doc: doc, slots: slots, cleanText: cleanText, applyText: applyText };
 })(typeof window !== "undefined" ? window : this);

@@ -92,6 +92,7 @@
   var FILLKINDS = { solid: 1, linear: 1, radial: 1 };   // shape gradient fill (incl. fade to transparent)
   var ELSHAPES = { rect: 1, ellipse: 1, line: 1, triangle: 1, star: 1, diamond: 1, heart: 1, arrow: 1, bubble: 1, burst: 1, ribbon: 1 }; // `shape` element sub-kinds (distinct from the box SHAPES above)
   var FRAMES = { rect: 1, rounded: 1, circle: 1, heart: 1, star: 1, triangle: 1, hexagon: 1, blob: 1 };   // `frame` photo-clip shapes
+  var ANIMS = { pop: 1, fade: 1, rise: 1, spin: 1, float: 1 };   // per-element reveal animations (fire on box open)
   var STROKESTYLES = { solid: 1, dashed: 1, dotted: 1 };       // shape border style
   var TEXTFINISH = { none: 1, gold: 1, silver: 1, rosegold: 1, holo: 1 };   // metallic foil text fills
   var FOILS = {                                                // foil gradients, clipped to the glyphs (background-clip:text)
@@ -163,6 +164,7 @@
   function normElement(e, palette) {
     if (!e || !ELTYPES[e.t]) return null;
     var base = { t: e.t, x: num(e.x, 0.5, 0, 1), y: num(e.y, 0.5, 0, 1), w: num(e.w, 0.7, 0.02, 1), rotate: num(e.rotate, 0, -180, 180) };
+    var an = enumv(ANIMS, e.anim, "none"); if (an !== "none") base.anim = an;   // reveal animation on open
     switch (e.t) {
       case "text":
       case "graffiti":
@@ -464,7 +466,18 @@
     ".gbx-a-breathe{animation:gbx-a-breathe 7s ease-in-out infinite}",
     ".gbx-a-pulse{animation:gbx-a-pulse 3s ease-in-out infinite}",
     ".gbx-a-bob{animation:gbx-a-bob 5.5s ease-in-out infinite}",
-    "@media(prefers-reduced-motion:reduce){.gbx-box,.gbx-flap,.gbx-tape{transition:none}.gbx-a-spin,.gbx-a-breathe,.gbx-a-pulse,.gbx-a-bob{animation:none}}"
+    /* per-element reveal animations: fire only when the box opens; animate the individual scale/translate/rotate + opacity so the .gbx-layer centering transform is untouched */
+    "@keyframes gbx-in-pop{from{opacity:0;scale:.4}60%{opacity:1;scale:1.08}to{opacity:1;scale:1}}",
+    "@keyframes gbx-in-fade{from{opacity:0}to{opacity:1}}",
+    "@keyframes gbx-in-rise{from{opacity:0;translate:0 26px}to{opacity:1;translate:0 0}}",
+    "@keyframes gbx-in-spin{from{opacity:0;rotate:-200deg;scale:.5}to{opacity:1;rotate:0deg;scale:1}}",
+    "@keyframes gbx-fl-float{0%,100%{translate:0 0}50%{translate:0 -5px}}",
+    ".gbx-box.gbx-opened .gbx-anim-pop{animation:gbx-in-pop .55s cubic-bezier(.2,.8,.25,1) both}",
+    ".gbx-box.gbx-opened .gbx-anim-fade{animation:gbx-in-fade .7s ease both}",
+    ".gbx-box.gbx-opened .gbx-anim-rise{animation:gbx-in-rise .6s cubic-bezier(.2,.8,.25,1) both}",
+    ".gbx-box.gbx-opened .gbx-anim-spin{animation:gbx-in-spin .7s cubic-bezier(.2,.8,.25,1) both}",
+    ".gbx-box.gbx-opened .gbx-anim-float{animation:gbx-in-fade .5s ease both,gbx-fl-float 4s ease-in-out 1s infinite}",
+    "@media(prefers-reduced-motion:reduce){.gbx-box,.gbx-flap,.gbx-tape{transition:none}.gbx-a-spin,.gbx-a-breathe,.gbx-a-pulse,.gbx-a-bob,[class*=gbx-anim-]{animation:none}}"
   ].join("");
 
   function injectCss() {
@@ -516,6 +529,7 @@
     node.style.top = (e.y * 100) + "%";
     if (e.w != null && e.t !== "sticker" && e.t !== "seal" && e.t !== "postmark" && e.t !== "decal" && e.t !== "fade") node.style.width = (e.w * 100) + "%";
     node.style.setProperty("--rot", (e.rotate || 0) + "deg");
+    if (e.anim) node.classList.add("gbx-anim-" + e.anim);   // reveal animation (plays on box open)
   }
   var CLIP_ID = 1;
   function shapeSvgPath(shape, attrs) {   // inner SVG for polygon/path shapes in a 0..100 viewBox
