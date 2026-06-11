@@ -35,6 +35,7 @@
   <script src="/showcase/box-panels.js"></script>
   <script src="/showcase/box-engine.js"></script>
   <script src="/showcase/box-templates.js"></script>
+  <script src="/showcase/asset-visuals.js"></script><!-- kind-aware asset shapes: digital card / art frame / booster pack -->
   <!-- curated catalog: powers the post-claim "what your credit becomes" strip -->
   <script src="/showcase/catalog.js"></script>
   <script defer src="/showcase/brand.js"></script>
@@ -180,11 +181,20 @@
        bottom edge sits at the mouth line, so the coins start hidden inside the box and
        emerge upward through the middle (never pasted over the back flap). */
     .above-icons { position: absolute; left: calc((100% - var(--rail-w)) / 2); bottom: calc(50% + var(--rev-box) * 0.30); transform: translateX(-50%);
-      box-sizing: border-box; height: calc(var(--rev-box) * 0.52 + 22px); padding: 22px 14px 0; overflow: hidden;
-      display: flex; align-items: flex-start; justify-content: center; gap: clamp(6px, calc(var(--rev-box) * 0.045), 12px); z-index: 5; pointer-events: none; }
-    /* the 22px top padding is headroom INSIDE the clip: ai-bob lifts the coins 6px and the
-       glow shadow needs room, so without it the discs shear at the window's top edge. The
+      box-sizing: border-box; height: calc(var(--rev-box) * 0.78 + 26px); padding: 26px 14px 0; overflow: hidden;
+      display: flex; align-items: flex-end; justify-content: center; gap: clamp(7px, calc(var(--rev-box) * 0.05), 14px); z-index: 5; pointer-events: none; }
+    /* the 26px top padding is headroom INSIDE the clip: ai-bob lifts the pieces 6px and the
+       glow shadow needs room, so without it they shear at the window's top edge. The
        bottom edge stays at the mouth line (bottom-anchored, padding only extends upward). */
+    /* each gifted asset rises as the THING it is (asset-visuals.js: digital card / art
+       frame / booster pack) inside an .above-rise shell that owns the motion */
+    .above-rise { display: flex; align-items: flex-end; opacity: 0; will-change: transform, opacity;
+      transform: translateY(calc(var(--rev-box) * 0.82)) scale(.5); }
+    .above-rise .av { --av-h: clamp(44px, calc(var(--rev-box) * 0.34), 86px); }
+    .above-icons.show .above-rise { animation: ai-rise2 .95s cubic-bezier(.16,.88,.22,1.06) var(--ai-delay,0s) both, ai-bob2 4.6s ease-in-out calc(1.2s + var(--ai-delay,0s)) infinite; }
+    @keyframes ai-rise2 { 55% { opacity: 1; } to { opacity: 1; transform: translateY(0) scale(1) rotate(var(--ai-rot, -2deg)); } }
+    @keyframes ai-bob2 { 0%,100% { transform: translateY(0) rotate(var(--ai-rot, -2deg)); } 50% { transform: translateY(-6px) rotate(var(--ai-rot, -2deg)); } }
+    /* legacy disc fallback (kept for safety if asset-visuals.js is absent) */
     .above-coin { width: clamp(26px, calc(var(--rev-box) * 0.165), 40px); height: clamp(26px, calc(var(--rev-box) * 0.165), 40px); border-radius: 50%; overflow: hidden; display: flex; align-items: center; justify-content: center; background: #f3f4f2; color: #111; font-weight: 800; font-size: clamp(10px, calc(var(--rev-box) * 0.06), 15px);
       box-shadow: inset 0 -2px 3px rgba(0,0,0,0.18), inset 0 2px 3px rgba(255,255,255,0.3), 0 9px 19.5px rgba(0,0,0,0.5), 0 0 19.5px -3px var(--accent-ui);
       opacity: 0; transform: translateY(calc(var(--rev-box) * 0.58)) scale(.45); }
@@ -193,7 +203,11 @@
     .above-icons.show .above-coin { animation: ai-rise .85s cubic-bezier(.2,.85,.25,1) var(--ai-delay,0s) both, ai-bob 4.2s ease-in-out calc(1.05s + var(--ai-delay,0s)) infinite; }
     @keyframes ai-rise { to { opacity: 1; transform: translateY(0) scale(1); } }
     @keyframes ai-bob { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
-    @media (prefers-reduced-motion: reduce) { .above-coin { opacity: 1; transform: none; } .above-icons.show .above-coin { animation: none; } }
+    @media (prefers-reduced-motion: reduce) {
+      .above-coin, .above-rise { opacity: 1; transform: none; }
+      .above-rise { transform: rotate(var(--ai-rot, -2deg)); }
+      .above-icons.show .above-coin, .above-icons.show .above-rise { animation: none; }
+    }
 
     /* pretty manifest of gifted assets, in the rail under the note */
     .manifest { position: relative; width: 100%; display: flex; flex-direction: column; gap: 6.8px;
@@ -206,16 +220,27 @@
     .manifest .c-amt { color: #fff; }
     .manifest .c-usd { font-family: var(--font-mono); font-size: 9.8px; color: var(--accent-ui); white-space: nowrap; align-self: center; }
 
-    /* polaroid photos the sender attached, at the bottom of the rail */
-    .polaroids { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; }
-    .polaroids[hidden] { display: none; }
-    .polaroid { margin: 0; background: #fdfdf8; padding: 6px 6px 20px; border-radius: 2px; width: calc(50% - 5px); max-width: 124px;
-      box-shadow: 0 12px 26px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.7);
-      opacity: 0; transform: rotate(var(--p-rot, -4deg)) translateY(14px) scale(.96);
-      transition: opacity .6s ease, transform .6s cubic-bezier(.2,.8,.2,1); }
-    .polaroid img { display: block; width: 100%; aspect-ratio: 1; object-fit: cover; background: #e8e4d8; }
-    .polaroids.revealed .polaroid { opacity: 1; transform: rotate(var(--p-rot, -4deg)); }
-    @media (prefers-reduced-motion: reduce) { .polaroid { opacity: 1; transform: rotate(var(--p-rot, -4deg)); transition: none; } }
+    /* polaroid photos the sender attached: they POP UP NEXT TO THE BOX, pinned at angles
+       like photos dropped beside it. Anchored at the box centre (same column as the
+       scene), each photo carries its own slot offsets in --rev-box units via CSS vars. */
+    .photo-scatter { position: absolute; left: calc((100% - var(--rail-w)) / 2); top: 50%; width: 0; height: 0; z-index: 6; pointer-events: none; }
+    .photo-scatter[hidden] { display: none; }
+    .photo-pol { position: absolute; left: 0; top: 0; margin: 0; width: calc(var(--rev-box) * 0.56); max-width: 150px;
+      background: #fdfdf8; padding: 6px 6px 20px; border-radius: 2px; pointer-events: auto;
+      box-shadow: 0 14px 30px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.7);
+      opacity: 0; transform: translate(calc(var(--pp-x) - 50%), calc(var(--pp-y) - 50% + 22px)) scale(.55); will-change: transform, opacity; }
+    .photo-pol img { display: block; width: 100%; aspect-ratio: 1; object-fit: cover; background: #e8e4d8; }
+    .photo-pol .pp-pin { position: absolute; top: -7px; left: 50%; transform: translateX(-50%); width: 13px; height: 13px; border-radius: 50%;
+      background: radial-gradient(circle at 35% 30%, #ff8a98, #d4344a 75%); box-shadow: 0 2px 5px rgba(0,0,0,0.5), inset 0 -2px 2px rgba(0,0,0,0.3); }
+    .photo-scatter.revealed .photo-pol { animation: pol-pop .7s cubic-bezier(.18,.88,.26,1.14) var(--pp-delay, 0s) both; }
+    @keyframes pol-pop {
+      from { opacity: 0; transform: translate(calc(var(--pp-x) - 50%), calc(var(--pp-y) - 50% + 22px)) scale(.55) rotate(0deg); }
+      to   { opacity: 1; transform: translate(calc(var(--pp-x) - 50%), calc(var(--pp-y) - 50%)) scale(1) rotate(var(--pp-rot, -4deg)); }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .photo-scatter.revealed .photo-pol { animation: none; opacity: 1;
+        transform: translate(calc(var(--pp-x) - 50%), calc(var(--pp-y) - 50%)) rotate(var(--pp-rot, -4deg)); }
+    }
 
     /* soft shadow the box settles onto */
     .landing { position: absolute; left: calc((100% - var(--rail-w)) / 2); bottom: 16%; width: calc(var(--rev-box) * 0.92); height: 30px; transform: translateX(-50%); border-radius: 50%;
@@ -364,6 +389,12 @@
     .box.opened .pop-coin { animation: pop 1.1s cubic-bezier(.2,.8,.25,1) forwards; }
     @keyframes pop { 0%{ opacity:0; transform: translate(-50%,-50%) translateY(30px) scale(0.3); } 35%{ opacity:1; } 100%{ opacity:1; transform: translate(-50%,-50%) translateY(var(--pop-y,-113px)) translateX(var(--pop-x,0px)) scale(1) rotate(var(--pop-r,0deg)); } }
 
+    /* compact pop used when the scatter flows in-column (no slot offsets) */
+    @keyframes pol-pop-m {
+      from { opacity: 0; transform: translateY(16px) scale(.6) rotate(0deg); }
+      to   { opacity: 1; transform: translateY(0) scale(1) rotate(var(--pp-rot, -4deg)); }
+    }
+
     /* below 900px the rail leaves the side and flows UNDER the stage */
     @media (max-width: 899px) {
       .reveal-rail { position: static; transform: none; width: min(340px, 92vw); margin: 6px auto 0; }
@@ -373,11 +404,18 @@
       .stage { --rev-box: clamp(140px, 46vw, 205px); height: auto; min-height: 38vh; flex-direction: column; }
       .portal { width: min(94vw, calc(var(--rev-box) * 1.7)); top: calc(var(--rev-box) * 0.62); }
       /* column stage: the box sits at the top, so anchor the mouth clip + landing to it
-         (clip top = mouth line - content height - headroom = boxTop + 0.12rev - 0.52rev - 22px) */
-      .above-icons { bottom: auto; top: calc(var(--rev-box) * -0.40 - 22px); transform: translateX(-50%); }
+         (clip top = mouth line - content height - headroom = boxTop + 0.12rev - 0.78rev - 26px) */
+      .above-icons { bottom: auto; top: calc(var(--rev-box) * -0.66 - 26px); transform: translateX(-50%); }
       .landing { bottom: auto; top: calc(var(--rev-box) * 0.96); }
       .gift-note { transform: rotate(-1.5deg); }
       .scene.revealed ~ .reveal-rail .gift-note { transform: rotate(-1.5deg); }
+      /* photos: no room beside the box — they pop in a row under it instead */
+      .photo-scatter { position: static; width: auto; height: auto; display: flex; justify-content: center; gap: 10px; margin-top: 8px; }
+      .photo-pol { position: static; width: min(27vw, 118px); transform: none; }
+      .photo-scatter.revealed .photo-pol { animation: pol-pop-m .6s cubic-bezier(.18,.88,.26,1.14) var(--pp-delay, 0s) both; }
+      @media (prefers-reduced-motion: reduce) {
+        .photo-scatter.revealed .photo-pol { animation: none; opacity: 1; transform: rotate(var(--pp-rot, -4deg)); }
+      }
     }
 
     /* ============================================================
@@ -700,7 +738,10 @@
         </div>
       </div>
 
-      <!-- the reveal rail: note, what's inside, and the sender's polaroids — OFF the box -->
+      <!-- the sender's polaroids pop up pinned NEXT TO the box (in-column row on small screens) -->
+      <div class="photo-scatter" id="photo-scatter" hidden></div>
+
+      <!-- the reveal rail: note + what's inside — OFF the box -->
       <aside class="reveal-rail" id="reveal-rail">
         <div class="gift-note" id="gift-note">
           <span class="gn-pin"></span>
@@ -712,7 +753,6 @@
           <div class="m-title">What's inside</div>
           <div class="c-list" id="c-list"></div>
         </div>
-        <div class="polaroids" id="polaroids" hidden></div>
       </aside>
     </section>
 
@@ -733,7 +773,8 @@
       ],
       design: { brand: "Happy Birthday", sublabel: "A GIFT FOR YOU", note: "hope this brightens your day",
         labelTo: "To: you", model: "Model: GF-001", qty: "Qty: 3",
-        finish: "gradient", cardboard: "#7c3aed", cardboard2: "#ec4899", angle: 135, pattern: "dots", accent: "#fde68a" },
+        finish: "gradient", cardboard: "#7c3aed", cardboard2: "#ec4899", angle: 135, pattern: "dots", accent: "#fde68a",
+        ph: ["/showcase/send.jpg", "/showcase/parcel.png"] },   // baked demo polaroids so the showcase shows the photo pop
     };
     function decodeGift(token) {
       const p = token.replace(/-/g, "+").replace(/_/g, "/");
@@ -962,8 +1003,22 @@
       row.appendChild(meta);
       const usd = document.createElement("div"); usd.className = "c-usd"; row.appendChild(usd);
       cList.appendChild(row);
-      // the matching icon that floats above the box on open
-      if (aboveIcons) { const ic = makeCoin(it, "above-coin"); ic.style.setProperty("--ai-delay", (i * 0.12) + "s"); aboveIcons.appendChild(ic); }
+      // the matching piece that rises out of the box on open — the THING the asset is
+      // (digital card / art frame / booster pack via asset-visuals.js; disc fallback)
+      if (aboveIcons) {
+        const AV = window.GIIIFTAssetVisuals;
+        let node;
+        if (AV) {
+          node = document.createElement("span");
+          node.className = "above-rise";
+          node.style.setProperty("--ai-rot", [-4, 2.5, -2, 3.5][i % 4] + "deg");
+          node.appendChild(AV.build(it, { logo: it.ticker ? logoUrl(it.ticker) : null }));
+        } else {
+          node = makeCoin(it, "above-coin");
+        }
+        node.style.setProperty("--ai-delay", (i * 0.14) + "s");
+        aboveIcons.appendChild(node);
+      }
     });
 
     // ---------- claim: embedded wallet identity + write to the vault store ----------
@@ -1025,11 +1080,13 @@
       });
     }).catch(() => {});
 
-    // ---------- polaroid photos (sender-attached) → white frames in the reveal rail ----------
+    // ---------- polaroid photos (sender-attached) → pinned prints NEXT TO the box ----------
     // design.ph is a localStorage key (same-device demo) or a baked array of URLs.
-    const polaroidsEl = document.getElementById("polaroids");
+    // Slots fan down the box's left side in --rev-box units (the rail owns the right);
+    // below 735px the CSS turns the scatter into an in-column row and zeroes the offsets.
+    const photoScatter = document.getElementById("photo-scatter");
     (function mountPolaroids() {
-      if (!polaroidsEl) return;
+      if (!photoScatter) return;
       let photos = [];
       if (Array.isArray(design.ph)) photos = design.ph;
       else if (design.ph) {
@@ -1038,18 +1095,26 @@
       }
       photos = photos.slice(0, 3);
       if (!photos.length) return;
-      const ROTS = ["-4deg", "3deg", "-6deg"];
+      const SLOTS = [   // [x, y] in --rev-box units from the box centre, plus the settle tilt
+        { x: -1.32, y: -0.52, rot: "-7deg" },
+        { x: -1.52, y: 0.14, rot: "4deg" },
+        { x: -1.20, y: 0.72, rot: "-3deg" },
+      ];
       photos.forEach((src, i) => {
+        const s = SLOTS[i % SLOTS.length];
         const f = document.createElement("figure");
-        f.className = "polaroid";
-        f.style.setProperty("--p-rot", ROTS[i % ROTS.length]);
-        f.style.transitionDelay = (0.15 + i * 0.12) + "s";
+        f.className = "photo-pol";
+        f.style.setProperty("--pp-x", "calc(var(--rev-box) * " + s.x + ")");
+        f.style.setProperty("--pp-y", "calc(var(--rev-box) * " + s.y + ")");
+        f.style.setProperty("--pp-rot", s.rot);
+        f.style.setProperty("--pp-delay", (0.12 + i * 0.16) + "s");
+        const pin = document.createElement("span"); pin.className = "pp-pin"; f.appendChild(pin);
         const img = document.createElement("img");
         img.src = src; img.alt = ""; img.loading = "lazy";
         f.appendChild(img);
-        polaroidsEl.appendChild(f);
+        photoScatter.appendChild(f);
       });
-      polaroidsEl.hidden = false;
+      photoScatter.hidden = false;
     })();
 
     // Embedded wallet - created silently, no signup. Real key custody arrives
@@ -1152,8 +1217,8 @@
       const ai = document.getElementById("above-icons"); if (ai) ai.classList.add("show");
       // …then the pretty manifest of what's inside slides in below the note
       setTimeout(() => { const m = document.getElementById("manifest"); if (m) { m.hidden = false; m.classList.add("revealed"); } }, 650);
-      // …and the sender's polaroids drop into the rail last
-      setTimeout(() => { if (polaroidsEl && !polaroidsEl.hidden) polaroidsEl.classList.add("revealed"); }, 1000);
+      // …and the sender's polaroids pop up pinned beside the box last
+      setTimeout(() => { if (photoScatter && !photoScatter.hidden) photoScatter.classList.add("revealed"); }, 1000);
       // retail mandate (g.r): the customize card mounts under the manifest. Additive and
       // dark unless this payload carries one; it can never block or break the claim.
       if (gift.mandate && gift.mandate.productId && window.giiiftRetailClaimCard) {
