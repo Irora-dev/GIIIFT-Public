@@ -2558,7 +2558,8 @@
         try {
           const r = await fetch('/api/send-gift', { method: 'POST', headers: { 'content-type': 'application/json' },
             body: JSON.stringify({ to, channel: mode, link: finishUrl, from: (cfg.from || '').replace(/^from:\s*/i, '').trim(),
-              vertical: (V && V.id() !== 'core') ? V.id() : '' }) });
+              vertical: (V && V.id() !== 'core') ? V.id() : '',
+              retail: !!(lastCompact && lastCompact.r) }) });   // a real thing inside re-voices the notify copy
           if (r.ok) { const j = await r.json().catch(() => ({})); delivered = !!j.delivered; }
         } catch (err) {}
         const label = mode === 'wallet' ? (to.slice(0, 6) + '…' + to.slice(-4)) : to;

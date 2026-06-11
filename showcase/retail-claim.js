@@ -58,6 +58,29 @@
     document.head.appendChild(s);
   }
 
+  // ---- "I placed my order" persistence -------------------------------------
+  // V2 has no order visibility (the purchase settles on the merchant's checkout),
+  // so the recipient's own confirmation is the only signal. Persist it per
+  // gift+product so a reopened box shows "on its way" instead of re-offering the
+  // checkout. The scope hash keys off the gift link itself (?g= token or /g/ code),
+  // so two different gifts suggesting the same product don't collide.
+  function giftScope() {
+    try {
+      var m = (location.search || "").match(/[?&]g=([^&]+)/);
+      var raw = m ? m[1] : (location.pathname || "/");
+      var h = 5381;
+      for (var i = 0; i < raw.length; i++) h = (((h << 5) + h) + raw.charCodeAt(i)) >>> 0;
+      return h.toString(36);
+    } catch (_e) { return "x"; }
+  }
+  function orderedKey(productId) { return "giiift-retail-ordered:" + giftScope() + ":" + productId; }
+  function getOrdered(productId) {
+    try { return localStorage.getItem(orderedKey(productId)); } catch (_e) { return null; }
+  }
+  function setOrdered(productId) {
+    try { localStorage.setItem(orderedKey(productId), new Date().toISOString()); } catch (_e) {}
+  }
+
   // Open the merchant checkout in a centered, sheet-sized popup. Returns the window
   // handle (so we can detect close) or null if the popup was blocked. No noopener:
   // we keep the handle. The size/position make it the "monitor window" the design
@@ -88,6 +111,7 @@
     card.appendChild(row);
     done.addEventListener("click", function () {
       trk("retail_checkout_confirmed");
+      setOrdered(productId);            // a reopened box renders "on its way", not the checkout
       row.remove();
       card.appendChild(el("p", "rgc-note", "Nice, it's on its way. Anything unspent stays in your balance."));
     });
@@ -200,6 +224,21 @@
       if (!product) return false;                       // unknown -> stay a balance gift, silently
 
       ensureCss();
+
+      // Already self-reported as ordered on this gift: a quiet receipt card, no
+      // checkout re-offer. (The balance note stays true: unspent buffer remains.)
+      var orderedAt = getOrdered(productId);
+      if (orderedAt) {
+        var doneCard = el("div", "rgc");
+        doneCard.appendChild(el("h4", null, product.title + ": on its way ✓"));
+        doneCard.appendChild(el("p", "rgc-sub",
+          "You ordered this from " + product.merchant.replace(/\s*\(PLACEHOLDER\)/i, "") +
+          ". Anything unspent stays in your balance."));
+        mount.appendChild(doneCard);
+        if (window.giiift && window.giiift.track) window.giiift.track("retail_claim_card", { productId: productId, ordered: true });
+        return true;
+      }
+
       var card = el("div", "rgc");
       card.appendChild(el("h4", null, (opts.from ? opts.from + " picked" : "Your gift suggests") + ": " + product.title));
       card.appendChild(el("p", "rgc-sub",
