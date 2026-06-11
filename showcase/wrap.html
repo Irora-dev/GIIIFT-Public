@@ -26,6 +26,7 @@
   <script src="/showcase/box-templates.js"></script>
   <script src="/showcase/asset-visuals.js"></script><!-- kind-aware asset shapes: digital card / art frame / booster pack -->
   <script src="/showcase/wrap-flow.js"></script><!-- sender-wizard flow engine: steps as modules, order as data (docs/WRAP_FLOW_ENGINE.md) -->
+  <script src="/showcase/stage-box.js"></script><!-- the 3D preview as a component: paints/poses/drops via the flow store (spec §2.4) -->
   <script defer src="/showcase/brand.js"></script>
   <script defer src="/showcase/site-nav.js"></script>
   <script defer src="/showcase/intent-client.js"></script><!-- link-gifting: invitation-link delivery mode -->
@@ -1698,70 +1699,13 @@
       return span;
     }
 
-    // ---------- box element refs ----------
-    const box = document.getElementById('box');
-    const set = (role, val) => { const el = box.querySelector(`[data-role="${role}"]`); if (el) el.textContent = val; };
-
-    // box orientation (drag to rotate)
-    let boxRot = { y: -16, x: -20 };
-    function applyRot() { box.style.transform = `rotateY(${boxRot.y}deg) rotateX(${boxRot.x}deg)`; }
-
-    // typewriter renderer - only the characters added since last render animate in,
-    // so live typing reads as ink being written onto the box (spaces stay inline so
-    // word-wrapping is preserved).
-    const typed = {};
-    function renderTyped(role, val) {
-      const el = box.querySelector(`[data-role="${role}"]`);
-      if (!el) return;
-      val = val == null ? '' : String(val);
-      if (typed[role] === val) return;
-      const prev = [...(typed[role] ?? '')];
-      const arr = [...val];
-      let common = 0;
-      while (common < prev.length && common < arr.length && prev[common] === arr[common]) common++;
-      el.textContent = '';
-      arr.forEach((ch, i) => {
-        const s = document.createElement('span');
-        s.className = 'tch';
-        s.textContent = ch;
-        if (i >= common) { s.classList.add('ink'); s.style.animationDelay = ((i - common) * 0.035) + 's'; }
-        el.appendChild(s);
-      });
-      typed[role] = val;
-    }
-
+    // ---------- the stage box (M2: a component — stage-box.js owns the cube) ----------
+    // paint() stays the page-wide repaint verb every handler already calls; it now
+    // just announces "cfg changed" and GIIIFTStageBox repaints as a subscriber.
+    // (cfg is the SAME object inside the store — handlers mutate it, then paint().)
     function paint() {
-      const bg = faceBg(cfg);
-      box.style.setProperty('--bg-front', bg.front);
-      box.style.setProperty('--bg-side2', bg.side2);
-      box.style.setProperty('--bg-top', bg.top);
-      box.style.setProperty('--bg-dark', bg.dark);
-      box.style.setProperty('--bg-size', bg.size);
-      box.classList.toggle('holo-anim', cfg.finish === 'holo');
-      box.style.setProperty('--accent', cfg.accent);
-      box.style.setProperty('--fragile', cfg.fragileColor);
-      box.style.setProperty('--tape', cfg.accent);
-
-      renderTyped('brand', cfg.brand);
-      renderTyped('sublabel', cfg.sublabel);
-      renderTyped('note', cfg.note);
-      set('model', cfg.model);
-      set('qty', cfg.qty);
-      set('fragile', cfg.fragileText);
-      set('labelTo', cfg.labelTo);
-      set('labelFrom', cfg.from);
-
-      const patClass = 'front-fx ' + (cfg.pattern && cfg.pattern !== 'none' ? cfg.pattern : 'hidden');
-      box.querySelectorAll('[data-role="pattern"],[data-role="patternR"]').forEach(el => el.className = patClass);
-      box.querySelectorAll('[data-role="sheen"],[data-role="sheenR"]').forEach(el => el.classList.toggle('hidden', !cfg.sheen));
-      box.querySelector('[data-role="fragile"]').classList.toggle('hidden', !cfg.fragile);
-      box.querySelector('[data-role="note"]').classList.toggle('hidden', !cfg.note);
-      box.querySelector('[data-role="brand"]').parentElement.style.opacity = cfg.brand ? 1 : 0.5;
-
-      // keep the borealis backdrop matched to the box — eases to the new colours
-      if (window.GIIIFTSet && window.GIIIFTSet.setColors) window.GIIIFTSet.setColors(cfg.cardboard, cfg.cardboard2, cfg.accent);
-
-      skinFaces();   // template faces re-render with the live name/note in their slots
+      const c = window.GIIIFTFlow && GIIIFTFlow.ctx();
+      if (c) c.emit('change:cfg', cfg);
     }
 
     // ---------- box-design templates (the lab boxes) ----------
@@ -1771,34 +1715,7 @@
     const TPLS = window.GIIIFTBoxTemplates || null;
     let syncTpl = () => {};
 
-    function tplName() { return (cfg.labelTo || '').replace(/^to:\s*/i, '').replace(/^someone$/i, '').trim(); }
-    function tplFrom() { return (cfg.from || '').replace(/^from:\s*/i, '').replace(/^you$/i, '').trim(); }
-
-    function skinFaces() {
-      const liveDoc = (cfg.template && TPLS && window.GIIIFTBox)
-        ? TPLS.doc(cfg.template, { to: tplName(), from: tplFrom(), note: cfg.note,
-            // the sender's own Front text must survive a template (it beats the name in title slots)
-            title: (cfg.brand && cfg.brand !== 'Name Here') ? cfg.brand : '' })
-        : null;
-      ['front', 'right', 'left', 'back', 'bottom'].forEach(f => {
-        const faceEl = box.querySelector('.face.' + f);
-        if (!faceEl) return;
-        let skin = faceEl.querySelector(':scope > .panel-skin');
-        const src = liveDoc && liveDoc.faces[f];
-        if (!src || !src.panel) {
-          if (skin) skin.remove();
-          faceEl.classList.remove('has-panel');
-          return;
-        }
-        if (!skin) { skin = document.createElement('div'); skin.className = 'panel-skin'; faceEl.appendChild(skin); }
-        const svg = GIIIFTBox.panelSVG(src.panel, src.panelText || {});
-        if (skin.dataset.k !== src.panel + JSON.stringify(src.panelText || {})) {
-          skin.dataset.k = src.panel + JSON.stringify(src.panelText || {});
-          skin.innerHTML = svg;
-        }
-        faceEl.classList.add('has-panel');
-      });
-    }
+    // (template face skinning lives in stage-box.js — repaint covers it via change:cfg)
 
     function selectTemplate(id) {
       cfg.template = id || null;
@@ -1946,45 +1863,11 @@
       });
     }
 
+    // the deposit drop animation lives in stage-box.js; announcing the addition
+    // is enough (it subscribes to contents:add)
     function dropCoin(a) {
-      // the deposit falls from the top of the window as the THING it is (digital
-      // card / art frame / booster pack via asset-visuals.js; disc fallback), then
-      // slips behind the box's open flaps so it reads as dropping inside
-      // (see .drop-coin/.drop-thing + @keyframes drop-into)
-      const bs = document.querySelector('.box-stage');
-      const bsRect = bs.getBoundingClientRect();
-      const bxRect = box.getBoundingClientRect();
-      const AV = window.GIIIFTAssetVisuals;
-      const coin = document.createElement('div');
-      if (AV) {
-        coin.className = 'drop-thing';
-        coin.appendChild(AV.build(
-          { ticker: a.ticker, amount: a.amount || '', color: a.color, glyph: a.glyph, img: a.img },
-          { logo: a.glyph ? null : (a.img || (a.ticker ? logoUrl(a.ticker) : null)) }
-        ));
-      } else {
-        coin.className = 'drop-coin';
-        const useGlyph = () => {
-          coin.textContent = a.glyph || a.ticker[0];
-          coin.style.background = `radial-gradient(circle at 30% 25%, rgba(255,255,255,0.45), transparent 55%), ${a.color}`;
-        };
-        if (a.glyph) { useGlyph(); }
-        else {
-          coin.style.background = '#f3f4f2';
-          const img = document.createElement('img');
-          img.src = a.img || logoUrl(a.ticker); img.alt = '';
-          img.addEventListener('error', () => { coin.innerHTML = ''; useGlyph(); });
-          coin.appendChild(img);
-        }
-      }
-      // anchor on the box's open mouth (top-centre), relative to the stage
-      const anchorTop = (bxRect.top - bsRect.top) + bxRect.height * 0.06;
-      coin.style.left = (bxRect.left + bxRect.width / 2 - bsRect.left) + 'px';
-      coin.style.top  = anchorTop + 'px';
-      // start just above the top of the browser window
-      coin.style.setProperty('--start-y', (-(bsRect.top + anchorTop + 40)) + 'px');
-      bs.appendChild(coin);
-      coin.addEventListener('animationend', () => coin.remove());
+      const c = window.GIIIFTFlow && GIIIFTFlow.ctx();
+      if (c) c.emit('contents:add', a);
     }
 
     // side manifest stamps - one per asset, accent-coloured to match the front
@@ -2051,7 +1934,7 @@
     const paneFill = document.getElementById('pane-fill');
     const paneCustomize = document.getElementById('pane-customize');
     const stepsEl = document.getElementById('steps');
-    const boxStage = document.querySelector('.box-stage');
+    // (the stage element is owned by GIIIFTStageBox since M2)
 
     function showPane(which) {
       const fill = which === 'fill';
@@ -2102,9 +1985,7 @@
       stage = 'sealing';
       primary.disabled = true; primary.textContent = vtxt('sealingBtn', null, 'Sealing…'); hint.textContent = '';
       controlCard.classList.add('busy');
-      box.classList.remove('is-open');          // lid closes
-      boxRot = { y: -27, x: -26 }; applyRot();   // settle to a top-down 3/4 view so the taped lid shows
-      setTimeout(() => box.classList.add('is-sealed'), 650);  // tape wipes on
+      GIIIFTFlow.ctx().emit('flow:seal');       // stage-box: lid closes, pose settles, tape wipes on
       setTimeout(() => GIIIFTFlow.go('text'), 1700);
     }
 
@@ -2125,8 +2006,7 @@
       stage = 'text';
       controlCard.classList.remove('busy');
       showPane('customize');                      // the card switches to the note
-      showSub('text');
-      boxStage.classList.add('can-drag');
+      showSub('text');                            // (stage-box re-arms drag via flow:step)
       primary.style.display = ''; primary.disabled = false; primary.textContent = vtxt('finalizeBtn', null, 'Finalize →');
       hint.textContent = vtxt('textHint', null, 'Add your note, then finalize your gift.');
     }
@@ -2250,7 +2130,7 @@
         if (!roadPkg) return;
         roadPkg.classList.add('pkg-is-box');
         roadPkg.innerHTML = '';
-        const roadBox = box.cloneNode(true);
+        const roadBox = GIIIFTStageBox.el().cloneNode(true);
         roadBox.removeAttribute('id');
         roadBox.classList.remove('dragging');
         roadBox.style.transition = 'none';
@@ -2266,7 +2146,7 @@
         o = o || {};
         const backdrop = o.backdrop || 'town';   // 'town' = van's night-town; 'wormhole' = transparent panel so the tunnel shows behind the card
         controlCard.style.display = 'none';
-        boxStage.style.display = 'none';
+        GIIIFTStageBox.hide();
         document.getElementById('steps').style.display = 'none';
         document.querySelector('.stage-action').style.display = 'none';
         stageEl.style.gridTemplateColumns = '1fr';
@@ -2377,7 +2257,7 @@
 
       // the "stage kit" every transition composes (see finalize-transitions.js)
       const ctx = {
-        box: box,
+        box: GIIIFTStageBox.el(),
         palette: palette,
         caps: { webgl: hasWebGL(), reduceMotion: matchMedia('(prefers-reduced-motion: reduce)').matches },
         els: { panel: panel, iris: irisEl, status: statusEl, card: cardEl, roadPkg: roadPkg, delivery: deliveryEl },
@@ -2418,7 +2298,11 @@
       rail: '#steps',
       initial: 'name',
       runEnter: false,   // boot matches the markup-initial name step (no autofocus on load)
+      ctx: { cfg, contents },   // seed the §2.3 store with the SAME objects the page mutates
     });
+    // the 3D preview mounts as a store subscriber: change:cfg → repaint,
+    // contents:add → drop animation, flow:seal → lid + tape (spec §2.4)
+    GIIIFTStageBox.mount({ box: '#box', stage: '.box-stage', ctx: GIIIFTFlow.ctx(), deps: { faceBg, logoUrl } });
     primary.addEventListener('click', () => GIIIFTFlow.next());
     document.getElementById('to-text').addEventListener('click', () => GIIIFTFlow.go('name'));   // "← Back to name" on the design step
 
@@ -2612,10 +2496,9 @@
     // show a blinking caret on the box while a front-text field is focused
     ['brand','sublabel','note'].forEach(role => {
       const input = editor.querySelector(`[data-field="${role}"]`);
-      const target = box.querySelector(`[data-role="${role}"]`);
-      if (!input || !target) return;
-      input.addEventListener('focus', () => target.classList.add('caret'));
-      input.addEventListener('blur', () => target.classList.remove('caret'));
+      if (!input) return;
+      input.addEventListener('focus', () => GIIIFTStageBox.caret(role, true));
+      input.addEventListener('blur', () => GIIIFTStageBox.caret(role, false));
     });
 
     // theme presets - quick "looks" (a row of gradients / holo / kraft).
@@ -2698,31 +2581,7 @@
     syncPresets();
     syncPatterns();
 
-    // ---------- drag to rotate ----------
-    let drag = null, dragging = false;
-    boxStage.addEventListener('pointerdown', (e) => {
-      // Record the start, but DON'T engage the drag (or pause the idle float / kill the
-      // box transition) yet - a plain click shouldn't toggle .dragging, which caused the
-      // box to jump for a split second. We only commit to a drag once the pointer moves.
-      drag = { x: e.clientX, y: e.clientY, ry: boxRot.y, rx: boxRot.x };
-    });
-    window.addEventListener('pointermove', (e) => {
-      if (!drag) return;
-      if (!dragging) {
-        if (Math.abs(e.clientX - drag.x) < 3 && Math.abs(e.clientY - drag.y) < 3) return; // ignore micro-jitter (it was a click)
-        dragging = true;
-        boxStage.classList.add('dragging');
-      }
-      boxRot.y = drag.ry + (e.clientX - drag.x) * 0.4;
-      // clamp the downward tilt so you can't rotate far enough to look inside the open box
-      boxRot.x = Math.max(-32, Math.min(60, drag.rx - (e.clientY - drag.y) * 0.4));
-      applyRot();
-    });
-    window.addEventListener('pointerup', () => {
-      if (!drag) return;
-      drag = null;
-      if (dragging) { dragging = false; boxStage.classList.remove('dragging'); }
-    });
+    // (drag-to-rotate lives in stage-box.js — bound at mount)
 
     // ---------- init ----------
     const serialEl = document.querySelector('[data-role="serial"]');
@@ -2951,9 +2810,7 @@
     paint();
     syncPatterns();
     syncPresets();
-    applyRot();
     updatePrimary();
-    boxStage.classList.add('can-drag');
   </script>
 
   <!-- ===================== borealis wormhole (finalize transition) =====================
