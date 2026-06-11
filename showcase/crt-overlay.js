@@ -37,7 +37,8 @@
     ".crt-bk.br{bottom:10.5px;right:10.5px;border-left:0;border-top:0}",
     ".crt-warn{color:#ffd166;text-shadow:0 0 6px rgba(255,180,60,0.45)}",
     "@keyframes crt-blink{to{visibility:hidden}}",
-    "@media(max-width:570px){.crt-tr,.crt-br{display:none}}",
+    // phones: the corner telemetry collides with scrolling copy; keep only the top-left badge
+    "@media(max-width:570px){.crt-tr,.crt-br,.crt-bl{display:none}}",
   ].join("");
 
   function mount() {

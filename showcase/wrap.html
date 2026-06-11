@@ -28,6 +28,7 @@
   <script defer src="/showcase/brand.js"></script>
   <script defer src="/showcase/site-nav.js"></script>
   <script defer src="/showcase/intent-client.js"></script><!-- link-gifting: invitation-link delivery mode -->
+  <script defer src="/showcase/retail-gifting.js"></script><!-- retail gifting V1: the "Real thing" shelf (menu + quote + send payload) -->
   <!-- borealis set: aurora + night-town + window-bloom backdrop, tinted to the box being
        designed (the active vertical seeds the palette; the live design re-tints it) -->
   <script>
@@ -68,6 +69,9 @@
       color: var(--ink); font-family: var(--font-main); min-height: 100vh; overflow-x: hidden;
       -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale;
     }
+    /* iOS Safari ignores body-level overflow-x; the 3D box flaps extend the
+       scrollable width on landscape phones without this (desktop unaffected) */
+    html { overflow-x: clip; }
     a { color: inherit; }
     .studio-grid { position: fixed; inset: 0; z-index: 0; pointer-events: none;
       background-image: linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.025) 1px, transparent 1px);
@@ -815,8 +819,11 @@
       .stage { grid-template-columns: 1fr; padding: 59px 12px 30px; gap: 16.5px; }
       .control-card { position: static; max-height: none; order: 2; margin-top: 0; }   /* the desktop -5vh lift is desktop-only */
       .stage-right { order: 1; min-height: auto; }
-      .box-stage { min-height: 285px; }
-      .box { --box-size: clamp(180px, 72vw, 255px); }
+      /* the OPEN box paints ~1.6× its size (flaps); give it room and keep the
+         CTA painting above it so the lid never buries "Design the box →" */
+      .box-stage { min-height: 350px; }
+      .box { --box-size: clamp(150px, 56vw, 200px); }
+      .stage-action { position: relative; z-index: 6; }
     }
     @media (max-width: 420px) {
       .step .lbl { display: none; }
@@ -862,6 +869,10 @@
     .asset-rail .asset-btn { flex: 0 0 auto; width: 56px; }
     .inside-head { display: flex; align-items: baseline; justify-content: space-between; }
     .inside-count { font-family: "VT323", monospace; font-size: 12.8px; color: var(--accent, #fde68a); opacity: .9; }
+    /* "Real thing" shelf (retail-gifting V1): reuses the .pick card system */
+    .pick-grid.retail { grid-template-columns: repeat(2, 1fr); }
+    .pick .pr { font-size: 9.5px; text-align: center; color: var(--ink); opacity: .55; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .retail-fund { margin-top: 7px; font-family: "VT323", monospace; font-size: 12.8px; line-height: 1.45; color: var(--accent, #fde68a); opacity: .92; }
   </style>
 </head>
 <body>
@@ -891,6 +902,7 @@
           <button type="button" class="on" data-fill="assets">Digital assets</button>
           <button type="button" data-fill="art">Art</button>
           <button type="button" data-fill="packs">Packs</button>
+          <button type="button" data-fill="retail">Real thing</button>
         </div>
 
         <div id="fill-assets">
@@ -924,6 +936,15 @@
         <div id="fill-packs" hidden>
           <div class="pick-sub">Sealed boosters · graded &amp; vaulted</div>
           <div class="pick-grid packs" id="pack-grid"></div>
+        </div>
+
+        <!-- a real, shippable thing (retail-gifting V1; curated menu, env-gated).
+             The pick is a SUGGESTION: its funding rides as plain USDC, so the
+             recipient can always keep it as balance instead. -->
+        <div id="fill-retail" hidden>
+          <div class="pick-sub">A real thing, shipped to them · they pick variant &amp; address</div>
+          <div class="pick-grid retail" id="retail-grid"></div>
+          <div class="retail-fund" id="retail-fund" hidden></div>
         </div>
 
         <button class="add-btn" id="add-asset">Drop it in <span class="ab-arrow">↓</span></button>
@@ -1377,12 +1398,13 @@
     (function buildFillTabs() {
       const tabs = document.getElementById('fill-tabs');
       if (!tabs) return;
-      const panels = { assets: document.getElementById('fill-assets'), art: document.getElementById('fill-art'), packs: document.getElementById('fill-packs') };
+      const panels = { assets: document.getElementById('fill-assets'), art: document.getElementById('fill-art'), packs: document.getElementById('fill-packs'), retail: document.getElementById('fill-retail') };
       tabs.addEventListener('click', (e) => {
         const b = e.target.closest('[data-fill]'); if (!b) return;
         fillMode = b.dataset.fill;
         [...tabs.children].forEach(x => x.classList.toggle('on', x === b));
         for (const k in panels) if (panels[k]) panels[k].hidden = k !== fillMode;
+        if (fillMode === 'retail') initRetailShelf(); // lazy: the menu fetch happens on first open
       });
       const mkGrid = (gridId, items, isPack, getSel, setSel) => {
         const grid = document.getElementById(gridId); if (!grid) return;
@@ -1405,6 +1427,53 @@
       mkGrid('art-grid', ART, false, () => pickedArt, (i) => pickedArt = i);
       mkGrid('pack-grid', PACKS, true, () => pickedPack, (i) => pickedPack = i);
     })();
+
+    // ---- "Real thing" shelf (retail-gifting V1 send seam; docs/GIIIFT-RETAIL-V1-PLAN.md §9) ----
+    // The shelf renders the curated menu; a pick writes payload.r and funds the quote
+    // (giiiftRetailSendPayload in retail-gifting.js). Dark by default: with the menu
+    // endpoint absent/empty it shows a quiet note, and the funding always rides as
+    // plain USDC so the recipient can keep it as balance regardless.
+    let retailProducts = null, pickedRetail = -1, retailLoaded = false;
+    async function initRetailShelf() {
+      if (retailLoaded) return; retailLoaded = true;
+      const grid = document.getElementById('retail-grid');
+      const fund = document.getElementById('retail-fund');
+      if (!grid) return;
+      let m = null;
+      try { m = window.giiiftRetailMenu ? await window.giiiftRetailMenu() : null; }
+      catch (e) { /* menu dark or offline -> quiet empty state */ }
+      if (!m || !Array.isArray(m.products) || !m.products.length) {
+        const en = document.createElement('div');
+        en.className = 'empty-note';
+        en.textContent = 'The real-thing shelf opens soon — gift value today; it spends on anything.';
+        grid.replaceChildren(en);
+        return;
+      }
+      retailProducts = m.products;
+      if (window.giiift && window.giiift.track) window.giiift.track('retail_send_shelf', { count: retailProducts.length });
+      const showFund = () => {
+        const p = retailProducts[pickedRetail];
+        if (!p || !window.giiiftRetailQuote || !fund) { if (fund) fund.hidden = true; return; }
+        const q = giiiftRetailQuote(p);
+        fund.textContent = 'You fund $' + q.fundUSD.toFixed(2) + ' — $' + q.itemUSD.toFixed(2) + ' item + $' + q.bufferUSD.toFixed(2) + ' shipping/tax buffer. Unspent buffer stays in their balance.';
+        fund.hidden = false;
+      };
+      const cards = retailProducts.map((p, i) => {
+        const c = document.createElement('button');
+        c.type = 'button'; c.className = 'pick';
+        const pi = document.createElement('span'); pi.className = 'pi';
+        if (p.image) { const img = document.createElement('img'); img.src = p.image; img.alt = ''; img.loading = 'lazy'; pi.appendChild(img); }
+        else { pi.textContent = '🎁'; pi.style.fontSize = '26px'; }
+        const pn = document.createElement('span'); pn.className = 'pn'; pn.textContent = p.title;
+        const pr = document.createElement('span'); pr.className = 'pr';
+        pr.textContent = '$' + Number(p.priceUSD).toFixed(0) + ' · ' + String(p.merchant || '').replace(/\s*\(PLACEHOLDER\)/i, '');
+        c.appendChild(pi); c.appendChild(pn); c.appendChild(pr);
+        c.addEventListener('click', () => { pickedRetail = i; cards.forEach((x, j) => x.classList.toggle('sel', j === pickedRetail)); showFund(); });
+        grid.appendChild(c);
+        return c;
+      });
+      cards[0].classList.add('sel'); pickedRetail = 0; showFund();
+    }
 
     // apply a suggested recipe: single asset ({ticker, amount}) or a BUNDLE
     // ({items: [[ticker, amount], …]}), plus an optional seeded note. Shared by
@@ -1941,6 +2010,24 @@
 
     document.getElementById('add-asset').addEventListener('click', () => {
       if (stage !== 'fill') return;
+      // a "real thing" drops its FUNDING as plain USDC (the universal balance
+      // fallback) and remembers the product on the entry; one per box (g.r is
+      // single), so a re-pick replaces the previous one
+      if (fillMode === 'retail') {
+        const p = retailProducts && retailProducts[pickedRetail];
+        const s = (p && window.giiiftRetailSendPayload) ? giiiftRetailSendPayload(p) : null;
+        if (!s) return;
+        const prev = contents.findIndex(c => c.retail);
+        if (prev !== -1) contents.splice(prev, 1);
+        const entry = { ticker: 'USDC', name: 'Real thing: ' + p.title, color: '#2775CA', img: p.image || undefined, amount: String(s.fundUSD), retail: s.r.p };
+        contents.push(entry);
+        if (window.giiift && window.giiift.track) window.giiift.track('retail_send_pick', { productId: s.r.p });
+        dropCoin(entry);
+        renderContents();
+        updatePrimary();
+        if (prev !== -1) renderStamps(); else setTimeout(syncStamps, 420);
+        return;
+      }
       // art + packs drop the selected piece (always one of one); assets keep the amount flow
       if (fillMode === 'art' || fillMode === 'packs') {
         const it = fillMode === 'art' ? ART[pickedArt] : PACKS[pickedPack];
@@ -2132,6 +2219,10 @@
       };
       if (Object.keys(d).length) compact.d = d;
       ['t', 'f', 'm', 'n'].forEach(k => { if (!compact[k]) delete compact[k]; });
+      // a chosen "real thing" rides as r:{p} (receive side: box.html hook → retail-claim.js);
+      // its funding is already in i as plain USDC — the universal spendable fallback
+      const retailEntry = contents.find(c => c.retail);
+      if (retailEntry) compact.r = { p: retailEntry.retail };
       if (giftOccasion) compact.o = giftOccasion;   // → recipient's shop lead shelf ("Birthday from Misty → …")
       if (V) V.stamp(compact);   // the vertical travels with the gift → the receive page speaks the same language
       lastCompact = compact;
