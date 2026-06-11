@@ -933,6 +933,7 @@
           c1: design.cardboard, c2: design.cardboard2, accent: design.accent,
           to: String(design.labelTo || gift.to || "").replace(/^to:\s*/i, "").trim(),
           from: design.from || gift.from, note: design.note || gift.msg,
+          title: String(design.brand || "").trim(),   // the sender's Front text survives the template
         })
       : null;
     const engine = GIIIFTBox.render(

@@ -88,6 +88,8 @@
     smokum: { name: "Smokum", gf: "Smokum", cat: "dark", vibe: ["western", "vintage"] },
   };
   var ALIGN = { left: 1, center: 1, right: 1 };
+  var EFFECTS = { none: 1, shadow: 1, lift: 1, neon: 1, highlight: 1 };   // wave 2: one-click text effects
+  var FILLKINDS = { solid: 1, linear: 1, radial: 1 };   // shape gradient fill (incl. fade to transparent)
   var SHAPES = { rect: 1, ellipse: 1, line: 1, triangle: 1, star: 1, diamond: 1, heart: 1 };   // `shape` element sub-kinds
   var FRAMES = { rect: 1, rounded: 1, circle: 1, heart: 1, star: 1, triangle: 1 };             // `frame` photo-clip shapes
   var ELTYPES = { text: 1, stamp: 1, note: 1, graffiti: 1, label: 1, barcode: 1, seal: 1, postmark: 1, sticker: 1, art: 1, decal: 1, fade: 1, shape: 1, frame: 1 };
@@ -111,6 +113,13 @@
   function enumv(map, v, fb) { return (typeof v === "string" && map[v]) ? v : fb; }
   function str(v, max) { return String(v == null ? "" : v).slice(0, max || MAX_TEXT); }
   function esc(s) { return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }); }
+  function rgba0(h) { var n = parseInt(String(h).slice(1, 7), 16); return isFinite(n) ? "rgba(" + ((n >> 16) & 255) + "," + ((n >> 8) & 255) + "," + (n & 255) + ",0)" : "transparent"; }
+  // CSS background for a shape: solid colour, or a linear/radial gradient (fillFade ends at the same colour at 0 alpha = clean fade to transparent, no grey midpoint)
+  function shapeBg(e, solid) {
+    if (e.fill === "none" || !(e.fillKind === "linear" || e.fillKind === "radial")) return solid;
+    var end = e.fillFade ? rgba0(e.fill) : (e.fill2 || e.fill);
+    return e.fillKind === "radial" ? "radial-gradient(circle at 50% 50%," + e.fill + "," + end + ")" : "linear-gradient(" + (e.fillAngle != null ? e.fillAngle : 135) + "deg," + e.fill + "," + end + ")";
+  }
 
   /* ------------------------- colour / face fills ------------------------ */
   function shadeHex(h, pct) {
@@ -161,6 +170,8 @@
         base.style = (e.style === "sticker") ? "sticker" : "plain";   // "sticker" = comic double-outline (fill + inner + outer edge)
         base.outline1 = hex(e.outline1, "#ffffff");                   // inner outline (the bright halo around the fill)
         base.outline2 = hex(e.outline2, "#111111");                   // outer edge (the dark border around the halo)
+        base.effect = enumv(EFFECTS, e.effect, "none");               // wave 2: one-click text effect (shadow / lift / neon / highlight)
+        base.effectColor = hex(e.effectColor, "#ffe066");             // neon glow / highlight-background colour
         break;
       case "stamp":
         base.value = str(e.value, 40); base.color = hex(e.color, palette.accent); base.size = num(e.size, 0.07, 0.03, 0.16);
@@ -201,6 +212,10 @@
       case "shape":                                      // vector shape: colour block / badge / divider / star, etc.
         base.shape = enumv(SHAPES, e.shape, "rect");
         base.fill = e.fill === "none" ? "none" : hex(e.fill, palette.accent);
+        base.fillKind = enumv(FILLKINDS, e.fillKind, "solid");      // solid / linear / radial
+        base.fill2 = hex(e.fill2, base.fill === "none" ? palette.c2 : base.fill);   // second gradient stop
+        base.fillAngle = num(e.fillAngle, 135, 0, 360);
+        if (e.fillFade) base.fillFade = true;                       // gradient ends transparent (pro-panel fade)
         base.stroke = (e.stroke == null || e.stroke === "none") ? "none" : hex(e.stroke, "#111111");
         base.strokeW = num(e.strokeW, 0, 0, 0.06);       // border, as a fraction of box size (0 = none)
         base.radius = num(e.radius, 0.12, 0, 0.5);       // corner radius (rect), fraction of the shorter side
@@ -364,6 +379,12 @@
     // paint-order keeps the fill crisp; strokes scale with font-size (em). drop-shadow lifts it off the box.
     ".gbx-text.gbx-ol,.gbx-graffiti.gbx-ol{position:relative;text-shadow:none;color:var(--gbx-ol-fill,inherit);-webkit-text-stroke:var(--ol-w1,0.11em) var(--ol-c1,#fff);paint-order:stroke fill;filter:drop-shadow(0 3px 2px rgba(0,0,0,0.4))}",
     ".gbx-ol::before{content:attr(data-text);position:absolute;left:0;top:0;width:100%;z-index:-1;color:transparent;-webkit-text-stroke:var(--ol-w2,0.24em) var(--ol-c2,#111);paint-order:stroke fill;text-align:inherit;white-space:pre-wrap;line-height:inherit;letter-spacing:inherit;pointer-events:none}",
+    /* wave 2: one-click text effects — additive, default none; neon/highlight read --fx-c (set per-element in renderElement) */
+    ".gbx-fx-shadow{text-shadow:0.045em 0.07em 0 rgba(0,0,0,0.55)}",
+    ".gbx-fx-lift{text-shadow:0 0.085em 0.16em rgba(0,0,0,0.55)}",
+    ".gbx-fx-neon{text-shadow:0 0 0.08em var(--fx-c,#34f5c5),0 0 0.22em var(--fx-c,#34f5c5),0 0 0.5em var(--fx-c,#34f5c5)}",
+    ".gbx-fx-highlight{text-shadow:none}",
+    ".gbx-fx-highlight .gbx-hl{background:var(--fx-c,#ffe066);padding:0.02em 0.2em;border-radius:0.1em;-webkit-box-decoration-break:clone;box-decoration-break:clone}",
     ".gbx-stamp{border:calc(var(--gbx-size)*0.006) solid currentColor;border-radius:6px;padding:.28em .5em;font-family:var(--font-mono,'VT323',monospace);text-transform:uppercase;letter-spacing:.08em;font-weight:700;line-height:1;text-align:center}",
     ".gbx-note{background:rgba(0,0,0,0.18);border-left:calc(var(--gbx-size)*0.01) solid currentColor;border-radius:4px;padding:.5em .6em;backdrop-filter:blur(2px)}",
     ".gbx-note .gbx-note-l{display:block;font-family:var(--font-mono,monospace);font-size:.7em;letter-spacing:.14em;text-transform:uppercase;opacity:.7;margin-bottom:.2em}",
@@ -510,6 +531,13 @@
           n.style.setProperty("--ol-c1", e.outline1 || "#ffffff");
           n.style.setProperty("--ol-c2", e.outline2 || "#111111");
         }
+        if (e.effect && e.effect !== "none") {                // wave 2: one-click text effect
+          n.classList.add("gbx-fx-" + e.effect);
+          if (e.effect === "neon" || e.effect === "highlight") n.style.setProperty("--fx-c", e.effectColor || "#ffe066");
+          if (e.effect === "highlight") {                     // the marker hugs the text (per wrapped line) via an inline span
+            n.textContent = ""; var hl = document.createElement("span"); hl.className = "gbx-hl"; hl.textContent = e.value; n.appendChild(hl);
+          }
+        }
         break;
       case "stamp":
         n = document.createElement("div"); n.className = "gbx-stamp"; n.textContent = e.value;
@@ -584,7 +612,7 @@
         var sfill = e.fill === "none" ? "transparent" : e.fill;
         var sStroke = e.stroke && e.stroke !== "none" && e.strokeW > 0;
         if (e.shape === "rect" || e.shape === "ellipse" || e.shape === "line") {   // CSS path: perfect uniform border
-          n.style.background = sfill; n.style.boxSizing = "border-box";
+          n.style.background = shapeBg(e, sfill); n.style.boxSizing = "border-box";
           n.style.borderRadius = e.shape === "ellipse" ? "50%" : e.shape === "line" ? px(e.h * 0.5) : px(Math.min(e.w, e.h) * e.radius);
           if (sStroke) n.style.border = "calc(var(--gbx-size) * " + e.strokeW + ") solid " + e.stroke;
         } else {                                                                     // SVG path: triangle / star / diamond / heart
@@ -665,7 +693,7 @@
       if (e.t === "art" && e.src && e.fit === "cover" && !e.noShadow
         && (e.opacity == null || e.opacity >= 1)
         && (e.w == null || e.w >= 0.98) && (e.h == null || e.h >= 0.98)) return true;
-      if (e.t === "shape" && e.shape === "rect" && e.fill && e.fill !== "none" && !(e.strokeW > 0)
+      if (e.t === "shape" && e.shape === "rect" && e.fill && e.fill !== "none" && !(e.strokeW > 0) && (!e.fillKind || e.fillKind === "solid")
         && (e.opacity == null || e.opacity >= 1) && e.w >= 0.98 && e.h >= 0.98) return true;
       if (e.t === "frame" && e.frame === "rect" && e.src
         && (e.opacity == null || e.opacity >= 1) && e.w >= 0.98 && e.h >= 0.98) return true;

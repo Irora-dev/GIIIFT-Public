@@ -6,6 +6,8 @@
  *   - giiiftRetailMenu()                  -> the curated products (cached fetch)
  *   - giiiftRetailQuote(product)          -> transparent local breakdown of what the
  *                                            SENDER funds: item + buffer (+ fee 0 in V2)
+ *   - giiiftRetailSendPayload(product)    -> SEND seam: the gift-payload fragment the wrap
+ *                                            flow writes (r:{p}) + fundUSD to fund (= quote)
  *   - giiiftRetailResolve(productId, p)   -> the recipient's handoff step: the merchant's
  *                                            own USDC-on-Base checkout URL, cart prefilled.
  *
@@ -49,6 +51,19 @@
       currency: "USD",
       note: "Unspent buffer stays in the recipient's balance.",
     };
+  }
+
+  // SEND seam (pairs with quote): turn a chosen menu product into what the wrap/send
+  // flow writes into the gift and funds. Pure + side-effect free, so the separately-
+  // owned wrap UI can wire it in one line:
+  //     var s = giiiftRetailSendPayload(product);   // -> { r:{p}, fundUSD } | null
+  //     if (s) { payload.r = s.r; fundAmountUSD = s.fundUSD; }
+  // The receive side reads g.r.p (box.html hook -> retail-claim.js). fundUSD is the
+  // item + buffer the sender funds (identical to quote().fundUSD). Returns null for a
+  // missing/idless product, so the caller just sends a plain spendable-value gift.
+  function sendPayload(product) {
+    if (!product || product.id == null || product.id === "") return null;
+    return { r: { p: String(product.id) }, fundUSD: quote(product).fundUSD };
   }
 
   // Resolve the recipient's claim step: the merchant-checkout handoff.
@@ -96,5 +111,6 @@
 
   window.giiiftRetailMenu = menu;
   window.giiiftRetailQuote = quote;
+  window.giiiftRetailSendPayload = sendPayload;
   window.giiiftRetailResolve = resolve;
 })();
