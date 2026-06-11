@@ -58,6 +58,48 @@
     document.head.appendChild(s);
   }
 
+  // Open the merchant checkout in a centered, sheet-sized popup. Returns the window
+  // handle (so we can detect close) or null if the popup was blocked. No noopener:
+  // we keep the handle. The size/position make it the "monitor window" the design
+  // lane can frame (e.g. a retro-computer screen); on a native app this leg becomes
+  // Shopify's Checkout Sheet Kit instead (see GIIIFT-RETAIL-V1-PLAN.md appendix).
+  function openCheckout(url) {
+    try {
+      var w = 460, h = 760;
+      var sw = (window.screen && window.screen.availWidth) || window.innerWidth || 1024;
+      var sh = (window.screen && window.screen.availHeight) || window.innerHeight || 768;
+      var sx = (window.screen && window.screen.availLeft) || 0;
+      var sy = (window.screen && window.screen.availTop) || 0;
+      var left = Math.round(sx + Math.max(0, (sw - w) / 2));
+      var top = Math.round(sy + Math.max(0, (sh - h) / 2));
+      return window.open(url, "giiift_checkout",
+        "popup=yes,width=" + w + ",height=" + h + ",left=" + left + ",top=" + top) || null;
+    } catch (_e) { return null; }
+  }
+
+  // After launching checkout we cannot read the merchant's cross-origin page, so we
+  // ask the recipient to confirm on return. Honest, and it never blocks the balance.
+  function mountReturnRow(card, productId, url, win) {
+    var trk = function (ev) { try { if (window.giiift && window.giiift.track) window.giiift.track(ev, { productId: productId }); } catch (_e) {} };
+    var row = el("div", "rgc-return");
+    var done = el("button", "rgc-go", "All done ✓");
+    var reopen = el("button", "rgc-skip", "Reopen the checkout window");
+    row.appendChild(done); row.appendChild(reopen);
+    card.appendChild(row);
+    done.addEventListener("click", function () {
+      trk("retail_checkout_confirmed");
+      row.remove();
+      card.appendChild(el("p", "rgc-note", "Nice, it's on its way. Anything unspent stays in your balance."));
+    });
+    reopen.addEventListener("click", function () {
+      try { (win && !win.closed) ? win.focus() : (win = openCheckout(url)); } catch (_e) { win = openCheckout(url); }
+    });
+    // telemetry only: note when the window closes; the recipient still confirms via the button
+    var iv = setInterval(function () {
+      try { if (!win || win.closed) { clearInterval(iv); trk("retail_checkout_window_closed"); } } catch (_e) { clearInterval(iv); }
+    }, 800);
+  }
+
   /**
    * Mount the customize card. opts: { productId, mount, from? }
    * Resolves to true if mounted, false if silently skipped (unknown product /
@@ -132,9 +174,18 @@
           Object.keys(inputs).forEach(function (k) { if (inputs[k].value.trim()) params[k] = inputs[k].value.trim(); });
           var r = await window.giiiftRetailResolve(productId, params);
           if (r && r.url && r.executable) {
-            window.open(r.url, "_blank", "noopener");
+            if (window.giiift && window.giiift.track) window.giiift.track("retail_checkout_open", { productId: productId });
+            var win = openCheckout(r.url);
+            if (!win) {
+              // popup blocked -> full navigation to the SAME merchant checkout (still light: their rail)
+              if (window.giiift && window.giiift.track) window.giiift.track("retail_checkout_popup_blocked", { productId: productId });
+              window.location.href = r.url;
+              return;
+            }
+            go.style.display = "none"; skip.style.display = "none";
             go.textContent = "Checkout opened ↗ finish there";
-            price.textContent = "Anything unspent stays in your balance.";
+            price.textContent = "Finish in the checkout window. Anything unspent stays in your balance.";
+            mountReturnRow(card, productId, r.url, win);
           } else {
             // dormant or merchant-not-live: honest state, balance remains the gift
             go.textContent = "Not available yet: it stays in your balance";

@@ -172,6 +172,9 @@
         base.outline2 = hex(e.outline2, "#111111");                   // outer edge (the dark border around the halo)
         base.effect = enumv(EFFECTS, e.effect, "none");               // wave 2: one-click text effect (shadow / lift / neon / highlight)
         base.effectColor = hex(e.effectColor, "#ffe066");             // neon glow / highlight-background colour
+        base.curve = num(e.curve, 0, -180, 180);                      // wave 2b: text on an arc (degrees of total sweep)
+        base.fillKind = enumv(FILLKINDS, e.fillKind, "solid");        // gradient text fill (colour -> fill2)
+        if (base.fillKind !== "solid") { base.fill2 = hex(e.fill2, base.color); base.fillAngle = num(e.fillAngle, 135, 0, 360); }
         break;
       case "stamp":
         base.value = str(e.value, 40); base.color = hex(e.color, palette.accent); base.size = num(e.size, 0.07, 0.03, 0.16);
@@ -191,6 +194,7 @@
         base.w = num(e.w, 0.6, 0.1, 1); base.h = num(e.h, 0.6, 0.1, 1); base.radius = num(e.radius, 0.03, 0, 0.5); base.zoom = num(e.zoom, 1, 1, 4);
         if (e.noShadow) base.noShadow = true;                  // transparent cutouts opt out of the .gbx-art drop shadow
         base.opacity = num(e.opacity, 1, 0, 1);
+        base.brightness = num(e.brightness, 1, 0, 3); base.contrast = num(e.contrast, 1, 0, 3); base.saturate = num(e.saturate, 1, 0, 3); base.blur = num(e.blur, 0, 0, 0.04);   // image adjustments (CSS filter)
         if (e.flipX) base.flipX = true; if (e.flipY) base.flipY = true;
         break;
       case "sticker":
@@ -521,6 +525,10 @@
         n.style.fontSize = px(e.size);
         n.style.fontWeight = e.weight;
         n.style.color = e.color;
+        if ((e.fillKind === "linear" || e.fillKind === "radial") && !(e.curve && Math.abs(e.curve) > 0.5)) {   // gradient text fill via background-clip (skips when curved)
+          var tg2 = e.fill2 || e.color, tgr = e.fillKind === "radial" ? "radial-gradient(circle," + e.color + "," + tg2 + ")" : "linear-gradient(" + (e.fillAngle != null ? e.fillAngle : 135) + "deg," + e.color + "," + tg2 + ")";
+          n.style.backgroundImage = tgr; n.style.webkitBackgroundClip = "text"; n.style.backgroundClip = "text"; n.style.color = "transparent";
+        }
         n.style.textAlign = e.align;
         if (e.lineHeight != null) n.style.lineHeight = e.lineHeight;
         if (e.letterSpacing) n.style.letterSpacing = e.letterSpacing + "em";
@@ -537,6 +545,13 @@
           if (e.effect === "highlight") {                     // the marker hugs the text (per wrapped line) via an inline span
             n.textContent = ""; var hl = document.createElement("span"); hl.className = "gbx-hl"; hl.textContent = e.value; n.appendChild(hl);
           }
+        }
+        if (e.curve && Math.abs(e.curve) > 0.5 && e.style !== "sticker") {   // wave 2b: per-glyph text on an arc
+          n.classList.add("gbx-curve"); n.style.position = "relative";
+          var cstr = String(e.value).replace(/\n/g, " "), cn = cstr.length, per = cn > 1 ? e.curve / (cn - 1) : 0, st = -e.curve / 2;
+          var Rc = Math.min(24, Math.max(1.4, (cn * 0.62) / (Math.abs(e.curve) * Math.PI / 180)));
+          n.textContent = "";
+          for (var ci = 0; ci < cn; ci++) { var cs = document.createElement("span"); cs.textContent = cstr[ci] === " " ? " " : cstr[ci]; cs.style.cssText = "position:absolute;left:50%;top:50%;white-space:pre;transform:translate(-50%,-50%) rotate(" + (st + per * ci).toFixed(2) + "deg) translateY(-" + Rc.toFixed(2) + "em)"; n.appendChild(cs); }
         }
         break;
       case "stamp":
@@ -575,6 +590,7 @@
           n = document.createElement("img"); n.className = "gbx-art"; n.src = e.src; n.alt = ""; n.loading = "lazy";
           n.style.objectFit = e.fit; n.style.width = px(e.w); n.style.height = px(e.h);
           n.style.setProperty("--gbx-art-r", e.radius); n.style.setProperty("--gbx-zoom", e.zoom || 1);
+          var af = []; if (e.brightness != null && e.brightness !== 1) af.push("brightness(" + e.brightness + ")"); if (e.contrast != null && e.contrast !== 1) af.push("contrast(" + e.contrast + ")"); if (e.saturate != null && e.saturate !== 1) af.push("saturate(" + e.saturate + ")"); if (e.blur) af.push("blur(calc(var(--gbx-size) * " + e.blur + "))"); if (af.length) n.style.filter = af.join(" ");
           if (e.noShadow) n.style.boxShadow = "none";          // cutout art (alpha subjects): the rectangular drop shadow gives the box away
           if (e.opacity != null && e.opacity < 1) n.style.opacity = e.opacity;
           if (e.flipX) n.style.setProperty("--gbx-fx", -1);
@@ -616,8 +632,14 @@
           n.style.borderRadius = e.shape === "ellipse" ? "50%" : e.shape === "line" ? px(e.h * 0.5) : px(Math.min(e.w, e.h) * e.radius);
           if (sStroke) n.style.border = "calc(var(--gbx-size) * " + e.strokeW + ") solid " + e.stroke;
         } else {                                                                     // SVG path: triangle / star / diamond / heart
-          var sa = ' fill="' + sfill + '"' + (sStroke ? ' stroke="' + e.stroke + '" stroke-width="' + (e.strokeW * 100).toFixed(2) + '" stroke-linejoin="round"' : '');
-          n.innerHTML = '<svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none">' + shapeSvgPath(e.shape, sa) + '</svg>';
+          var gdef = "", gfill = sfill;
+          if ((e.fillKind === "linear" || e.fillKind === "radial") && e.fill !== "none") {   // gradient fill for SVG-path shapes (star/heart/etc.)
+            var gid = "gbxg" + (CLIP_ID++), gstart = '<stop offset="0%" stop-color="' + e.fill + '"/>', gend = e.fillFade ? '<stop offset="100%" stop-color="' + e.fill + '" stop-opacity="0"/>' : '<stop offset="100%" stop-color="' + (e.fill2 || e.fill) + '"/>';
+            gdef = e.fillKind === "radial" ? '<defs><radialGradient id="' + gid + '">' + gstart + gend + '</radialGradient></defs>' : '<defs><linearGradient id="' + gid + '" gradientTransform="rotate(' + (e.fillAngle != null ? e.fillAngle : 135) + ' .5 .5)">' + gstart + gend + '</linearGradient></defs>';
+            gfill = 'url(#' + gid + ')';
+          }
+          var sa = ' fill="' + gfill + '"' + (sStroke ? ' stroke="' + e.stroke + '" stroke-width="' + (e.strokeW * 100).toFixed(2) + '" stroke-linejoin="round"' : '');
+          n.innerHTML = '<svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none">' + gdef + shapeSvgPath(e.shape, sa) + '</svg>';
         }
         if (e.opacity != null && e.opacity < 1) n.style.opacity = e.opacity;
         if (e.flipX) n.style.setProperty("--gbx-fx", -1);
