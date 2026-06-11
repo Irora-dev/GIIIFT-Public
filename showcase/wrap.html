@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<script>/* public showcase mirror: always demo mode */try{localStorage.setItem("giiift-demo","1");localStorage.setItem("giiift-authed","1");}catch(e){}</script>
+<script>/* public showcase mirror: always demo mode */try{localStorage.setItem("giiift-demo","1");localStorage.setItem("giiift-authed","1");}catch(e){}window.GIIIFT_CAPS={intents:false,oauth:false,telemetry:false};</script>
 <meta name="robots" content="noindex, nofollow, noarchive">
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -887,7 +887,8 @@
     <aside class="control-card" id="control-card">
 
       <!-- STEP 3 - fill (value first, then the asset rail, then what's inside) -->
-      <div class="pane" id="pane-fill" hidden>
+      <div class="pane" id="pane-fill" hidden></div>
+      <template data-step-pane data-host="#pane-fill" id="tpl-step-fill">
         <div class="card-head">
           <div class="eyebrow">// step 3</div>
           <h2>Fill the box</h2>
@@ -955,13 +956,14 @@
           <div class="group inside-head"><h4>Inside the box</h4><span class="inside-count" id="inside-count" hidden></span></div>
           <div class="contents" id="contents"></div>
         </div>
-      </div>
-
+      </template>
+    
       <!-- STEPS 1, 2 & 4 - name, design, note (one form so data-field binding spans all three) -->
       <div class="pane pane-enter" id="pane-customize">
         <form id="editor" autocomplete="off">
 
           <!-- 1 · NAME -->
+          <template data-step-pane data-host="#editor" id="tpl-step-name">
           <div class="sub-pane pane-enter" id="sub-name">
             <div class="card-head">
               <div class="eyebrow">// step 1 · name</div>
@@ -989,9 +991,11 @@
               </div>
             </div>
           </div>
+          </template>
 
           <!-- 4 · NOTE -->
-          <div class="sub-pane" id="sub-text" hidden>
+<template data-step-pane data-host="#editor" id="tpl-step-text">
+                    <div class="sub-pane" id="sub-text" hidden>
             <div class="card-head">
               <div class="eyebrow">// step 4 · note</div>
               <h2>Add a note</h2>
@@ -1022,9 +1026,11 @@
               </div>
             </div>
           </div>
+          </template>
 
           <!-- 2 · DESIGN -->
-          <div class="sub-pane" id="sub-design" hidden>
+<template data-step-pane data-host="#editor" id="tpl-step-design">
+                    <div class="sub-pane" id="sub-design" hidden>
             <div class="card-head">
               <button type="button" class="back-link" id="to-text">← Back to name</button>
               <div class="eyebrow">// step 2 · design</div>
@@ -1079,6 +1085,7 @@
               <div class="field"><label>Sticker text</label><input type="text" data-field="fragileText" maxlength="14" placeholder="Fragile"></div>
             </div>
           </div>
+          </template>
         </form>
       </div>
     </aside>
@@ -1229,11 +1236,9 @@
                    each channel implies its own claim rule (email/phone/wallet = that
                    identity, Link = anyone holding it, Social = the named handle). -->
               <div class="fp-seg" id="fp-seg" role="tablist" aria-label="Delivery channel">
-                <button type="button" class="on" data-mode="email">Email</button>
-                <button type="button" data-mode="phone">Phone</button>
-                <!-- Link delivery lives on the real product; the mirror has no intents backend -->
-                <button type="button" data-mode="wallet">Wallet</button>
-                <!-- Social delivery lives on the real product; the mirror has no intents backend -->
+                <!-- channel buttons render from GIIIFT_CAPS (spec §4): the mirror
+                     stubs {intents:false, oauth:false} and Link/Social simply don't
+                     render — no more match-exactly-once content patches. -->
               </div>
               <form class="fp-email" id="fp-deliver-form">
                 <input type="email" id="fp-deliver" placeholder="their@email.com" autocomplete="email" required>
@@ -1309,6 +1314,12 @@
   <div class="iris" id="iris" hidden aria-hidden="true"></div>
 
   <script>
+    // Materialize the step panes FIRST (M3): each pane ships as a
+    // <template data-step-pane data-host="…"> and clones into its host here, so
+    // every querySelector below sees the same DOM the old inline markup gave it.
+    // A plug-in step (e.g. the box-lab design page) registers its own template.
+    GIIIFTFlow.mountPanes();
+
     // ---------- assets ----------
     const ASSETS = [
       { ticker:'BTC',   name:'Bitcoin',     color:'#F7931A' },
@@ -1491,12 +1502,32 @@
       setTimeout(syncStamps, 420 + entries.length * 260);
     }
 
+    // Step-number eyebrows are COMPUTED from the flow order (spec M3: kills the
+    // "step 3" copy-drift bug class). A vertical may voice the SUFFIX via the
+    // *Tag keys ('foil'); a full *Eyebrow string still wins verbatim if a pack
+    // insists — but its number won't follow a reorder, so prefer tags.
+    function paintEyebrows() {
+      const EB = {
+        name:   { sel: '#sub-name .card-head .eyebrow',   tag: vtxt('nameTag',   null, 'name') },
+        design: { sel: '#sub-design .card-head .eyebrow', tag: vtxt('designTag', null, 'design') },
+        fill:   { sel: '#pane-fill .card-head .eyebrow',  tag: vtxt('fillTag',   null, '') },
+        text:   { sel: '#sub-text .card-head .eyebrow',   tag: vtxt('textTag',   null, 'note') },
+      };
+      Object.keys(EB).forEach(k => {
+        const el = document.querySelector(EB[k].sel);
+        if (!el) return;
+        const full = vtxt(k + 'Eyebrow');               // verbatim pack override (legacy)
+        const n = GIIIFTFlow.number(k);
+        if (full) el.textContent = full;
+        else if (n) el.textContent = '// step ' + n + (EB[k].tag ? ' · ' + EB[k].tag : '');
+      });
+    }
+
     (function applyVerticalCopy() {
       if (!V) return;
       const setText = (sel, val) => { const el = document.querySelector(sel); if (el && val) el.textContent = val; };
       const setPh = (sel, val) => { const el = document.querySelector(sel); if (el && val) el.placeholder = val; };
       document.title = vtxt('docTitle', null, document.title);
-      setText('#pane-fill .card-head .eyebrow', vtxt('fillEyebrow'));
       setText('#pane-fill .card-head h2', vtxt('fillTitle'));
       setText('#pane-fill .card-head p', vtxt('fillSub'));
       setPh('#asset-search', vtxt('searchPh'));
@@ -1504,13 +1535,11 @@
       setText('#pane-fill .group h4', vtxt('insideTitle'));
       const add = document.getElementById('add-asset');
       if (add && vtxt('addBtn')) add.innerHTML = vtxt('addBtn') + ' <span class="ab-arrow">↓</span>';
-      setText('#sub-text .card-head .eyebrow', vtxt('textEyebrow'));
       setText('#sub-text .card-head h2', vtxt('textTitle'));
       setText('#sub-text .card-head p', vtxt('textSub'));
       setPh('[data-field="brand"]', vtxt('brandPh'));
       setPh('[data-field="sublabel"]', vtxt('sublabelPh'));
       setPh('[data-field="note"]', vtxt('notePh'));
-      setText('#sub-design .card-head .eyebrow', vtxt('designEyebrow'));
       setText('#sub-design .card-head h2', vtxt('designTitle'));
       setText('#sub-design .card-head p', vtxt('designSub'));
       const ft = document.querySelector('.fp-title');
@@ -2303,6 +2332,7 @@
     // the 3D preview mounts as a store subscriber: change:cfg → repaint,
     // contents:add → drop animation, flow:seal → lid + tape (spec §2.4)
     GIIIFTStageBox.mount({ box: '#box', stage: '.box-stage', ctx: GIIIFTFlow.ctx(), deps: { faceBg, logoUrl } });
+    paintEyebrows();   // step numbers derive from the order above (vertical tags ride vtxt)
     primary.addEventListener('click', () => GIIIFTFlow.next());
     document.getElementById('to-text').addEventListener('click', () => GIIIFTFlow.go('name'));   // "← Back to name" on the design step
 
@@ -2328,6 +2358,23 @@
         wallet: { type: 'text',  ph: '0x… or Solana address', auto: 'off' },
         social: { type: 'text',  ph: '@their_handle', auto: 'off' },   // invitation link locked to the handle
       };
+      // Which channels exist HERE comes from GIIIFT_CAPS (spec §4): absent = full
+      // product; the showcase exporter stubs {intents:false, oauth:false} and the
+      // backend-needing channels never render. Replaces the mirror's content patches.
+      const CAPS = window.GIIIFT_CAPS || {};
+      const CHANNELS = [
+        { mode: 'email',  label: 'Email' },
+        { mode: 'phone',  label: 'Phone' },
+        { mode: 'link',   label: 'Link',   needs: ['intents'] },          // mints an invitation intent
+        { mode: 'wallet', label: 'Wallet' },
+        { mode: 'social', label: 'Social', needs: ['intents', 'oauth'] }, // identity-locked intent (X/Discord)
+      ];
+      CHANNELS.filter(c => (c.needs || []).every(k => CAPS[k] !== false)).forEach((c, i) => {
+        const b = document.createElement('button');
+        b.type = 'button'; b.dataset.mode = c.mode; b.textContent = c.label;
+        if (i === 0) b.classList.add('on');
+        seg.appendChild(b);
+      });
       let mode = 'email';
       const sendBtn = form.querySelector('.fp-send');
       // Social mode: which network the handle lives on (claim locks to that account)

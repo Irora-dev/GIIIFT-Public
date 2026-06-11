@@ -385,10 +385,11 @@
       wrap: {
         docTitle: 'GIIIFT - Wrap a box',
         // step numbers follow the wrap flow order: NAME → DESIGN → FILL → NOTE → SEND
+        nameTag: 'name',
         nameBtn: 'Design the box →',
         nameHint: 'Tell us who it’s for, then dress the box for them.',
         designBtn: 'Fill the box →',
-        fillEyebrow: '// step 3',
+        fillTag: '',                            // eyebrow numbers are COMPUTED from the flow order (wrap paintEyebrows); packs voice only the suffix tag
         fillTitle: 'Fill the box',
         fillSub: 'Search a coin or token, set an amount, and drop it into the open box.',
         searchPh: 'Search assets - BTC, Solana…',
@@ -401,7 +402,7 @@
         sealingBtn: 'Sealing…',
         sealHintEmpty: 'Add at least one asset to seal.',
         sealHintReady: '{count} item{s} inside · ready to seal',
-        textEyebrow: '// step 4 · note',
+        textTag: 'note',
         textTitle: 'Add a note',
         textSub: 'The words that ride the box - they appear live as you type.',
         brandPh: 'Name Here',
@@ -412,7 +413,7 @@
         occasionTitle: 'Occasion',
         occasionHint: 'Optional · shapes what the shop shows them after they claim',
         notePromptsTitle: 'Need a line?',
-        designEyebrow: '// step 2 · design',
+        designTag: 'design',
         designTitle: 'Design the box',
         designSub: 'A designed box, or your own colours and pattern.',
         designHint: 'Pick a box design or your own colours, then fill it.',

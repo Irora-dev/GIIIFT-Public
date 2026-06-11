@@ -154,6 +154,28 @@
     current: function () { return current; },
     order: function () { return order.slice(); },
     index: function (k) { return order.indexOf(k || current); },
+    // 1-based RAIL position (off-rail steps don't count) — the computed step
+    // number for eyebrows/copy, so reordering the array renumbers everything
+    number: function (k) {
+      var rows = railSteps();
+      var i = rows.indexOf(k || current);
+      return i < 0 ? null : i + 1;
+    },
+    // Mount <template data-step-pane data-host="#sel"> pane templates into their
+    // hosts (M3): each step's pane markup ships as a self-describing template the
+    // page (or a plug-in step module) declares. Idempotent; call before wiring.
+    mountPanes: function (root) {
+      var tpls = (root || document).querySelectorAll("template[data-step-pane]");
+      for (var i = 0; i < tpls.length; i++) {
+        var t = tpls[i];
+        if (t.__giiiftMounted) continue;
+        var host = document.querySelector(t.getAttribute("data-host"));
+        if (!host) { console.warn("[GIIIFTFlow] pane template has no host:", t.id || t); continue; }
+        host.appendChild(t.content.cloneNode(true));
+        t.__giiiftMounted = true;
+      }
+      return api;
+    },
     ctx: function () { return ctx; },
   };
 
