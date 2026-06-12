@@ -168,6 +168,27 @@
     .gift-note .gn-from { margin-top: 12px; font-family: var(--font-serif); font-size: 14.3px; text-align: right; color: #6b5a40; }
     .gift-note .gn-from b { color: #2a2018; font-weight: 600; font-style: italic; }
 
+    /* the sender's voice note: a play-me card on the rail, under the written note */
+    .voice-note { position: relative; width: 100%; display: flex; align-items: center; gap: 11px;
+      background: linear-gradient(180deg, #fbf3df, #ecdcba); color: #2a2018; padding: 12px 14px; border-radius: 3.8px;
+      box-shadow: 0 16.5px 35px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.6);
+      opacity: 0; transform: rotate(-1.2deg) translateY(10.5px); transition: opacity .7s .65s ease, transform .7s .65s cubic-bezier(.2,.8,.2,1); }
+    .scene.revealed ~ .reveal-rail .voice-note { opacity: 1; transform: rotate(-1.2deg) translateY(0); }
+    .voice-note[hidden] { display: none; }
+    .voice-note .vn-pin { position: absolute; top: -9.8px; left: 50%; transform: translateX(-50%); width: 16.5px; height: 16.5px; border-radius: 50%; background: radial-gradient(circle at 35% 30%, #8ad0ff, #2f6fd4 75%); box-shadow: 0 3px 6px rgba(0,0,0,0.5), inset 0 -2px 2.3px rgba(0,0,0,0.3); }
+    .vn-play { flex-shrink: 0; width: 44px; height: 44px; border-radius: 50%; border: none; cursor: pointer; display: grid; place-items: center;
+      background: radial-gradient(circle at 32% 28%, #4a3f2c, #2a2018 78%); color: #fbf3df; box-shadow: 0 4px 10px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.18); transition: transform .15s; }
+    .vn-play:hover { transform: scale(1.06); }
+    .vn-play svg { width: 17px; height: 17px; }
+    .vn-meta { flex: 1; min-width: 0; }
+    .vn-eyebrow { font-family: var(--font-mono); font-size: 9.8px; letter-spacing: 0.18em; text-transform: uppercase; color: #a98b5c; }
+    .vn-bars { display: flex; align-items: flex-end; gap: 2.5px; height: 18px; margin-top: 6px; }
+    .vn-bars i { width: 3px; border-radius: 2px; background: #b09a6e; height: calc(22% + var(--vb) * 70%); transition: background .2s; }
+    .voice-note.playing .vn-bars i { background: #2f6fd4; animation: vn-eq 0.9s ease-in-out calc(var(--vb) * -0.9s) infinite alternate; }
+    @keyframes vn-eq { from { transform: scaleY(0.55); } to { transform: scaleY(1.1); } }
+    @media (prefers-reduced-motion: reduce) { .voice-note.playing .vn-bars i { animation: none; } }
+    .vn-time { font-family: var(--font-mono); font-size: 11.5px; color: #6b5a40; flex-shrink: 0; align-self: flex-end; }
+
     /* actions below the box */
     .reveal-foot { position: relative; z-index: 2; display: flex; flex-direction: column; align-items: center; gap: 12px; width: 100%; max-width: 405px; }
     .from-line { font-size: 11.3px; color: rgba(255,255,255,0.72); text-shadow: 0 2px 9px rgba(0,0,0,0.6); }
@@ -752,6 +773,19 @@
           <div class="gn-text" id="note-text"></div>
           <div class="gn-from">— <b id="from-name">a friend</b></div>
         </div>
+        <!-- the sender's voice note (W3): same-device demo via the giiift-av stash -->
+        <div class="voice-note" id="voice-note" hidden>
+          <span class="vn-pin"></span>
+          <button type="button" class="vn-play" id="vn-play" aria-label="Play the voice note">
+            <svg id="vn-ic-play" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5.5v13l11-6.5z"/></svg>
+            <svg id="vn-ic-pause" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" hidden><path d="M7 5h3.6v14H7zM13.4 5H17v14h-3.6z"/></svg>
+          </button>
+          <div class="vn-meta">
+            <div class="vn-eyebrow">A voice note</div>
+            <div class="vn-bars" id="vn-bars" aria-hidden="true"></div>
+          </div>
+          <span class="vn-time" id="vn-time">0:00</span>
+        </div>
         <div class="contents manifest" id="manifest" hidden>
           <div class="m-title">What's inside</div>
           <div class="c-list" id="c-list"></div>
@@ -817,6 +851,10 @@
         // carries the sender's shop; the reveal grows a "[sender]'s picks" spend shelf.
         // Validated like other registry slugs; unknown handles render nothing.
         shopRef: (typeof g.sr === "string" && /^[a-z0-9](?:[a-z0-9-]{1,22})[a-z0-9]$/.test(g.sr)) ? g.sr : null,
+        // optional pick-one list (marketplace M6): p1 = [market item ids, ≤3]. The sender
+        // chose a few; the recipient chooses ONE at the reveal. Ids are registry lookups
+        // against the shop catalog, never markup; unknown ids render nothing.
+        pickOne: (Array.isArray(g.p1) ? g.p1.slice(0, 3).filter((id) => typeof id === "string" && /^[a-z0-9][a-z0-9:_-]{2,47}$/i.test(id)) : []),
         design: {
           brand: g.m || "", note: g.n || "", from: g.f || "",
           labelTo: toName ? "To: " + toName : "To: someone",
@@ -837,6 +875,10 @@
           // URLs/paths (future backend / authored demos). Never markup.
           ph: (typeof d.ph === "string" && /^[a-z0-9]{4,24}$/i.test(d.ph)) ? d.ph
             : (Array.isArray(d.ph) ? d.ph.filter(u => typeof u === "string" && /^(\/|https:\/\/|data:image\/)/.test(u)).slice(0, 3) : ""),
+          // voice note (W3): a localStorage key (same-device demo; wrap stores
+          // {a: dataURL, m: mime, s: secs} under giiift-av:<key>). Key only —
+          // the audio itself never rides the token (URL limits).
+          av: (typeof d.av === "string" && /^[a-z0-9]{4,24}$/i.test(d.av)) ? d.av : "",
           // custom engine doc (M5): the full object rides short-link / intent
           // payloads as `cd`; `d.cdk` is the same-device localStorage key (the
           // photos precedent). Both attacker-controllable -> cleanDoc (engine
@@ -1150,6 +1192,48 @@
       photoScatter.hidden = false;
     })();
 
+    // ---------- voice note (sender-recorded) → a play-me card on the rail ----------
+    // design.av is a localStorage key (same-device demo; wrap stashes
+    // {a: dataURL, m: mime, s: secs} under giiift-av:<key>). The stash is
+    // attacker-adjacent like every payload field: MIME-allowlisted data URL only,
+    // ~1MB ceiling, secs clamped — anything off-shape and the card never mounts.
+    (function mountVoiceNote() {
+      const card = document.getElementById("voice-note");
+      if (!card || !design.av) return;
+      const obj = readJson("giiift-av:" + design.av, null);
+      if (!obj || typeof obj.a !== "string") return;
+      if (obj.a.length > 1400000) return;                                  // the wrap-side AV_MAX_B64 ceiling
+      if (!/^data:audio\/(webm|ogg|mp4|mpeg|aac)[^,]*;base64,/.test(obj.a)) return;
+      const secs = Math.max(1, Math.min(60, Math.round(Number(obj.s) || 0))) || 0;
+      const audio = new Audio();
+      audio.src = obj.a;
+      audio.preload = "metadata";
+      const bars = document.getElementById("vn-bars");
+      const SEED = [0.42, 0.85, 0.30, 0.66, 0.95, 0.50, 0.74, 0.25, 0.60, 0.88, 0.38, 0.70, 0.45, 0.80, 0.33, 0.58];
+      SEED.forEach(v => { const i = document.createElement("i"); i.style.setProperty("--vb", v); bars.appendChild(i); });
+      const fmt = s => Math.floor(s / 60) + ":" + String(Math.floor(s % 60)).padStart(2, "0");
+      const timeEl = document.getElementById("vn-time");
+      timeEl.textContent = fmt(secs);
+      const btn = document.getElementById("vn-play");
+      const icPlay = document.getElementById("vn-ic-play");
+      const icPause = document.getElementById("vn-ic-pause");
+      function paint(playing) {
+        card.classList.toggle("playing", playing);
+        // svg has no .hidden property (HTMLElement-only) — style.display is the
+        // toggle that actually paints
+        icPlay.style.display = playing ? "none" : "";
+        icPause.style.display = playing ? "" : "none";
+        btn.setAttribute("aria-label", playing ? "Pause the voice note" : "Play the voice note");
+      }
+      paint(false);   // normalize the markup-initial state through the same path
+      btn.addEventListener("click", () => { if (audio.paused) audio.play().catch(() => {}); else audio.pause(); });
+      audio.addEventListener("play", () => paint(true));
+      audio.addEventListener("pause", () => paint(false));
+      audio.addEventListener("timeupdate", () => { timeEl.textContent = fmt(audio.currentTime); });
+      audio.addEventListener("ended", () => { paint(false); timeEl.textContent = fmt(secs); });
+      card.hidden = false;
+    })();
+
     // Embedded wallet - created silently, no signup. Real key custody arrives
     // with Privy (see netlify.toml); today this is the recipient's persistent
     // GIIIFT address that the vault displays. Reused once it exists.
@@ -1260,15 +1344,16 @@
           if (m) window.giiiftRetailClaimCard({ productId: gift.mandate.productId, mount: m, from: (gift.from || "").replace(/^from:\s*/i, "").trim() });
         }, 1200);
       }
-      // storefront ref (g.sr, marketplace M3): "[sender]'s picks" spend shelf under the
+      // storefront ref (g.sr, marketplace M3) / pick-one list (g.p1, marketplace M6):
+      // the spend shelf — "[sender]'s picks" or "choose ONE of these" — under the
       // manifest. The module self-loads its deps and never throws into the claim; dark
-      // unless this payload carries a ref.
-      if (gift.shopRef) {
+      // unless this payload carries a ref. Pick-one wins when both ride the payload.
+      if (gift.shopRef || (gift.pickOne && gift.pickOne.length)) {
         setTimeout(() => {
           const m = document.getElementById("manifest");
           if (!m) return;
           const s = document.createElement("script"); s.src = "/showcase/market-receive-shelf.js"; s.async = true;
-          s.onload = () => { if (window.giiiftMarketReceiveShelf) window.giiiftMarketReceiveShelf({ mount: m, shopRef: gift.shopRef, from: (gift.from || "").replace(/^from:\s*/i, "").trim() }); };
+          s.onload = () => { if (window.giiiftMarketReceiveShelf) window.giiiftMarketReceiveShelf({ mount: m, shopRef: gift.shopRef, pickOne: gift.pickOne, from: (gift.from || "").replace(/^from:\s*/i, "").trim() }); };
           document.head.appendChild(s);
         }, 1500);
       }

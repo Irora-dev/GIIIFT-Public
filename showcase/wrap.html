@@ -532,6 +532,20 @@
     .photo-thumb img { display: block; width: 100%; aspect-ratio: 1; object-fit: cover; background: #e8e4d8; }
     .photo-thumb .px { position: absolute; top: -6px; right: -6px; width: 16px; height: 16px; border-radius: 50%; border: none; background: #1c222b; color: #fff; font-size: 9.5px; line-height: 1; cursor: pointer; box-shadow: 0 2px 5px rgba(0,0,0,0.5); }
     .photo-thumb .px:hover { background: #ff5a78; }
+
+    /* voice-note recorder (personalize step): record ≤60s, preview, re-record */
+    .audio-rec { display: flex; align-items: center; gap: 10px; padding: 8px; border: 1px dashed var(--line-strong); border-radius: 10.5px; background: rgba(0,0,0,0.3); box-shadow: inset 0 2px 7px rgba(0,0,0,0.35); }
+    .ar-btn { display: inline-flex; align-items: center; gap: 8px; min-height: 40px; padding: 0 14px; font-family: var(--font-main); font-size: 12.5px; font-weight: 600; color: var(--ink); background: none; border: 1px solid var(--line); border-radius: 8px; cursor: pointer; transition: color .2s, border-color .2s, background .2s; }
+    .ar-btn:hover { border-color: var(--line-strong); }
+    .ar-btn .ar-dot { width: 9px; height: 9px; border-radius: 50%; background: #ff5a78; box-shadow: 0 0 8px rgba(255,90,120,0.6); }
+    .ar-btn.armed { border-color: rgba(255,90,120,0.55); background: rgba(255,90,120,0.08); }
+    .ar-btn.armed .ar-dot { animation: ar-pulse 1.2s ease-in-out infinite; }
+    @keyframes ar-pulse { 0%,100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.35); opacity: .55; } }
+    @media (prefers-reduced-motion: reduce) { .ar-btn.armed .ar-dot { animation: none; } }
+    .ar-timer { font-family: var(--font-mono); font-size: 12px; color: var(--muted); white-space: nowrap; }
+    .audio-rec audio { flex: 1; min-width: 0; height: 36px; }
+    .audio-rec .px { position: static; flex-shrink: 0; width: 22px; height: 22px; font-size: 10.5px; border-radius: 50%; border: none; background: #1c222b; color: #fff; cursor: pointer; box-shadow: 0 2px 5px rgba(0,0,0,0.5); }
+    .audio-rec .px:hover { background: #ff5a78; }
     /* hero "Front text" field - echoes the box's serif lettering */
     .tfield-hero input[type="text"] { font-family: var(--font-serif); font-style: italic; font-weight: 600; font-size: 22px; line-height: 1.1; padding: 9.8px 12px; }
     .tfield-hero input::placeholder { font-style: italic; }
@@ -1083,9 +1097,9 @@
 <template data-step-pane data-host="#editor" id="tpl-step-text">
                     <div class="sub-pane" id="sub-text" hidden>
             <div class="card-head">
-              <div class="eyebrow">// step 4 · note</div>
-              <h2>Add a note</h2>
-              <p>The words that ride the box - they appear live as you type.</p>
+              <div class="eyebrow">// step 3 · personalize</div>
+              <h2>Make it personal</h2>
+              <p>A note, photos, your voice - the layer they keep.</p>
             </div>
             <div class="tfields">
               <div class="tfield tfield-hero">
@@ -1109,6 +1123,17 @@
                   <button type="button" class="photo-add" id="photo-add">＋ Add photos</button>
                 </div>
                 <div class="tfield-hint">They unpack as polaroids beside the box. Demo: photos preview on this device.</div>
+              </div>
+              <!-- voice note (optional): ≤60s, plays beside the box as a voice-note card.
+                   Hidden until setupAudio feature-detects MediaRecorder + a mic API. -->
+              <div class="tfield" id="audio-field" hidden>
+                <div class="tfield-top"><label>Voice note</label><span class="tcount ar-timer" id="audio-timer" hidden>0:00 / 1:00</span></div>
+                <div class="audio-rec" id="audio-rec">
+                  <button type="button" class="ar-btn" id="audio-btn"><span class="ar-dot"></span><span id="audio-btn-label">Record</span></button>
+                  <audio id="audio-preview" controls hidden></audio>
+                  <button type="button" class="px" id="audio-del" aria-label="Delete voice note" hidden>✕</button>
+                </div>
+                <div class="tfield-hint" id="audio-hint">They hear you beside the box. Demo: plays on this device.</div>
               </div>
             </div>
           </div>
@@ -1604,7 +1629,7 @@
         name:   { sel: '#sub-name .card-head .eyebrow',   tag: vtxt('nameTag',   null, 'name') },
         design: { sel: '#sub-design .card-head .eyebrow', tag: vtxt('designTag', null, 'design') },
         fill:   { sel: '#pane-fill .card-head .eyebrow',  tag: vtxt('fillTag',   null, '') },
-        text:   { sel: '#sub-text .card-head .eyebrow',   tag: vtxt('textTag',   null, 'note') },
+        text:   { sel: '#sub-text .card-head .eyebrow',   tag: vtxt('textTag',   null, 'personalize') },
         order:  { sel: '#pane-order .card-head .eyebrow',  tag: vtxt('orderTag',  null, 'order') },
       };
       Object.keys(EB).forEach(k => {
@@ -1704,6 +1729,87 @@
       drop.addEventListener('dragover', (e) => { e.preventDefault(); drop.classList.add('over'); });
       drop.addEventListener('dragleave', () => drop.classList.remove('over'));
       drop.addEventListener('drop', (e) => { e.preventDefault(); drop.classList.remove('over'); take((e.dataTransfer && e.dataTransfer.files) || []); });
+      sync();
+    })();
+
+    // voice note (optional, ≤60s): recorded with MediaRecorder, previewed inline,
+    // and stashed in localStorage at send (d.av carries the key) — the photos
+    // precedent exactly: tokens can't carry media, so the demo is same-device and
+    // the data rides short-link/intent payloads when a backend exists. Opus mono
+    // at 60s is ~100-200KB base64, far under the 1MB ceiling both ends enforce.
+    let giftAudio = null;   // { data: dataURL, mime, secs }
+    const AV_MAX_B64 = 1400000;   // ~1MB binary as base64 chars — cleanAv ceiling, both ends
+    (function setupAudio() {
+      const field = document.getElementById('audio-field');
+      const btn = document.getElementById('audio-btn');
+      const btnLabel = document.getElementById('audio-btn-label');
+      const timer = document.getElementById('audio-timer');
+      const preview = document.getElementById('audio-preview');
+      const del = document.getElementById('audio-del');
+      const hint = document.getElementById('audio-hint');
+      if (!field || !btn || !preview) return;
+      if (!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia && window.MediaRecorder)) return;   // stays hidden
+      field.hidden = false;
+      const MAX_S = 60;
+      let rec = null, chunks = [], t0 = 0, tick = null, stopTimer = null, requesting = false;
+      function fmt(s) { return Math.floor(s / 60) + ':' + String(Math.floor(s % 60)).padStart(2, '0'); }
+      function pickMime() {
+        const M = window.MediaRecorder;
+        if (!M.isTypeSupported) return '';
+        return ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4'].find(m => M.isTypeSupported(m)) || '';
+      }
+      function sync() {
+        const has = !!giftAudio;
+        preview.hidden = !has;
+        del.hidden = !has;
+        btn.hidden = has;
+        if (has) preview.src = giftAudio.data;
+      }
+      function stopAll(stream) { try { stream.getTracks().forEach(t => t.stop()); } catch (e) {} }
+      async function start() {
+        if (requesting) return;   // the permission prompt may sit open — one request at a time
+        requesting = true;
+        let stream;
+        try { stream = await navigator.mediaDevices.getUserMedia({ audio: true }); }
+        catch (e) {
+          requesting = false;
+          hint.textContent = 'Mic blocked - allow microphone access in the browser to record.';
+          return;
+        }
+        requesting = false;
+        const mime = pickMime();
+        try { rec = new MediaRecorder(stream, mime ? { mimeType: mime } : undefined); }
+        catch (e) { stopAll(stream); hint.textContent = 'Recording is not available in this browser.'; return; }
+        chunks = [];
+        rec.ondataavailable = (e) => { if (e.data && e.data.size) chunks.push(e.data); };
+        rec.onstop = () => {
+          stopAll(stream);
+          clearInterval(tick); clearTimeout(stopTimer);
+          btn.classList.remove('armed'); btnLabel.textContent = 'Record'; timer.hidden = true;
+          const secs = Math.min(MAX_S, Math.round((Date.now() - t0) / 1000));
+          const blob = new Blob(chunks, { type: rec.mimeType || mime || 'audio/webm' });
+          if (!blob.size || secs < 1) return;   // a tap with no audio: stay in the empty state
+          const fr = new FileReader();
+          fr.onload = () => {
+            const data = String(fr.result || '');
+            if (data.length > AV_MAX_B64) { hint.textContent = 'That ran long - try a shorter note (under a minute).'; return; }
+            giftAudio = { data, mime: blob.type, secs };
+            hint.textContent = 'They hear you beside the box. Demo: plays on this device.';
+            sync();
+          };
+          fr.readAsDataURL(blob);
+        };
+        rec.start();
+        t0 = Date.now();
+        btn.classList.add('armed'); btnLabel.textContent = 'Stop'; timer.hidden = false;
+        tick = setInterval(() => { timer.textContent = fmt((Date.now() - t0) / 1000) + ' / 1:00'; }, 250);
+        stopTimer = setTimeout(() => { if (rec && rec.state === 'recording') rec.stop(); }, MAX_S * 1000);
+      }
+      btn.addEventListener('click', () => {
+        if (rec && rec.state === 'recording') { rec.stop(); return; }
+        start();
+      });
+      del.addEventListener('click', () => { giftAudio = null; preview.removeAttribute('src'); sync(); });
       sync();
     })();
 
@@ -2361,6 +2467,15 @@
           d.ph = phKey;
         } catch (e) { console.warn('[GIIIFT] photos too large to stash, sending without:', e); }
       }
+      // voice note (same-device demo, the photos pattern): stash under giiift-av:<key>;
+      // the link carries only the key (d.av). Ceiling + MIME re-checked on receive.
+      if (giftAudio && giftAudio.data && giftAudio.data.length <= AV_MAX_B64) {
+        try {
+          const avKey = Math.random().toString(36).slice(2, 10);
+          localStorage.setItem('giiift-av:' + avKey, JSON.stringify({ a: giftAudio.data, m: giftAudio.mime, s: giftAudio.secs }));
+          d.av = avKey;
+        } catch (e) { console.warn('[GIIIFT] voice note too large to stash, sending without:', e); }
+      }
       // M5: a lab-crafted CUSTOM doc survives to the recipient. Far too big for
       // the ?g= token (CDN URL limits), it rides (a) the Supabase short-link /
       // intent payloads as `cd` and (b) a same-device localStorage key (`d.cdk`,
@@ -2682,7 +2797,7 @@
     GIIIFTFlow.register({ key: 'fill',   rail: { label: 'Gift' },   enter: stepFill,
       valid: () => contents.length > 0 || vtxt('sealHintEmpty', null, 'Add at least one asset to seal.') });
     GIIIFTFlow.register({ key: 'seal',   rail: false,               enter: stepSeal });
-    GIIIFTFlow.register({ key: 'text',   rail: { label: 'Note' },   enter: stepText });
+    GIIIFTFlow.register({ key: 'text',   rail: { label: 'Personalize' },   enter: stepText });
     GIIIFTFlow.register({ key: 'order',  rail: { label: 'Order' },  enter: stepOrder });
     GIIIFTFlow.register({ key: 'send',   rail: { label: 'Send' },   enter: stepSend });
     GIIIFTFlow.register({ key: 'design-lab', rail: { label: 'Design' }, enter: stepDesignLab, exit: exitDesignLab });

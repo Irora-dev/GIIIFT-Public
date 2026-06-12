@@ -37,14 +37,67 @@
     return loading;
   }
 
+  /* ---- pick-one (M6, §13b): the sender chose up to 3; the recipient chooses ONE ---- */
+  var PICK_KEY = "giiift-pickone";   // { <ids joined>: chosenId } — survives reloads, per device
+  function pickStore() { try { return JSON.parse(localStorage.getItem(PICK_KEY)) || {}; } catch (e) { return {}; } }
+  function pickWrite(k, id) { try { var s = pickStore(); s[k] = id; localStorage.setItem(PICK_KEY, JSON.stringify(s)); } catch (e) {} }
+
+  async function pickOneShelf(opts) {
+    var GM = global.GIIIFTMarket;
+    var ids = (opts.pickOne || []).slice(0, 3);
+    var key = ids.slice().sort().join("|");
+    var chosen = pickStore()[key] || null;
+    var from = (opts && opts.from) || "they";
+
+    var host = document.createElement("div");
+    host.style.marginTop = "26px";
+    opts.mount.appendChild(host);
+    GM.track("receive_shelf", { pickOne: ids.length, decided: !!chosen });
+
+    var note = document.createElement("div");
+    note.style.cssText = "margin:0 0 2px;font:600 13px Inter,sans-serif;color:rgba(238,240,244,.85)";
+    host.appendChild(note);
+
+    function paint() {
+      note.textContent = chosen
+        ? "You chose — it's yours. " + from + " picked well."
+        : from + " picked " + ids.length + " — choose the ONE you want.";
+      var old = host.querySelector(".gmk"); if (old) old.remove();
+      var inner = document.createElement("div");
+      host.appendChild(inner);
+      GM.mount(inner, {
+        key: "pick-one",
+        bare: true, hero: false, search: false, sort: false, cart: false, credit: false,
+        eyebrow: chosen ? "Your pick" : "Pick one · a gift from " + from,
+        onPickLabel: chosen ? "Yours ✓" : "Choose this one",
+        onPick: function (item) {
+          if (chosen) return false;                    // decided is decided
+          chosen = item.id; pickWrite(key, item.id);
+          GM.track("pickone_choice", { id: item.id });
+          paint();
+          return true;
+        },
+        shelves: [{ kind: "row", title: chosen ? "You chose" : "One of these is yours",
+          note: chosen ? "" : "tap to decide", query: { ids: chosen ? [chosen] : ids } }],
+      });
+    }
+    paint();
+    return true;
+  }
+
   /**
-   * Mount the shelf. opts: { mount, shopRef?, from?, editorialFallback? }
+   * Mount the shelf. opts: { mount, shopRef?, pickOne?, from?, editorialFallback? }
+   * pickOne (M6) renders the choose-one strip and wins over the storefront shelf.
    * Resolves true when a shelf rendered, false when it (silently) did not.
    */
   async function spendShelf(opts) {
     try {
       var mountEl = opts && opts.mount; if (!mountEl) return false;
       var shopRef = String((opts && opts.shopRef) || "").toLowerCase();
+      if (opts && opts.pickOne && opts.pickOne.length) {
+        await ensureDeps();
+        return await pickOneShelf(opts);
+      }
       if (!shopRef && !(opts && opts.editorialFallback)) return false;
       await ensureDeps();
       var GM = global.GIIIFTMarket, SF = global.GIIIFTStorefront;

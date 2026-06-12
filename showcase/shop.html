@@ -170,7 +170,10 @@
     })();
     if (V) { V.resolve({ payload: stashedVertical }); V.applyTheme(); }
     var vtxt = function (path, tokens, fb) { var s = V ? V.text('copy.shop.' + path, tokens) : ''; return s || fb || ''; };
-    var verticalOn = !!(V && typeof V.current === 'function' && V.current());
+    // vertical-engine exposes active() (merged pack; id 'core' = none) — the M1 code
+    // called a nonexistent current() behind a typeof guard, so this was always false.
+    // Fixed in M6: /shop?v=tcg (and /tcg/shop) now genuinely engage the pack.
+    var verticalOn = !!(V && typeof V.active === 'function' && V.active() && V.active().id && V.active().id !== 'core');
 
     /* ---- gift context + spendable balance (same contract as before) ---- */
     function getContext() {
@@ -240,9 +243,20 @@
     ];
     if (verticalOn) shelves.sort(function (a, b) { return (b.vertical === 'tcg' ? 1 : 0) - (a.vertical === 'tcg' ? 1 : 0); });
 
+    // vertical shop preset (M6, §12 surface 5): /shop?v=tcg (or /tcg/shop) resolves the
+    // pack at parse time (vertical-engine), the dominance rule pins the hero lane, the
+    // pack's copy keys re-voice the chrome above, and its theme accent skins the engine.
+    var vTheme = (function () {
+      if (!verticalOn || !V || typeof V.get !== 'function') return undefined;
+      var th = V.get('theme') || {};
+      var accent = (th.vars && th.vars['--accent-ui']) || (th.set && th.set.accent) || null;
+      return accent ? { accent: accent } : undefined;
+    })();
+
     window.__shop = GIIIFTMarket.mount('#market', {
       key: 'shop',
       bare: true,
+      theme: vTheme,
       balanceUsd: balance,   // signal-only (this page owns the balance hero); M4 composite + priceFit read it
       search: true, sort: true,
       searchPlaceholder: vtxt('searchPh', null, 'Search cards, packs, art, real things…'),

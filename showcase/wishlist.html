@@ -1,0 +1,169 @@
+<!doctype html>
+<!-- GIIIFT · Shared wishlist (marketplace M7, spec §13.7). Lane-owned. Renders
+     "[name]'s wishlist" from a compact ?w= payload (built by /account's Share button):
+     base64url of { n: <name ≤24>, i: [<market item ids> ≤24] } — validated like gift
+     tokens (ids are registry lookups against the catalog, never markup). Gifting rides
+     the wrap handoff wrap.html actually reads (?pack=&to=&occasion=) + a `p1` param
+     that stays dark until the 🧵 lane honors it; pick-one funding uses the M6 field. -->
+<html lang="en" data-theme="dark">
+<head>
+<script>/* public showcase mirror: always demo mode */try{localStorage.setItem("giiift-demo","1");localStorage.setItem("giiift-authed","1");}catch(e){}window.GIIIFT_CAPS={intents:false,oauth:false,telemetry:false};</script>
+<meta name="robots" content="noindex, nofollow, noarchive">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>GIIIFT · A wishlist</title>
+  <meta name="description" content="Things they actually want — gift one in a tap." />
+  <meta name="robots" content="noindex" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@700&family=Space+Mono:wght@400;700&display=swap" />
+  <link rel="icon" type="image/svg+xml" href="/showcase/favicon.svg" />
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    [hidden] { display: none !important; }
+    body { background: #0a0a0c; color: #eef0f4; font-family: 'Inter', system-ui, sans-serif; min-height: 100vh; }
+    .wrap { position: relative; z-index: 1; max-width: 980px; margin: 0 auto; padding: 36px 20px 110px; }
+    .crumb { font: 600 11px 'Space Mono', monospace; letter-spacing: .16em; text-transform: uppercase; color: rgba(243,244,242,.4); }
+    .crumb a { color: inherit; text-decoration: none; } .crumb a:hover { color: #fff; }
+    h1 { font: 700 30px/1.1 'Space Grotesk', sans-serif; margin: 10px 0 6px;
+      background: linear-gradient(180deg,#fff,#b8f5dd 72%,#6fe6c0); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+    .sub { color: rgba(243,244,242,.55); font-size: 13.5px; margin-bottom: 8px; max-width: 560px; }
+    .modebar { display: flex; gap: 10px; align-items: center; margin: 16px 0 6px; flex-wrap: wrap; }
+    .modebtn { padding: 8px 14px; border: 1px solid rgba(255,255,255,.13); border-radius: 999px; background: transparent; color: rgba(238,240,244,.65); font: 600 12px 'Inter'; cursor: pointer; transition: .18s; }
+    .modebtn.on { color: #07120d; background: #00FF9D; border-color: #00FF9D; }
+    .hint { font: 500 11.5px 'Inter'; color: rgba(243,244,242,.45); }
+    .empty { margin-top: 26px; padding: 56px 20px; text-align: center; color: rgba(243,244,242,.5); font-size: 14px; border: 1px dashed rgba(255,255,255,.12); border-radius: 16px; }
+    .empty a { color: #00FF9D; }
+    /* the pick-one funding bar */
+    .fundbar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 40; display: none; justify-content: center; padding: 12px 16px; background: linear-gradient(180deg, transparent, rgba(7,8,10,.92) 38%); }
+    .fundbar.on { display: flex; }
+    .fund { display: flex; align-items: center; gap: 14px; padding: 12px 16px; border: 1px solid rgba(0,255,157,.35); border-radius: 15px; background: rgba(10,14,12,.96); box-shadow: 0 16px 50px -18px rgba(0,0,0,.9); }
+    .fund .n { font: 600 12.5px 'Inter'; color: rgba(238,240,244,.8); }
+    .fund .n b { color: #00FF9D; }
+    .fund button { padding: 10px 16px; border: none; border-radius: 10px; background: #fff; color: #07120d; font: 700 13px 'Inter'; cursor: pointer; }
+    .fund button:disabled { opacity: .45; cursor: default; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="crumb"><a href="/showcase/shop.html">← The shop</a></div>
+    <h1 id="title">A wishlist</h1>
+    <p class="sub" id="sub">Things they actually want. Gift one in a tap — the value lands self-custodial and they claim it on the spot.</p>
+    <div class="modebar" id="modebar" hidden>
+      <button type="button" class="modebtn on" data-m="gift">Gift one</button>
+      <button type="button" class="modebtn" data-m="fund">Fund a pick-one</button>
+      <span class="hint" id="modehint">Tap an item to gift it.</span>
+    </div>
+    <div id="list"></div>
+  </div>
+  <div class="fundbar" id="fundbar"><div class="fund"><span class="n" id="fundnote"></span><button type="button" id="fundgo" disabled>Fund it</button></div></div>
+
+  <script src="/showcase/market-engine.js"></script>
+  <script src="/showcase/market-cards.js"></script>
+  <script src="/showcase/market-sources.js"></script>
+  <script>
+  (function () {
+    'use strict';
+    var GM = window.GIIIFTMarket;
+    var ID_RE = /^[a-z0-9][a-z0-9:_-]{2,47}$/i;
+    var PICK_MAX = 3;
+
+    function $(id) { return document.getElementById(id); }
+    function decode(tok) {
+      try {
+        var p = String(tok).replace(/-/g, '+').replace(/_/g, '/');
+        var b = p + '='.repeat((4 - p.length % 4) % 4);
+        return JSON.parse(decodeURIComponent(escape(atob(b))));
+      } catch (e) { return null; }
+    }
+
+    // ---- the shared payload: { n: name, i: [ids] }, validated like gift tokens ----
+    var raw = decode(new URLSearchParams(location.search).get('w') || '');
+    var name = (raw && typeof raw.n === 'string') ? raw.n.replace(/[^\x20-\x7e\u00a0-\uffff]|[<>]/g, '').trim().slice(0, 24) : '';
+    var ids = (raw && Array.isArray(raw.i) ? raw.i : []).filter(function (id) { return typeof id === 'string' && ID_RE.test(id); }).slice(0, 24);
+
+    if (!ids.length) {
+      $('list').innerHTML = '<div class="empty">This wishlist link is empty or didn’t survive the trip.<br>Build your own: heart things in <a href="/showcase/shop.html">the shop</a>, then share from <a href="/showcase/shop.html">your account</a>.</div>';
+      return;
+    }
+    var who = name || 'They';
+    $('title').textContent = (name ? name + '’s' : 'A') + ' wishlist';
+    $('sub').textContent = 'Things ' + (name || 'they') + ' actually want' + (name ? '' : 's') + '. Gift one in a tap, or fund a pick-one and let ' + (name || 'them') + ' choose.';
+    document.title = 'GIIIFT · ' + $('title').textContent;
+    $('modebar').hidden = false;
+    GM.track('wishlist_view', { n: ids.length, named: !!name });
+
+    // ---- gifting rides the wrap handoff wrap.html READS: ?pack=&to=&occasion= ----
+    // (+ p1, dark until the wrap lane honors it; the gift works as a value gift today)
+    function wrapHref(usd, p1) {
+      var q = new URLSearchParams();
+      if (usd > 0) q.set('pack', String(Math.ceil(usd)));
+      if (name) q.set('to', name);
+      q.set('occasion', 'wishlist');
+      if (p1 && p1.length) q.set('p1', p1.join(','));
+      return '/showcase/wrap.html?' + q.toString();
+    }
+
+    var mode = 'gift', picks = [];
+    function fundPrice() {
+      // pick-one funds the MAX of the selection: any choice they make is covered
+      var items = GM.query(null, { ids: picks });
+      return items.reduce(function (m, i) { return Math.max(m, i.price.usd || 0); }, 0);
+    }
+    function paintFund() {
+      var bar = $('fundbar');
+      bar.classList.toggle('on', mode === 'fund');
+      if (mode !== 'fund') return;
+      var go = $('fundgo');
+      $('fundnote').innerHTML = picks.length
+        ? '<b>' + picks.length + '</b>/' + PICK_MAX + ' picked · funds <b>' + GM.money(fundPrice()) + '</b> · ' + (name || 'they') + ' choose' + (name ? 's' : '') + ' ONE'
+        : 'Pick up to ' + PICK_MAX + ' — ' + (name || 'they') + ' choose' + (name ? 's' : '') + ' one at the reveal';
+      go.disabled = !picks.length;
+    }
+    $('fundgo').addEventListener('click', function () {
+      GM.track('wishlist_gift_intent', { mode: 'pickone', n: picks.length });
+      window.location.href = wrapHref(fundPrice(), picks);
+    });
+
+    function mount() {
+      $('list').innerHTML = '';
+      var host = document.createElement('div');
+      $('list').appendChild(host);
+      GM.mount(host, {
+        key: 'wishlist',
+        bare: true, hero: false, search: false, sort: false, cart: false, credit: false,
+        ids: ids,
+        onPickLabel: mode === 'fund' ? 'Pick this one' : 'Gift this' + (name ? ' to ' + name : ''),
+        onPick: function (item, ui) {
+          if (mode === 'fund') {
+            var i = picks.indexOf(item.id);
+            if (i >= 0) picks.splice(i, 1);
+            else if (picks.length < PICK_MAX) picks.push(item.id);
+            else { if (ui && ui.button) ui.button.textContent = PICK_MAX + ' max — remove one first'; return false; }
+            if (ui && ui.button) ui.button.textContent = picks.indexOf(item.id) >= 0 ? 'Picked ✓ (tap to remove)' : 'Pick this one';
+            paintFund();
+            return false;
+          }
+          GM.track('wishlist_gift_intent', { mode: 'single' });
+          window.location.href = wrapHref(item.price.usd || 0, [item.id]);
+          return false;   // navigation takes it from here
+        },
+        shelves: [{ kind: 'grid', title: name ? 'What ' + name + ' saved' : 'What they saved', note: ids.length + ' item' + (ids.length > 1 ? 's' : ''), query: { ids: ids } }],
+      });
+    }
+    var modeBtns = document.querySelectorAll('.modebtn');
+    for (var i = 0; i < modeBtns.length; i++) (function (b) {
+      b.addEventListener('click', function () {
+        mode = b.getAttribute('data-m');
+        for (var j = 0; j < modeBtns.length; j++) modeBtns[j].classList.toggle('on', modeBtns[j] === b);
+        $('modehint').textContent = mode === 'fund' ? 'Select up to ' + PICK_MAX + ', then fund it below.' : 'Tap an item to gift it.';
+        if (mode !== 'fund') { picks = []; }
+        mount(); paintFund();
+      });
+    })(modeBtns[i]);
+
+    mount(); paintFund();
+  })();
+  </script>
+</body>
+</html>
