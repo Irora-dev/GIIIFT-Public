@@ -881,6 +881,36 @@
     .asset-rail .asset-grid { display: flex; gap: 6px; padding-bottom: 6px; }
     .asset-rail .asset-btn { flex: 0 0 auto; width: 56px; }
     .inside-head { display: flex; align-items: baseline; justify-content: space-between; }
+    /* V2 W1: cold-visitor framing + Surprise mode (docs/WRAP_FLOW_V2.md beat 0/1) */
+    .brand-intro { margin-bottom: 14px; padding-bottom: 12px; border-bottom: 1px solid rgba(255,255,255,0.08); }
+    .brand-intro .bi-title { font-size: 15px; font-weight: 800; letter-spacing: -0.01em; }
+    .brand-intro .bi-desc { font-size: 12.5px; line-height: 1.5; color: var(--muted); margin-top: 3px; }
+    .bi-more { display: inline; }
+    .bi-more summary { display: inline-grid; place-items: center; width: 18px; height: 18px; margin-left: 4px;
+      border-radius: 50%; border: 1px solid rgba(255,255,255,0.25); font-size: 10.5px; cursor: pointer;
+      list-style: none; color: var(--muted); vertical-align: -3px; }
+    .bi-more summary::-webkit-details-marker { display: none; }
+    .bi-more[open] summary { color: var(--accent-ui, #00FF9D); border-color: var(--accent-ui, #00FF9D); }
+    .bi-pop { margin-top: 8px; padding: 10px 12px; border-radius: 9px; background: rgba(0,0,0,0.4);
+      border: 1px solid rgba(255,255,255,0.1); font-size: 12px; line-height: 1.55; color: var(--ink); }
+    .surprise-row { display: flex; align-items: flex-start; gap: 8px; margin-top: 9px; cursor: pointer;
+      font-size: 12.5px; line-height: 1.45; color: var(--muted); }
+    .surprise-row input { margin-top: 2px; accent-color: var(--accent-ui, #00FF9D); }
+    .surprise-row b { color: var(--ink); }
+    .tfield.muted-off { opacity: 0.45; pointer-events: none; }
+
+    /* V2 W2: order step + running total (skeleton; rails land in W6) */
+    .order-row { display: flex; justify-content: space-between; align-items: baseline; gap: 12px;
+      padding: 8px 2px; font-size: 13px; border-bottom: 1px dashed rgba(255,255,255,0.07); }
+    .order-row .o-sub { color: var(--muted); font-size: 11.5px; }
+    .order-fee summary { cursor: pointer; list-style: none; display: inline; }
+    .order-fee summary::-webkit-details-marker { display: none; }
+    .order-fee .fee-why { font-size: 11.5px; color: var(--muted); line-height: 1.5; margin-top: 5px; max-width: 42ch; }
+    .order-free .ofree { color: var(--accent-ui, #00FF9D); font-weight: 800; letter-spacing: 0.04em; }
+    .order-total { border-bottom: 0; margin-top: 4px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.16);
+      font-size: 15px; font-weight: 800; }
+    .run-total { font-family: var(--font-mono); font-size: 12px; color: var(--accent-ui, #00FF9D); opacity: 0.9; }
+
     /* §10 readability floor: keyboard focus + touch targets (brief, 2026-06-12) */
     :where(button, a, input, select, [tabindex]):focus-visible {
       outline: 2px solid var(--accent-ui, #00FF9D); outline-offset: 2px; border-radius: 4px; }
@@ -906,6 +936,7 @@
 
       <!-- STEP 3 - fill (value first, then the asset rail, then what's inside) -->
       <div class="pane" id="pane-fill" hidden></div>
+      <div class="pane" id="pane-order" hidden></div>
       <template data-step-pane data-host="#pane-fill" id="tpl-step-fill">
         <div class="card-head">
           <div class="eyebrow">// step 3</div>
@@ -971,9 +1002,21 @@
         <button class="add-btn" id="add-asset">Drop it in <span class="ab-arrow">↓</span></button>
 
         <div>
-          <div class="group inside-head"><h4>Inside the box</h4><span class="inside-count" id="inside-count" hidden></span></div>
+          <div class="group inside-head"><h4>Inside the box</h4><span class="run-total" id="run-total" hidden></span><span class="inside-count" id="inside-count" hidden></span></div>
           <div class="contents" id="contents"></div>
         </div>
+      </template>
+
+      <template data-step-pane data-host="#pane-order" id="tpl-step-order">
+        <div class="card-head">
+          <div class="eyebrow">// step 5 · order</div>
+          <h2>Your order</h2>
+          <p>Everything in the box, what it costs, and what's free.</p>
+        </div>
+        <div class="order-lines" id="order-lines"></div>
+        <div class="order-row order-free"><span>Sending the box</span><span class="ofree">FREE - always</span></div>
+        <div class="order-row order-total"><span>Total today</span><span id="order-total">$0.00</span></div>
+        <div class="tfield-hint" id="order-note">No charge today - payment options are on the way. Sending is free, always.</div>
       </template>
     
       <!-- DESIGN-LAB (M4, behind ?flow=lab; M4.5 also a hatch detour from the gallery) -->
@@ -994,6 +1037,18 @@
           <!-- 1 · NAME -->
           <template data-step-pane data-host="#editor" id="tpl-step-name">
           <div class="sub-pane pane-enter" id="sub-name">
+            <!-- cold-visitor framing: wrap is linked from everywhere, so assume zero context -->
+            <div class="brand-intro">
+              <div class="bi-title">Wrap something real.</div>
+              <div class="bi-desc">Design a box, put value inside, send it with a link - no app,
+                no wallet needed on either end.
+                <details class="bi-more"><summary aria-label="What is GIIIFT?">ⓘ</summary>
+                  <div class="bi-pop">GIIIFT turns money and goods into a gift worth opening:
+                  a designed box, your note and photos, real value inside. The receiver opens it
+                  in their browser and everything lands in a wallet they own. Sending is free.</div>
+                </details>
+              </div>
+            </div>
             <div class="card-head">
               <div class="eyebrow">// step 1 · name</div>
               <h2>Who's it for?</h2>
@@ -1004,6 +1059,8 @@
                 <div class="tfield-top"><label>Their name</label></div>
                 <input type="text" id="to-name" maxlength="20" placeholder="Alex" autocomplete="off">
                 <div class="tfield-hint">Lands on the front of the box and the shipping label</div>
+                <label class="surprise-row"><input type="checkbox" id="no-name">
+                  <span><b>Surprise mode</b> - no name on the box (you don't know it, or you're keeping it mysterious)</span></label>
               </div>
               <div class="tfield">
                 <div class="tfield-top"><label>From</label><span class="tcount" data-count-for="from"></span></div>
@@ -1033,7 +1090,7 @@
             <div class="tfields">
               <div class="tfield tfield-hero">
                 <div class="tfield-top"><label>Note</label><span class="tcount" data-count-for="note"></span></div>
-                <input type="text" data-field="note" maxlength="38" placeholder="with love">
+                <input type="text" data-field="note" maxlength="120" placeholder="with love">
                 <!-- vertical message starters: one tap fills the note ("go pull something rare") -->
                 <div class="vchip-row" id="note-prompts" hidden></div>
               </div>
@@ -1395,6 +1452,7 @@
       finish: 'gradient', cardboard: '#7c3aed', cardboard2: '#ec4899', angle: 135,
       pattern: 'dots', sheen: true, accent: '#fde68a',
       fragile: false, fragileText: 'Fragile', fragileColor: '#d94f2a',
+      noName: false,   // Surprise mode: no name anywhere on the box (V2 beat 1)
       template: null,   // a GIIIFTBoxTemplates id ("expedition", …) or null = pattern box
     };
 
@@ -1547,6 +1605,7 @@
         design: { sel: '#sub-design .card-head .eyebrow', tag: vtxt('designTag', null, 'design') },
         fill:   { sel: '#pane-fill .card-head .eyebrow',  tag: vtxt('fillTag',   null, '') },
         text:   { sel: '#sub-text .card-head .eyebrow',   tag: vtxt('textTag',   null, 'note') },
+        order:  { sel: '#pane-order .card-head .eyebrow',  tag: vtxt('orderTag',  null, 'order') },
       };
       Object.keys(EB).forEach(k => {
         const el = document.querySelector(EB[k].sel);
@@ -1885,6 +1944,28 @@
         }
         paint();
       });
+      // Surprise mode: nameless box. The name field fades, every name slot falls to
+      // its neutral default, and the payload ships an empty `t`.
+      const nn = document.getElementById('no-name');
+      if (nn) nn.addEventListener('change', () => {
+        cfg.noName = nn.checked;
+        const wrap = ti.closest('.tfield');
+        if (cfg.noName) {
+          ti.value = '';
+          if (wrap) wrap.classList.add('muted-off');
+          ti.disabled = true;
+          cfg.labelTo = 'To: someone';
+          if (!brandTouched) { cfg.brand = 'Surprise'; if (brandInput) brandInput.value = ''; }
+        } else {
+          if (wrap) wrap.classList.remove('muted-off');
+          ti.disabled = false;
+          if (!brandTouched) { cfg.brand = 'Name Here'; if (brandInput) brandInput.value = ''; }
+          setTimeout(() => ti.focus(), 60);
+        }
+        paint();
+        if (typeof renderTplSlots === 'function') renderTplSlots();
+      });
+
       // landing handoffs (?to=) and reciprocity links may have seeded cfg.labelTo
       window.__seedToName = () => {
         const cur = (cfg.labelTo || '').replace(/^to:\s*/i, '').trim();
@@ -1952,6 +2033,7 @@
     });
 
     function renderContents() {
+      updateRunTotal();
       const counter = document.getElementById('inside-count');
       if (counter) {
         counter.hidden = contents.length === 0;
@@ -2052,15 +2134,15 @@
     const hint = document.getElementById('hint');
     const controlCard = document.getElementById('control-card');
     const paneFill = document.getElementById('pane-fill');
+    const paneOrder = document.getElementById('pane-order');
     const paneCustomize = document.getElementById('pane-customize');
     const stepsEl = document.getElementById('steps');
     // (the stage element is owned by GIIIFTStageBox since M2)
 
     function showPane(which) {
-      const fill = which === 'fill';
-      paneFill.hidden = !fill;
-      paneCustomize.hidden = fill;
-      const shown = fill ? paneFill : paneCustomize;
+      const map = { fill: paneFill, order: paneOrder, customize: paneCustomize };
+      const shown = map[which] || paneCustomize;
+      Object.values(map).forEach(el => { if (el) el.hidden = el !== shown; });
       shown.classList.remove('pane-enter'); void shown.offsetWidth; shown.classList.add('pane-enter');
     }
 
@@ -2073,14 +2155,22 @@
         hint.textContent = vtxt('nameHint', null, 'Tell us who it’s for, then dress the box for them.');
       } else if (stage === 'design') {
         primary.disabled = false;
-        primary.textContent = vtxt('designBtn', null, 'Fill the box →');
-        hint.textContent = vtxt('designHint', null, 'Pick a box design or your own colours, then fill it.');
+        primary.textContent = vtxt('designBtn', null, 'Write the note →');
+        hint.textContent = vtxt('designHint', null, 'Pick a box design or your own colours, then make it personal.');
+      } else if (stage === 'text') {
+        primary.disabled = false;
+        primary.textContent = vtxt('textBtn', null, 'Pick the gift →');
+        hint.textContent = vtxt('textHint', null, 'Make it personal, then pick what goes inside.');
       } else if (stage === 'fill') {
         primary.disabled = contents.length === 0;
         primary.textContent = vtxt('sealBtn', null, 'Seal the box →');
         hint.textContent = contents.length
           ? vtxt('sealHintReady', { count: contents.length, s: contents.length > 1 ? 's' : '' }, `${contents.length} item${contents.length>1?'s':''} inside · ready to seal`)
           : vtxt('sealHintEmpty', null, 'Add at least one asset to seal.');
+      } else if (stage === 'order') {
+        primary.disabled = false;
+        primary.textContent = vtxt('orderBtn', null, 'Confirm & send →');
+        hint.textContent = vtxt('orderHint', null, 'Check the box one last time - then we wrap it for the road.');
       }
     }
 
@@ -2106,7 +2196,7 @@
       primary.disabled = true; primary.textContent = vtxt('sealingBtn', null, 'Sealing…'); hint.textContent = '';
       controlCard.classList.add('busy');
       GIIIFTFlow.ctx().emit('flow:seal');       // stage-box: lid closes, pose settles, tape wipes on
-      setTimeout(() => GIIIFTFlow.go('text'), 1700);
+      setTimeout(() => GIIIFTFlow.go('order'), 1700);
     }
 
     // swap between the name / design / note sub-steps inside the editor card
@@ -2127,8 +2217,8 @@
       controlCard.classList.remove('busy');
       showPane('customize');                      // the card switches to the note
       showSub('text');                            // (stage-box re-arms drag via flow:step)
-      primary.style.display = ''; primary.disabled = false; primary.textContent = vtxt('finalizeBtn', null, 'Finalize →');
-      hint.textContent = vtxt('textHint', null, 'Add your note, then finalize your gift.');
+      primary.style.display = '';
+      updatePrimary();
     }
 
     function stepDesign() {
@@ -2136,6 +2226,79 @@
       showPane('customize');
       showSub('design');
       renderTplSlots();   // M4.5: slot placeholders track the latest name/note
+      updatePrimary();
+    }
+
+    // ---------- V2 W2: the order step (skeleton; payment rails land in W6) ----------
+    // Totals philosophy (docs/WRAP_FLOW_V2.md beat 5/6): the sender sees the running
+    // total WHILE adding things, so this page never blindsides. Cash/value items are
+    // free to send (the transfer is the product's free funnel); the marketplace fee
+    // applies to picked goods only, at the rate in market-pricing.json (the
+    // marketplace lane's single source of truth - all zeros until PRICING.md lands).
+    let FEE_PCTS = { default: 0 };
+    fetch('market-pricing.json', { headers: { accept: 'application/json' } })
+      .then(r => r.ok ? r.json() : null)
+      .then(j => { if (j && j.marketplacePct) FEE_PCTS = j.marketplacePct; updateRunTotal(); })
+      .catch(() => {});
+
+    function computeTotals() {
+      let usd = 0, feeBase = 0; const nonUsd = [];
+      contents.forEach(it => {
+        const amt = parseFloat(it.amount) || 0;
+        if (it.retail && it.retail.priceUsd != null) { const v = Number(it.retail.priceUsd) || 0; usd += v; feeBase += v; }
+        else if (it.ticker === 'USDC' || it.ticker === 'USDT') usd += amt;
+        else if (amt) nonUsd.push(amt + ' ' + it.ticker);
+      });
+      const pct = Number(FEE_PCTS.default) || 0;
+      const fee = feeBase * pct / 100;
+      return { usd, fee, pct, total: usd + fee, nonUsd };
+    }
+
+    function updateRunTotal() {
+      const el = document.getElementById('run-total');
+      if (!el) return;
+      const t = computeTotals();
+      const has = t.total > 0 || t.nonUsd.length;
+      el.hidden = !has;
+      if (!has) return;
+      const money = t.total > 0 ? '$' + t.total.toFixed(2) : '';
+      el.textContent = [money, t.nonUsd.join(' + ')].filter(Boolean).join(' + ')
+        + (t.fee > 0 ? ' incl. fees' : '');
+    }
+
+    function renderOrder() {
+      const lines = document.getElementById('order-lines');
+      if (!lines) return;
+      lines.innerHTML = '';
+      const row = (label, value, cls, sub) => {
+        const r = document.createElement('div');
+        r.className = 'order-row' + (cls ? ' ' + cls : '');
+        const l = document.createElement('span'); l.textContent = label;
+        if (sub) { const sd = document.createElement('div'); sd.className = 'o-sub'; sd.textContent = sub; l.appendChild(sd); }
+        const v = document.createElement('span'); v.textContent = value;
+        r.appendChild(l); r.appendChild(v); lines.appendChild(r);
+        return r;
+      };
+      contents.forEach(it => {
+        if (it.retail && it.retail.priceUsd != null) row(it.retail.title || it.name || 'Picked gift', '$' + (Number(it.retail.priceUsd) || 0).toFixed(2));
+        else row((it.amount + ' ' + it.ticker).trim(), it.ticker === 'USDC' || it.ticker === 'USDT' ? '$' + (parseFloat(it.amount) || 0).toFixed(2) : '—', '', it.name);
+      });
+      const t = computeTotals();
+      if (contents.some(c => c.retail)) {   // fee transparency: the row shows whenever picked goods are in the box, even at 0%
+        const fr = row('Marketplace fee (' + t.pct + '%)', '$' + t.fee.toFixed(2), 'order-fee');
+        const det = document.createElement('details');
+        det.innerHTML = '<summary> ⓘ</summary><div class="fee-why">The fee covers checkout rails and curation on picked goods. Cash and asset gifts transfer free - that part is never charged.</div>';
+        fr.firstChild.appendChild(det);
+      }
+      const totalEl = document.getElementById('order-total');
+      if (totalEl) totalEl.textContent = [t.total > 0 ? '$' + t.total.toFixed(2) : (t.nonUsd.length ? '' : '$0.00'), t.nonUsd.join(' + ')].filter(Boolean).join(' + ');
+    }
+
+    function stepOrder() {
+      stage = 'order';
+      controlCard.classList.remove('busy');
+      showPane('order');
+      renderOrder();
       updatePrimary();
     }
 
@@ -2231,6 +2394,7 @@
         i: contents.map(it => [it.ticker, it.amount]),
       };
       if (Object.keys(d).length) compact.d = d;
+      if (cfg.noName) compact.t = '';   // Surprise mode: the box stays nameless on the receive side too
       ['t', 'f', 'm', 'n'].forEach(k => { if (!compact[k]) delete compact[k]; });
       // a chosen "real thing" rides as r:{p} (receive side: box.html hook → retail-claim.js);
       // its funding is already in i as plain USDC — the universal spendable fallback
@@ -2515,15 +2679,16 @@
       });
     })();
 
-    GIIIFTFlow.register({ key: 'fill',   rail: { label: 'Fill' },   enter: stepFill,
+    GIIIFTFlow.register({ key: 'fill',   rail: { label: 'Gift' },   enter: stepFill,
       valid: () => contents.length > 0 || vtxt('sealHintEmpty', null, 'Add at least one asset to seal.') });
     GIIIFTFlow.register({ key: 'seal',   rail: false,               enter: stepSeal });
     GIIIFTFlow.register({ key: 'text',   rail: { label: 'Note' },   enter: stepText });
+    GIIIFTFlow.register({ key: 'order',  rail: { label: 'Order' },  enter: stepOrder });
     GIIIFTFlow.register({ key: 'send',   rail: { label: 'Send' },   enter: stepSend });
     GIIIFTFlow.register({ key: 'design-lab', rail: { label: 'Design' }, enter: stepDesignLab, exit: exitDesignLab });
     const FLOW_LAB = (() => { try { return new URLSearchParams(location.search).get('flow') === 'lab'; } catch (e) { return false; } })();
     GIIIFTFlow.start({
-      steps: FLOW_LAB ? ['name', 'design-lab', 'fill', 'seal', 'text', 'send'] : ['name', 'design', 'fill', 'seal', 'text', 'send'],
+      steps: FLOW_LAB ? ['name', 'design-lab', 'text', 'fill', 'seal', 'order', 'send'] : ['name', 'design', 'text', 'fill', 'seal', 'order', 'send'],
       rail: '#steps',
       initial: 'name',
       runEnter: false,   // boot matches the markup-initial name step (no autofocus on load)

@@ -277,6 +277,8 @@
         base.fillKind = enumv(FILLKINDS, e.fillKind, "solid");        // gradient text fill (colour -> fill2)
         if (base.fillKind !== "solid") { base.fill2 = hex(e.fill2, base.color); base.fillAngle = num(e.fillAngle, 135, 0, 360); }
         base.finish = enumv(TEXTFINISH, e.finish, "none");            // metallic foil fill — overrides colour/gradient; curved text keeps its colour (like gradients)
+        var fim = (typeof e.fillImage === "string" && (ART_OK.test(e.fillImage) || (ART_DATA.test(e.fillImage) && e.fillImage.length <= ART_DATA_MAX))) ? e.fillImage : "";
+        if (fim) base.fillImage = fim;                                // photo/pattern clipped INTO the glyphs (background-clip:text); wins over colour/gradient/foil
         break;
       case "stamp":
         base.value = str(e.value, 40); base.color = hex(e.color, palette.accent); base.size = num(e.size, 0.07, 0.03, 0.16);
@@ -302,6 +304,10 @@
         if (base.outlineW > 0) base.outlineColor = hex(e.outlineColor, "#ffffff");
         base.softShadow = num(e.softShadow, 0, 0, 1);          // alpha-true soft drop shadow (grounds cutouts; box-shadow would draw the rectangle)
         if (e.flipX) base.flipX = true; if (e.flipY) base.flipY = true;
+        if (e.duotone && typeof e.duotone === "object") {      // two-tone colour grade: map shadows->a, highlights->b
+          var da = hex(e.duotone.a, ""), db = hex(e.duotone.b, "");
+          if (da && db) base.duotone = { a: da, b: db };
+        }
         if (e.crop && typeof e.crop === "object") {            // manual reframe: a sub-window of the source, normalised 0..1; stored only when it's a real sub-rect
           var ccx = num(e.crop.x, 0, 0, 1), ccy = num(e.crop.y, 0, 0, 1), ccw = num(e.crop.w, 1, 0.02, 1), cch = num(e.crop.h, 1, 0.02, 1);
           if (ccx + ccw <= 1.0001 && ccy + cch <= 1.0001 && (ccx > 0.001 || ccy > 0.001 || ccw < 0.999 || cch < 0.999))
@@ -358,7 +364,25 @@
         base.opacity = num(e.opacity, 1, 0, 1);
         break;
     }
+    if (e.shadow && typeof e.shadow === "object") {            // universal drop-shadow / glow on ANY element (alpha-aware via filter)
+      var sx = num(e.shadow.x, 0, -0.12, 0.12), sy = num(e.shadow.y, 0.012, -0.12, 0.12), sb = num(e.shadow.blur, 0.02, 0, 0.2), so = num(e.shadow.opacity, 0.45, 0, 1);
+      if (sb > 0 || sx !== 0 || sy !== 0) base.shadow = { x: +sx.toFixed(4), y: +sy.toFixed(4), blur: +sb.toFixed(4), color: hex(e.shadow.color, "#000000"), opacity: +so.toFixed(3) };
+    }
     return base;
+  }
+  // universal shadow -> a --gbx-size-scaled drop-shadow() filter token (alpha-aware: shadows the silhouette of text/svg/transparent art alike)
+  function shadowFilter(s) {
+    var n = parseInt(String(s.color || "#000000").slice(1), 16), rgba = "rgba(" + ((n >> 16) & 255) + "," + ((n >> 8) & 255) + "," + (n & 255) + "," + (s.opacity != null ? s.opacity : 0.45) + ")";
+    var u = function (k) { return "calc(var(--gbx-size) * " + (k || 0) + ")"; };
+    return "drop-shadow(" + u(s.x) + " " + u(s.y) + " " + u(s.blur) + " " + rgba + ")";
+  }
+  // duotone: the image renders grayscale, then a shadow-colour overlay (lighten) floors the darks
+  // and a highlight-colour overlay (darken) ceilings the lights — remapping the gray ramp to a-..b.
+  function duoOverlays(wrapper, duo) {
+    wrapper.style.isolation = "isolate";
+    var a = document.createElement("div"); a.style.cssText = "position:absolute;inset:0;pointer-events:none;background:" + duo.a + ";mix-blend-mode:lighten";
+    var b = document.createElement("div"); b.style.cssText = "position:absolute;inset:0;pointer-events:none;background:" + duo.b + ";mix-blend-mode:darken";
+    wrapper.append(a, b);
   }
   function normFace(face, pos, palette) {
     face = face || {};
@@ -648,6 +672,7 @@
     node.style.setProperty("--rot", (e.rotate || 0) + "deg");
     if (e.anim) node.classList.add("gbx-anim-" + e.anim);   // reveal animation (plays on box open)
     if (e.blend) node.style.mixBlendMode = e.blend;         // composite this layer with what's behind it
+    if (e.shadow) { var sf = shadowFilter(e.shadow); node.style.filter = node.style.filter ? node.style.filter + " " + sf : sf; }   // universal shadow/glow, appended after any per-type filter
   }
   var CLIP_ID = 1;
   function shapeSvgPath(shape, attrs) {   // inner SVG for polygon/path shapes in a 0..100 viewBox
@@ -683,6 +708,9 @@
         }
         if (e.finish && e.finish !== "none" && FOILS[e.finish] && !(e.curve && Math.abs(e.curve) > 0.5)) {   // metallic foil — wins over colour/gradient; skipped when curved, like gradients
           n.style.backgroundImage = FOILS[e.finish]; n.style.webkitBackgroundClip = "text"; n.style.backgroundClip = "text"; n.style.color = "transparent";
+        }
+        if (e.fillImage && !(e.curve && Math.abs(e.curve) > 0.5)) {   // photo/pattern clipped into the glyphs — wins over colour/gradient/foil
+          n.style.backgroundImage = 'url("' + e.fillImage + '")'; n.style.backgroundSize = "cover"; n.style.backgroundPosition = "center"; n.style.webkitBackgroundClip = "text"; n.style.backgroundClip = "text"; n.style.color = "transparent";
         }
         n.style.textAlign = e.align;
         if (e.lineHeight != null) n.style.lineHeight = e.lineHeight;
@@ -749,11 +777,26 @@
           cim.style.position = "absolute"; cim.style.objectFit = "fill"; cim.style.display = "block";
           cim.style.width = (100 / e.crop.w) + "%"; cim.style.height = (100 / e.crop.h) + "%";
           cim.style.left = (-(e.crop.x / e.crop.w) * 100) + "%"; cim.style.top = (-(e.crop.y / e.crop.h) * 100) + "%";
-          var caf = []; if (e.brightness != null && e.brightness !== 1) caf.push("brightness(" + e.brightness + ")"); if (e.contrast != null && e.contrast !== 1) caf.push("contrast(" + e.contrast + ")"); if (e.saturate != null && e.saturate !== 1) caf.push("saturate(" + e.saturate + ")"); if (e.blur) caf.push("blur(calc(var(--gbx-size) * " + e.blur + "))"); if (e.sepia) caf.push("sepia(" + e.sepia + ")");
+          var caf = []; if (e.duotone) caf.push("grayscale(1)"); if (e.brightness != null && e.brightness !== 1) caf.push("brightness(" + e.brightness + ")"); if (e.contrast != null && e.contrast !== 1) caf.push("contrast(" + e.contrast + ")"); if (e.saturate != null && e.saturate !== 1) caf.push("saturate(" + e.saturate + ")"); if (e.blur) caf.push("blur(calc(var(--gbx-size) * " + e.blur + "))"); if (e.sepia) caf.push("sepia(" + e.sepia + ")");
           if (caf.length) cim.style.filter = caf.join(" ");
           cim.addEventListener("error", function () { n.remove(); });
           n.appendChild(cim);
+          if (e.duotone) duoOverlays(n, e.duotone);
           if (e.noShadow) n.style.boxShadow = "none";            // (a cropped photo is rectangular, so the default .gbx-art box-shadow is correct unless opted out)
+          if (e.opacity != null && e.opacity < 1) n.style.opacity = e.opacity;
+          if (e.flipX) n.style.setProperty("--gbx-fx", -1);
+          if (e.flipY) n.style.setProperty("--gbx-fy", -1);
+        } else if (e.src && e.duotone) {                         // duotone colour-grade (no crop): grayscale img + 2 blend overlays in an isolated wrapper
+          n = document.createElement("div"); n.className = "gbx-art gbx-art-crop";
+          n.style.width = px(e.w); n.style.height = px(e.h); n.style.overflow = "hidden";
+          n.style.borderRadius = "calc(var(--gbx-size) * " + (e.radius || 0) + ")";
+          var dim = document.createElement("img"); dim.alt = ""; dim.loading = "lazy"; dim.src = e.src;
+          dim.style.cssText = "position:absolute;inset:0;width:100%;height:100%;display:block"; dim.style.objectFit = e.fit;
+          var daf = ["grayscale(1)"]; if (e.brightness != null && e.brightness !== 1) daf.push("brightness(" + e.brightness + ")"); if (e.contrast != null && e.contrast !== 1) daf.push("contrast(" + e.contrast + ")"); if (e.saturate != null && e.saturate !== 1) daf.push("saturate(" + e.saturate + ")"); if (e.blur) daf.push("blur(calc(var(--gbx-size) * " + e.blur + "))");
+          dim.style.filter = daf.join(" ");
+          dim.addEventListener("error", function () { n.remove(); });
+          n.appendChild(dim); duoOverlays(n, e.duotone);
+          if (e.noShadow) n.style.boxShadow = "none";
           if (e.opacity != null && e.opacity < 1) n.style.opacity = e.opacity;
           if (e.flipX) n.style.setProperty("--gbx-fx", -1);
           if (e.flipY) n.style.setProperty("--gbx-fy", -1);

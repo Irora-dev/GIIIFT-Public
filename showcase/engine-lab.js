@@ -75,16 +75,16 @@
     qr: { t: "qr", value: "https://giiift.com/g/your-gift", ecc: "M", dark: "#11141b", light: "#ffffff", x: .5, y: .5, w: .4, opacity: 1, rotate: 0 },
   };
   var RG = function (min, max, step, unit) { return { k: "range", min: min, max: max, step: step, unit: unit || "" }; };
-  var POS = [["x", RG(0, 1, .01)], ["y", RG(0, 1, .01)], ["rotate", RG(-180, 180, 1, "°")], ["anim", "anim"], ["blend", "blendkind"]];
+  var POS = [["x", RG(0, 1, .01)], ["y", RG(0, 1, .01)], ["rotate", RG(-180, 180, 1, "°")], ["anim", "anim"], ["blend", "blendkind"], ["shadow", "shadowkind"]];
   var BLEND_OPTS = [{ value: "normal", label: "Normal" }, { value: "multiply", label: "Multiply" }, { value: "screen", label: "Screen" }, { value: "overlay", label: "Overlay" }, { value: "soft-light", label: "Soft Light" }, { value: "hard-light", label: "Hard Light" }, { value: "darken", label: "Darken" }, { value: "lighten", label: "Lighten" }, { value: "color-dodge", label: "Color Dodge" }, { value: "color-burn", label: "Color Burn" }, { value: "difference", label: "Difference" }, { value: "exclusion", label: "Exclusion" }, { value: "hue", label: "Hue" }, { value: "saturation", label: "Saturation" }, { value: "color", label: "Color" }, { value: "luminosity", label: "Luminosity" }];
   var LAYER_FIELDS = {
-    text: [["value", "text"], ["font", "font"], ["style", "textstyle"], ["finish", "textfinish"], ["size", RG(.02, .4, .005)], ["weight", RG(100, 900, 50)], ["lineHeight", RG(.7, 2.5, .05)], ["letterSpacing", RG(-.1, .6, .01, "em")], ["color", "color"], ["outline1", "color"], ["outline2", "color"], ["effect", "texteffect"], ["effectColor", "color"], ["curve", RG(-180, 180, 1, "°")], ["fillKind", "fillkind"], ["fill2", "color"], ["fillAngle", RG(0, 360, 1, "°")], ["align", "align"], ["italic", "bool"], ["w", RG(.05, 1, .01)]].concat(POS),
-    graffiti: [["value", "text"], ["font", "font"], ["style", "textstyle"], ["finish", "textfinish"], ["size", RG(.02, .4, .005)], ["lineHeight", RG(.7, 2.5, .05)], ["letterSpacing", RG(-.1, .6, .01, "em")], ["color", "color"], ["outline1", "color"], ["outline2", "color"], ["effect", "texteffect"], ["effectColor", "color"], ["curve", RG(-180, 180, 1, "°")], ["fillKind", "fillkind"], ["fill2", "color"], ["fillAngle", RG(0, 360, 1, "°")], ["w", RG(.05, 1, .01)]].concat(POS),
+    text: [["value", "text"], ["font", "font"], ["style", "textstyle"], ["finish", "textfinish"], ["size", RG(.02, .4, .005)], ["weight", RG(100, 900, 50)], ["lineHeight", RG(.7, 2.5, .05)], ["letterSpacing", RG(-.1, .6, .01, "em")], ["color", "color"], ["outline1", "color"], ["outline2", "color"], ["effect", "texteffect"], ["effectColor", "color"], ["curve", RG(-180, 180, 1, "°")], ["fillKind", "fillkind"], ["fill2", "color"], ["fillAngle", RG(0, 360, 1, "°")], ["fillImage", "textimage"], ["align", "align"], ["italic", "bool"], ["w", RG(.05, 1, .01)]].concat(POS),
+    graffiti: [["value", "text"], ["font", "font"], ["style", "textstyle"], ["finish", "textfinish"], ["size", RG(.02, .4, .005)], ["lineHeight", RG(.7, 2.5, .05)], ["letterSpacing", RG(-.1, .6, .01, "em")], ["color", "color"], ["outline1", "color"], ["outline2", "color"], ["effect", "texteffect"], ["effectColor", "color"], ["curve", RG(-180, 180, 1, "°")], ["fillKind", "fillkind"], ["fill2", "color"], ["fillAngle", RG(0, 360, 1, "°")], ["fillImage", "textimage"], ["w", RG(.05, 1, .01)]].concat(POS),
     stamp: [["value", "text"], ["color", "color"], ["size", RG(.03, .16, .005)]].concat(POS),
     note: [["label", "text"], ["value", "textarea"], ["color", "color"], ["w", RG(.2, 1, .01)]].concat(POS),
     label: [["title", "text"], ["to", "text"], ["from", "text"], ["w", RG(.25, 1, .01)]].concat(POS),
     sticker: [["value", "text"], ["glyphs", "glyphgrid"], ["size", RG(.04, .3, .005)]].concat(POS),
-    art: [["src", "text"], ["fit", "fit"], ["zoom", RG(1, 4, .05, "×")], ["opacity", RG(0, 1, .05)], ["look", "artlooks"], ["brightness", RG(0, 2, .05, "×")], ["contrast", RG(0, 2, .05, "×")], ["saturate", RG(0, 2, .05, "×")], ["blur", RG(0, .04, .002)], ["sepia", RG(0, 1, .05)], ["outlineW", RG(0, .05, .002)], ["outlineColor", "color"], ["softShadow", RG(0, 1, .05)], ["flipX", "bool"], ["flipY", "bool"], ["w", RG(.1, 1, .01)], ["h", RG(.1, 1, .01)], ["radius", RG(0, .5, .01)]].concat(POS),
+    art: [["src", "text"], ["fit", "fit"], ["zoom", RG(1, 4, .05, "×")], ["opacity", RG(0, 1, .05)], ["look", "artlooks"], ["brightness", RG(0, 2, .05, "×")], ["contrast", RG(0, 2, .05, "×")], ["saturate", RG(0, 2, .05, "×")], ["blur", RG(0, .04, .002)], ["sepia", RG(0, 1, .05)], ["duotone", "duotone"], ["outlineW", RG(0, .05, .002)], ["outlineColor", "color"], ["softShadow", RG(0, 1, .05)], ["flipX", "bool"], ["flipY", "bool"], ["w", RG(.1, 1, .01)], ["h", RG(.1, 1, .01)], ["radius", RG(0, .5, .01)]].concat(POS),
     seal: [["value", "text"], ["color", "color"], ["size", RG(.08, .5, .01)]].concat(POS),
     postmark: [["value", "text"], ["color", "color"], ["size", RG(.08, .5, .01)]].concat(POS),
     barcode: [["color", "color"], ["w", RG(.1, 1, .01)]].concat(POS),
@@ -938,6 +938,9 @@
       bw.f.appendChild(bs); return bw.f;
     }
     if (kind === "framephoto") return framePhotoField(L);
+    if (kind === "duotone") return duotoneField(L);
+    if (kind === "shadowkind") return shadowField(L);
+    if (kind === "textimage") return textImageField(L);
     if (kind && kind.k === "range") return numField(label, function () { return L[prop] != null ? L[prop] : 0; }, setV, kind);
     return el("div");
   }
@@ -957,6 +960,67 @@
     if (L.src) { var rm = el("button", "btn"); rm.textContent = "Remove photo"; rm.style.cssText = "margin-top:5px;font-size:11px;color:#ffb3c4"; rm.addEventListener("click", function () { L.src = ""; rerender(); record(); renderInspector(); }); w.f.appendChild(rm); }
     var note = el("div", "grp-note"); note.textContent = "The photo fills the frame shape; size and position it below.";
     w.f.appendChild(note);
+    return w.f;
+  }
+  // duotone colour-grade: Off + preset pairs (one from the box palette) + Shadow/Highlight pickers when on
+  function duotoneField(L) {
+    var w = field("Duotone");
+    var pal = doc.palette || {};
+    var presets = [
+      { id: "off", name: "Off" },
+      { id: "palette", name: "Palette", a: pal.c1 || "#1e293b", b: pal.accent || "#fde68a" },
+      { id: "ink", name: "Ink", a: "#0b1120", b: "#e5e7eb" },
+      { id: "sunset", name: "Sunset", a: "#7c2d12", b: "#fde68a" },
+      { id: "ocean", name: "Ocean", a: "#0c4a6e", b: "#a5f3fc" },
+      { id: "berry", name: "Berry", a: "#4a044e", b: "#fbcfe8" }
+    ];
+    var row = el("div", "swatches"); row.style.flexWrap = "wrap";
+    presets.forEach(function (p) {
+      var b = el("button", "ch"); b.type = "button"; b.title = p.name;
+      b.style.cssText = "width:30px;height:22px;border-radius:6px;" + (p.id === "off" ? "background:rgba(255,255,255,.06);font-size:9px;color:var(--ink-dim)" : "background:linear-gradient(135deg," + p.a + "," + p.b + ")");
+      if (p.id === "off") b.textContent = "Off";
+      var on = (p.id === "off" && !L.duotone) || (L.duotone && L.duotone.a === p.a && L.duotone.b === p.b);
+      if (on) b.style.outline = "2px solid var(--acc,#00ff9d)";
+      b.addEventListener("click", function () { if (p.id === "off") delete L.duotone; else L.duotone = { a: p.a, b: p.b }; rerender(); record(); renderInspector(); });
+      row.appendChild(b);
+    });
+    w.f.appendChild(row);
+    if (L.duotone) {
+      w.f.appendChild(colorField("Shadow", function () { return L.duotone.a; }, function (v, c) { L.duotone.a = v; rerender(); if (c) record(); }, true));
+      w.f.appendChild(colorField("Highlight", function () { return L.duotone.b; }, function (v, c) { L.duotone.b = v; rerender(); if (c) record(); }, true));
+    }
+    return w.f;
+  }
+  // universal shadow/glow: a preset seg (None/Soft/Drop/Glow) + a colour picker when on
+  var SHADOW_PRESETS = { soft: { x: 0, y: 0.012, blur: 0.03, color: "#000000", opacity: 0.4 }, drop: { x: 0.012, y: 0.02, blur: 0.012, color: "#000000", opacity: 0.55 }, glow: { x: 0, y: 0, blur: 0.045, color: "#ffe066", opacity: 0.9 } };
+  function shadowField(L) {
+    var w = field("Shadow / glow");
+    var cur = !L.shadow ? "none" : (L.shadow.x === 0 && L.shadow.y === 0 ? "glow" : (L.shadow.blur <= 0.018 ? "drop" : "soft"));
+    var seg = el("div", "seg"); seg.setAttribute("role", "group");
+    [["none", "None"], ["soft", "Soft"], ["drop", "Drop"], ["glow", "Glow"]].forEach(function (o) {
+      var b = el("button"); b.type = "button"; b.textContent = o[1];
+      var on = cur === o[0]; b.classList.toggle("on", on); b.setAttribute("aria-pressed", on ? "true" : "false");
+      b.addEventListener("click", function () {
+        if (o[0] === "none") delete L.shadow;
+        else { var p = SHADOW_PRESETS[o[0]]; L.shadow = { x: p.x, y: p.y, blur: p.blur, color: (L.shadow && L.shadow.color) || p.color, opacity: p.opacity }; }
+        rerender(); record(); renderInspector();
+      });
+      seg.appendChild(b);
+    });
+    w.f.appendChild(seg);
+    if (L.shadow) w.f.appendChild(colorField("Shadow colour", function () { return L.shadow.color || "#000000"; }, function (v, c) { L.shadow.color = v; rerender(); if (c) record(); }, true));
+    return w.f;
+  }
+  // image-filled text: pick a photo/pattern clipped into the glyphs
+  function textImageField(L) {
+    var w = field("Image fill");
+    var btn = el("button", "btn"); btn.style.width = "100%"; btn.textContent = L.fillImage ? "Replace fill image" : "Fill text with an image";
+    var inp = el("input"); inp.type = "file"; inp.accept = "image/*"; inp.style.display = "none";
+    btn.addEventListener("click", function () { inp.click(); });
+    inp.addEventListener("change", function () { var f = inp.files && inp.files[0]; if (!f) return; fileToCanvas(f, function (cv) { L.fillImage = encodeSmart(cv, false); rerender(); record(); renderInspector(); }, function () { toast("Could not read that image", true); }); });
+    w.f.append(btn, inp);
+    if (L.fillImage) { var rm = el("button", "btn"); rm.textContent = "Clear image fill"; rm.style.cssText = "width:100%;margin-top:5px;font-size:11px;color:#ffb3c4"; rm.addEventListener("click", function () { delete L.fillImage; rerender(); record(); renderInspector(); }); w.f.appendChild(rm); }
+    var note = el("div", "grp-note"); note.textContent = L.fillImage ? "The image shows through the letters (overrides colour/gradient/foil)." : "Clips a photo or pattern into the letters."; w.f.appendChild(note);
     return w.f;
   }
   var LOOKS = [   // one-tap colour grades: bundles of the existing filter fields (sliders fine-tune after)
@@ -2695,6 +2759,14 @@
     if (L.flipX || L.flipY) tf.push('translate(' + r2(L.x * 100) + ' ' + r2(L.y * 100) + ') scale(' + (L.flipX ? -1 : 1) + ' ' + (L.flipY ? -1 : 1) + ') translate(' + r2(-L.x * 100) + ' ' + r2(-L.y * 100) + ')');
     return tf;
   }
+  // duotone -> a grayscale + per-channel table-transfer SVG filter (smooth ramp a..b); returns the <filter> def string
+  function duoFilterDef(id, duo) {
+    var ch = function (hexv) { var n = parseInt(String(hexv).slice(1), 16); return [((n >> 16) & 255) / 255, ((n >> 8) & 255) / 255, (n & 255) / 255]; };
+    var a = ch(duo.a), b = ch(duo.b);
+    return '<filter id="' + id + '" color-interpolation-filters="sRGB">'
+      + '<feColorMatrix type="matrix" values="0.33 0.33 0.33 0 0 0.33 0.33 0.33 0 0 0.33 0.33 0.33 0 0 0 0 0 1 0"/>'
+      + '<feComponentTransfer><feFuncR type="table" tableValues="' + r2(a[0]) + ' ' + r2(b[0]) + '"/><feFuncG type="table" tableValues="' + r2(a[1]) + ' ' + r2(b[1]) + '"/><feFuncB type="table" tableValues="' + r2(a[2]) + ' ' + r2(b[2]) + '"/></feComponentTransfer></filter>';
+  }
   // doc.faces[face] -> a panel { name, group, fields, svg } (viewBox 0 0 100 100, preserveAspectRatio none)
   // opts.face picks the face (default active); opts.literal bakes wording in verbatim instead of {{field}} tokens (template motifs)
   function exportFaceAsPanel(id, name, group, opts) {
@@ -2724,7 +2796,9 @@
         if (L.sepia) cfb.push("sepia(" + L.sepia + ")");
         var ccid = idSafe + "Crop" + (gradN++), crr = L.radius ? Math.min(cw100, ch100) * L.radius : 0;
         extraDefs += '<clipPath id="' + ccid + '"><rect x="' + r2(cx0) + '" y="' + r2(cy0) + '" width="' + r2(cw100) + '" height="' + r2(ch100) + '" rx="' + r2(crr) + '"/></clipPath>';
-        var cimg = '<image href="' + L.src + '" x="' + r2(imgX) + '" y="' + r2(imgY) + '" width="' + r2(fullW) + '" height="' + r2(fullH) + '" preserveAspectRatio="none" clip-path="url(#' + ccid + ')"' + (L.opacity != null && L.opacity < 1 ? ' opacity="' + r2(L.opacity) + '"' : '') + (cfb.length ? ' style="filter:' + cfb.join(" ") + '"' : '') + '/>';
+        var cDuo = "";
+        if (L.duotone) { var cdid = idSafe + "Duo" + (gradN++); extraDefs += duoFilterDef(cdid, L.duotone); cDuo = ' filter="url(#' + cdid + ')"'; }   // duotone wins; drop the CSS colour filters (it grayscales internally)
+        var cimg = '<image href="' + L.src + '" x="' + r2(imgX) + '" y="' + r2(imgY) + '" width="' + r2(fullW) + '" height="' + r2(fullH) + '" preserveAspectRatio="none" clip-path="url(#' + ccid + ')"' + (L.opacity != null && L.opacity < 1 ? ' opacity="' + r2(L.opacity) + '"' : '') + cDuo + (!L.duotone && cfb.length ? ' style="filter:' + cfb.join(" ") + '"' : '') + '/>';
         var ctf = exportTf(L);
         svg += ctf.length ? '<g transform="' + ctf.join(' ') + '">' + cimg + '</g>' : cimg;
       } else if (L.t === "art" && L.src) {
@@ -2743,7 +2817,9 @@
           });
         }
         if (L.softShadow) afb.push("drop-shadow(0 " + r2(1.8 * L.softShadow) + "px " + r2(4.5 * L.softShadow) + "px rgba(0,0,0," + (0.3 + 0.4 * L.softShadow).toFixed(2) + "))");
-        var im = '<image href="' + L.src + '" x="' + r2(x) + '" y="' + r2(y) + '" width="' + r2(iw) + '" height="' + r2(ih) + '" preserveAspectRatio="' + par + '"' + (L.opacity != null && L.opacity < 1 ? ' opacity="' + r2(L.opacity) + '"' : '') + (afb.length ? ' style="filter:' + afb.join(" ") + '"' : '') + '/>';
+        var aDuo = "";
+        if (L.duotone) { var adid = idSafe + "Duo" + (gradN++); extraDefs += duoFilterDef(adid, L.duotone); aDuo = ' filter="url(#' + adid + ')"'; }   // duotone wins over the CSS colour filters (it grayscales internally)
+        var im = '<image href="' + L.src + '" x="' + r2(x) + '" y="' + r2(y) + '" width="' + r2(iw) + '" height="' + r2(ih) + '" preserveAspectRatio="' + par + '"' + (L.opacity != null && L.opacity < 1 ? ' opacity="' + r2(L.opacity) + '"' : '') + aDuo + (!L.duotone && afb.length ? ' style="filter:' + afb.join(" ") + '"' : '') + '/>';
         var tf = exportTf(L);
         svg += tf.length ? '<g transform="' + tf.join(' ') + '">' + im + '</g>' : im;
       } else if (L.t === "text" || L.t === "graffiti") {
@@ -2774,6 +2850,11 @@
           extraDefs += '<linearGradient id="' + fgid + '" gradientTransform="rotate(' + (L.finish === "holo" ? 115 : 105) + ' .5 .5)">'
             + FOIL_STOPS[L.finish].map(function (s) { return '<stop offset="' + s[0] + '" stop-color="' + s[1] + '"/>'; }).join("") + '</linearGradient>';
           fillAttr = "url(#" + fgid + ")";
+        }
+        if (!curved && L.fillImage) {                          // photo/pattern clipped into the glyphs -> objectBoundingBox pattern (wins, like the live render)
+          var pgid = idSafe + "TxtImg" + (gradN++);
+          extraDefs += '<pattern id="' + pgid + '" patternContentUnits="objectBoundingBox" width="1" height="1"><image href="' + L.fillImage + '" width="1" height="1" preserveAspectRatio="xMidYMid slice"/></pattern>';
+          fillAttr = "url(#" + pgid + ")";
         }
         // sticker style keeps its own outer-edge colour; plain keeps the legacy dark edge.
         // (sticker's inner halo would need a duplicate <text> per token, which breaks per-field A+/A− scaling — single-stroke approximation.)
@@ -2898,7 +2979,11 @@
           svg += qtf.length ? '<g transform="' + qtf.join(' ') + '">' + qsvg + '</g>' : qsvg;
         }
       } else if (L.t) { skipped++; }
-      if (L.blend && /^[a-z-]+$/.test(L.blend) && svg.length > _bStart) svg = svg.slice(0, _bStart) + '<g style="mix-blend-mode:' + L.blend + '">' + svg.slice(_bStart) + '</g>';   // per-layer blend parity
+      // per-layer blend + universal shadow ride the same wrapper <g> (filter units are viewBox px = fraction×100)
+      var wrapStyle = "";
+      if (L.blend && /^[a-z-]+$/.test(L.blend)) wrapStyle += "mix-blend-mode:" + L.blend + ";";
+      if (L.shadow) { var sn = parseInt(String(L.shadow.color || "#000000").slice(1), 16); wrapStyle += "filter:drop-shadow(" + r2((L.shadow.x || 0) * 100) + "px " + r2((L.shadow.y || 0) * 100) + "px " + r2((L.shadow.blur || 0) * 100) + "px rgba(" + ((sn >> 16) & 255) + "," + ((sn >> 8) & 255) + "," + (sn & 255) + "," + (L.shadow.opacity != null ? L.shadow.opacity : 0.45) + "));"; }
+      if (wrapStyle && svg.length > _bStart) svg = svg.slice(0, _bStart) + '<g style="' + wrapStyle + '">' + svg.slice(_bStart) + '</g>';
     });
     if (extraDefs) svg = svg.replace("</defs>", extraDefs + "</defs>");
     svg += '</svg>';
