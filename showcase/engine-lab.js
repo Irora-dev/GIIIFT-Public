@@ -74,7 +74,8 @@
     frame: { t: "frame", frame: "circle", src: "", stroke: "#ffffff", strokeW: 0, radius: .16, x: .5, y: .5, w: .42, h: .42, opacity: 1, rotate: 0 },
   };
   var RG = function (min, max, step, unit) { return { k: "range", min: min, max: max, step: step, unit: unit || "" }; };
-  var POS = [["x", RG(0, 1, .01)], ["y", RG(0, 1, .01)], ["rotate", RG(-180, 180, 1, "°")], ["anim", "anim"]];
+  var POS = [["x", RG(0, 1, .01)], ["y", RG(0, 1, .01)], ["rotate", RG(-180, 180, 1, "°")], ["anim", "anim"], ["blend", "blendkind"]];
+  var BLEND_OPTS = [{ value: "normal", label: "Normal" }, { value: "multiply", label: "Multiply" }, { value: "screen", label: "Screen" }, { value: "overlay", label: "Overlay" }, { value: "soft-light", label: "Soft Light" }, { value: "hard-light", label: "Hard Light" }, { value: "darken", label: "Darken" }, { value: "lighten", label: "Lighten" }, { value: "color-dodge", label: "Color Dodge" }, { value: "color-burn", label: "Color Burn" }, { value: "difference", label: "Difference" }, { value: "exclusion", label: "Exclusion" }, { value: "hue", label: "Hue" }, { value: "saturation", label: "Saturation" }, { value: "color", label: "Color" }, { value: "luminosity", label: "Luminosity" }];
   var LAYER_FIELDS = {
     text: [["value", "text"], ["font", "font"], ["style", "textstyle"], ["finish", "textfinish"], ["size", RG(.02, .4, .005)], ["weight", RG(100, 900, 50)], ["lineHeight", RG(.7, 2.5, .05)], ["letterSpacing", RG(-.1, .6, .01, "em")], ["color", "color"], ["outline1", "color"], ["outline2", "color"], ["effect", "texteffect"], ["effectColor", "color"], ["curve", RG(-180, 180, 1, "°")], ["fillKind", "fillkind"], ["fill2", "color"], ["fillAngle", RG(0, 360, 1, "°")], ["align", "align"], ["italic", "bool"], ["w", RG(.05, 1, .01)]].concat(POS),
     graffiti: [["value", "text"], ["font", "font"], ["style", "textstyle"], ["finish", "textfinish"], ["size", RG(.02, .4, .005)], ["lineHeight", RG(.7, 2.5, .05)], ["letterSpacing", RG(-.1, .6, .01, "em")], ["color", "color"], ["outline1", "color"], ["outline2", "color"], ["effect", "texteffect"], ["effectColor", "color"], ["curve", RG(-180, 180, 1, "°")], ["fillKind", "fillkind"], ["fill2", "color"], ["fillAngle", RG(0, 360, 1, "°")], ["w", RG(.05, 1, .01)]].concat(POS),
@@ -888,7 +889,7 @@
     body.appendChild(tip);
   }
   function buildPropControl(L, prop, kind) {
-    var label = prop === "flipX" ? "Flip ↔" : prop === "flipY" ? "Flip ↕" : prop === "outline1" ? "Outline" : prop === "outline2" ? "Edge" : prop === "effectColor" ? "Effect colour" : prop === "fillKind" ? "Fill" : prop === "fill2" ? "Fill 2" : prop === "fillAngle" ? "Angle" : prop === "fillFade" ? "Fade to clear" : prop === "saturate" ? "Saturation" : prop === "lineHeight" ? "Line height" : prop === "letterSpacing" ? "Letter spacing" : prop === "strokeStyle" ? "Border style" : prop === "outlineW" ? "Sticker outline" : prop === "outlineColor" ? "Outline colour" : prop === "softShadow" ? "Soft shadow" : prop === "finish" ? "Finish" : prop === "look" ? "Looks" : prop === "glyphs" ? "Pick a glyph" : prop === "anim" ? "Animate" : cap(prop);
+    var label = prop === "flipX" ? "Flip ↔" : prop === "flipY" ? "Flip ↕" : prop === "outline1" ? "Outline" : prop === "outline2" ? "Edge" : prop === "effectColor" ? "Effect colour" : prop === "fillKind" ? "Fill" : prop === "fill2" ? "Fill 2" : prop === "fillAngle" ? "Angle" : prop === "fillFade" ? "Fade to clear" : prop === "saturate" ? "Saturation" : prop === "lineHeight" ? "Line height" : prop === "letterSpacing" ? "Letter spacing" : prop === "strokeStyle" ? "Border style" : prop === "outlineW" ? "Sticker outline" : prop === "outlineColor" ? "Outline colour" : prop === "softShadow" ? "Soft shadow" : prop === "finish" ? "Finish" : prop === "look" ? "Looks" : prop === "glyphs" ? "Pick a glyph" : prop === "anim" ? "Animate" : prop === "blend" ? "Blend" : cap(prop);
     function setV(v, c) { L[prop] = v; rerender(); if (c) record(); if (prop === "value" || prop === "title" || prop === "label") updateCrumb(); }
     if (kind === "text") return textField(label, function () { return L[prop]; }, setV);
     if (kind === "textarea") return textField(label, function () { return L[prop]; }, setV, { area: true });
@@ -916,6 +917,13 @@
     if (kind === "framekind") return segField(label, FRAME_OPTS, function () { return L.frame || "circle"; }, function (v) { setV(v, true); renderInspector(); });
     if (kind === "fillkind") return segField(label, [{ value: "solid", label: "Solid" }, { value: "linear", label: "Linear" }, { value: "radial", label: "Radial" }], function () { return L.fillKind || "solid"; }, function (v) { setV(v, true); renderInspector(); });
     if (kind === "anim") return segField(label, [{ value: "none", label: "None" }, { value: "pop", label: "Pop" }, { value: "fade", label: "Fade" }, { value: "rise", label: "Rise" }, { value: "spin", label: "Spin" }, { value: "float", label: "Float" }], function () { return L.anim || "none"; }, function (v) { if (v === "none") delete L.anim; else L.anim = v; rerender(); record(); });
+    if (kind === "blendkind") {
+      var bw = field(label);
+      var bs = el("select"); bs.style.cssText = "width:100%;padding:7px 9px;border-radius:7px;border:1px solid var(--acc-line,#2a2f3a);background:rgba(255,255,255,.05);color:inherit;font:inherit;cursor:pointer";
+      BLEND_OPTS.forEach(function (o) { var op = el("option"); op.value = o.value; op.textContent = o.label; if ((L.blend || "normal") === o.value) op.selected = true; bs.appendChild(op); });
+      bs.addEventListener("change", function () { if (bs.value === "normal") delete L.blend; else L.blend = bs.value; rerender(); record(); });
+      bw.f.appendChild(bs); return bw.f;
+    }
     if (kind === "framephoto") return framePhotoField(L);
     if (kind && kind.k === "range") return numField(label, function () { return L[prop] != null ? L[prop] : 0; }, setV, kind);
     return el("div");
@@ -2691,6 +2699,7 @@
     var fields = [], msgUsed = false, lineN = 0, skipped = 0, usedFonts = {}, extraDefs = "", fadeN = 0, gradN = 0;
     var idSafe = id.replace(/[^a-z0-9]/g, "");
     (f.layers || []).forEach(function (L) {
+      var _bStart = svg.length;   // mark, so the per-layer blend wrap below can enclose whatever this layer appends
       if (L.t === "art" && L.src) {
         var z = L.zoom || 1, iw = L.w * 100 * z, ih = L.h * 100 * z;
         var x = L.x * 100 - iw / 2, y = L.y * 100 - ih / 2, par = (L.fit === "contain") ? "xMidYMid meet" : "xMidYMid slice";
@@ -2850,6 +2859,7 @@
           svg += L.rotate ? '<g transform="rotate(' + r2(L.rotate) + ' ' + r2(L.x * 100) + ' ' + r2(L.y * 100) + ')">' + fOut + '</g>' : fOut;
         }
       } else if (L.t) { skipped++; }
+      if (L.blend && /^[a-z-]+$/.test(L.blend) && svg.length > _bStart) svg = svg.slice(0, _bStart) + '<g style="mix-blend-mode:' + L.blend + '">' + svg.slice(_bStart) + '</g>';   // per-layer blend parity
     });
     if (extraDefs) svg = svg.replace("</defs>", extraDefs + "</defs>");
     svg += '</svg>';

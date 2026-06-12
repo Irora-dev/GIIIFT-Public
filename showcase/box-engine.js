@@ -93,6 +93,7 @@
   var ELSHAPES = { rect: 1, ellipse: 1, line: 1, triangle: 1, star: 1, diamond: 1, heart: 1, arrow: 1, bubble: 1, burst: 1, ribbon: 1 }; // `shape` element sub-kinds (distinct from the box SHAPES above)
   var FRAMES = { rect: 1, rounded: 1, circle: 1, heart: 1, star: 1, triangle: 1, hexagon: 1, blob: 1 };   // `frame` photo-clip shapes
   var ANIMS = { pop: 1, fade: 1, rise: 1, spin: 1, float: 1 };   // per-element reveal animations (fire on box open)
+  var BLENDS = { normal: 1, multiply: 1, screen: 1, overlay: 1, darken: 1, lighten: 1, "color-dodge": 1, "color-burn": 1, "hard-light": 1, "soft-light": 1, difference: 1, exclusion: 1, hue: 1, saturation: 1, color: 1, luminosity: 1 };   // per-layer mix-blend-mode (composite with what's behind)
   var STROKESTYLES = { solid: 1, dashed: 1, dotted: 1 };       // shape border style
   var TEXTFINISH = { none: 1, gold: 1, silver: 1, rosegold: 1, holo: 1 };   // metallic foil text fills
   var FOILS = {                                                // foil gradients, clipped to the glyphs (background-clip:text)
@@ -165,6 +166,7 @@
     if (!e || !ELTYPES[e.t]) return null;
     var base = { t: e.t, x: num(e.x, 0.5, 0, 1), y: num(e.y, 0.5, 0, 1), w: num(e.w, 0.7, 0.02, 1), rotate: num(e.rotate, 0, -180, 180) };
     var an = enumv(ANIMS, e.anim, "none"); if (an !== "none") base.anim = an;   // reveal animation on open
+    var bl = enumv(BLENDS, e.blend, "normal"); if (bl !== "normal") base.blend = bl;   // per-layer mix-blend-mode
     switch (e.t) {
       case "text":
       case "graffiti":
@@ -530,6 +532,7 @@
     if (e.w != null && e.t !== "sticker" && e.t !== "seal" && e.t !== "postmark" && e.t !== "decal" && e.t !== "fade") node.style.width = (e.w * 100) + "%";
     node.style.setProperty("--rot", (e.rotate || 0) + "deg");
     if (e.anim) node.classList.add("gbx-anim-" + e.anim);   // reveal animation (plays on box open)
+    if (e.blend) node.style.mixBlendMode = e.blend;         // composite this layer with what's behind it
   }
   var CLIP_ID = 1;
   function shapeSvgPath(shape, attrs) {   // inner SVG for polygon/path shapes in a 0..100 viewBox

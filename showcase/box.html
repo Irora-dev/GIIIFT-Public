@@ -813,6 +813,10 @@
         // product id> }. A SUGGESTION only; validated like other registry slugs, and the
         // gift remains a normal balance gift if the id is unknown.
         mandate: (g.r && typeof g.r.p === "string" && /^[a-z0-9-]{1,40}$/.test(g.r.p)) ? { productId: g.r.p } : null,
+        // optional storefront ref (marketplace M3): sr = <storefront handle>. The gift
+        // carries the sender's shop; the reveal grows a "[sender]'s picks" spend shelf.
+        // Validated like other registry slugs; unknown handles render nothing.
+        shopRef: (typeof g.sr === "string" && /^[a-z0-9](?:[a-z0-9-]{1,22})[a-z0-9]$/.test(g.sr)) ? g.sr : null,
         design: {
           brand: g.m || "", note: g.n || "", from: g.f || "",
           labelTo: toName ? "To: " + toName : "To: someone",
@@ -833,6 +837,13 @@
           // URLs/paths (future backend / authored demos). Never markup.
           ph: (typeof d.ph === "string" && /^[a-z0-9]{4,24}$/i.test(d.ph)) ? d.ph
             : (Array.isArray(d.ph) ? d.ph.filter(u => typeof u === "string" && /^(\/|https:\/\/|data:image\/)/.test(u)).slice(0, 3) : ""),
+          // custom engine doc (M5): the full object rides short-link / intent
+          // payloads as `cd`; `d.cdk` is the same-device localStorage key (the
+          // photos precedent). Both attacker-controllable -> cleanDoc (engine
+          // normalize + gift policy) runs before render; failures fall through
+          // to the template / palette paths.
+          cd: (g.cd && typeof g.cd === "object" && !Array.isArray(g.cd)) ? g.cd : null,
+          cdk: (typeof d.cdk === "string" && /^[a-z0-9]{4,24}$/i.test(d.cdk)) ? d.cdk : "",
         },
       };
     }
@@ -976,7 +987,19 @@
     // Template gifts (d.tp from the wrap "Box designs" gallery) rebuild the
     // designed box as a full engine doc; everything else takes the legacy
     // pattern-box migration path.
-    const tplDoc = (design.tp && window.GIIIFTBoxTemplates)
+    // M5: a sender-crafted custom doc outranks the template + legacy paths.
+    // cleanDoc (shared with the sender) is the security boundary for this
+    // attacker-controllable structure; cross-device token links simply have no
+    // doc and fall through to the palette box the token already carries.
+    let customDoc = null;
+    if (window.GIIIFTBoxTemplates && GIIIFTBoxTemplates.cleanDoc && (design.cd || design.cdk)) {
+      let rawCd = design.cd;
+      if (!rawCd && design.cdk) {
+        try { rawCd = JSON.parse(localStorage.getItem("giiift-doc:" + design.cdk)); } catch (e) { rawCd = null; }
+      }
+      if (rawCd) customDoc = GIIIFTBoxTemplates.cleanDoc(rawCd);
+    }
+    const tplDoc = (!customDoc && design.tp && window.GIIIFTBoxTemplates)
       ? GIIIFTBoxTemplates.doc(design.tp, {
           c1: design.cardboard, c2: design.cardboard2, accent: design.accent,
           to: String(design.labelTo || gift.to || "").replace(/^to:\s*/i, "").trim(),
@@ -989,7 +1012,7 @@
     if (tplDoc && design.tt && GIIIFTBoxTemplates.applyText) GIIIFTBoxTemplates.applyText(tplDoc, design.tt);
     const engine = GIIIFTBox.render(
       document.getElementById("scene"),
-      tplDoc || GIIIFTBox.fromLegacy(Object.assign({}, design, { items: items, to: gift.to, msg: gift.msg, from: design.from || gift.from })),
+      customDoc || tplDoc || GIIIFTBox.fromLegacy(Object.assign({}, design, { items: items, to: gift.to, msg: gift.msg, from: design.from || gift.from })),
       { mode: "view", burst: false }   // assets float ABOVE the box (below), not popping on its face
     );
     const box = engine.box;
@@ -1236,6 +1259,18 @@
           const m = document.getElementById("manifest");
           if (m) window.giiiftRetailClaimCard({ productId: gift.mandate.productId, mount: m, from: (gift.from || "").replace(/^from:\s*/i, "").trim() });
         }, 1200);
+      }
+      // storefront ref (g.sr, marketplace M3): "[sender]'s picks" spend shelf under the
+      // manifest. The module self-loads its deps and never throws into the claim; dark
+      // unless this payload carries a ref.
+      if (gift.shopRef) {
+        setTimeout(() => {
+          const m = document.getElementById("manifest");
+          if (!m) return;
+          const s = document.createElement("script"); s.src = "/market-receive-shelf.js"; s.async = true;
+          s.onload = () => { if (window.giiiftMarketReceiveShelf) window.giiiftMarketReceiveShelf({ mount: m, shopRef: gift.shopRef, from: (gift.from || "").replace(/^from:\s*/i, "").trim() }); };
+          document.head.appendChild(s);
+        }, 1500);
       }
       stage.classList.add("can-drag");   // now that it's open, let them spin it
       cta.disabled = true;
