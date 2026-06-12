@@ -1,12 +1,28 @@
-/* GIIIFT Marketplace — demo source adapters (M1). Each registers a source whose fetch() returns
- * MarketItem-shaped raws (the engine's normalize fills defaults). DEMO MODE: sample data, zero
- * deploy deps. When live, each fetch() hits /api/market/catalog (per-source leg) and these samples
- * become the degrade-to-cached fallback (§3, §8). Wraps: catalog.js (tcg) · nft-buy.js (art) ·
- * retail menu (product) · giiift goods (credit perks) · send flows (digital assets).
+/* GIIIFT Marketplace — source adapters (M1 demo data; M6 flipped LIVE-FIRST). Each registers
+ * a source whose fetch() returns MarketItem-shaped raws (the engine's normalize fills defaults).
+ *
+ * LIVE-FIRST (M6, the M1 carry-forward): the first adapter to run makes ONE shared request to
+ * /api/market/catalog ({items, sources:{key:status}}); every adapter takes its own source's
+ * items when that leg reports "live", and falls back to its SAMPLES otherwise (§3/§8 — the
+ * samples are the fallback snapshot; the engine's localStorage snapshot sits beneath as the
+ * deeper net). On the static demo the request 404s once and everything renders samples,
+ * exactly as before. Wraps: catalog.ts (tcg) · nft-buy.ts (art) · retail menu (product) ·
+ * giiift goods (credit perks) · send flows (digital assets).
  */
 (function (global) {
   "use strict";
   var GM = global.GIIIFTMarket; if (!GM) return;
+
+  // one request, all sources; memoized for the page's lifetime; null = dark/unreachable
+  var liveP = null, LIVE = {};   // LIVE[key] = true once that leg answered "live"
+  function liveCatalog() {
+    if (liveP) return liveP;
+    liveP = fetch("/api/market/catalog")
+      .then(function (r) { if (!r.ok) throw 0; return r.json(); })
+      .then(function (cat) { if (cat && cat.sources) for (var k in cat.sources) { if (cat.sources[k] === "live") LIVE[k] = true; } return cat; })
+      .catch(function () { return null; });
+    return liveP;
+  }
 
   function tile(tone, label) {
     var svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400">' +
@@ -17,7 +33,21 @@
     return "data:image/svg+xml," + encodeURIComponent(svg);
   }
   function m(tone, label, aspect) { return [{ url: tile(tone, label), aspect: aspect || "square", kind: "image" }]; }
-  function src(key, types, items) { GM.registerSource({ key: key, types: types, fetch: function () { return items; }, live: function () { return false; } }); }
+  function src(key, types, items) {
+    GM.registerSource({
+      key: key, types: types,
+      fetch: function () {
+        return liveCatalog().then(function (cat) {
+          if (cat && cat.sources && cat.sources[key] === "live") {
+            var mine = (cat.items || []).filter(function (i) { return i.source === key; });
+            if (mine.length) return mine;
+          }
+          return items;   // the §8 fallback snapshot: samples, never a hole
+        });
+      },
+      live: function () { return !!LIVE[key]; },
+    });
+  }
 
   // ---- TCG (wraps catalog.js Collector Crypt ingest) ----
   src("tcg", ["tcg-card", "pack"], [

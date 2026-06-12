@@ -75,6 +75,9 @@
   // not code. `SIG` is the mounted surface's signal snapshot (set per render). -----
   var DEFAULT_WEIGHTS = { vertical: 3, occasion: 2, priceFit: 1.5, affinity: 2.5, editorial: 1.5, availability: 1 };
   var SIG = null, WEIGHTS = DEFAULT_WEIGHTS;
+  // cfg.onPick (M6): embedded surfaces (the wrap picker, the pick-one shelf) replace the
+  // detail sheet's cart CTA with their own action. Mount-scoped like SIG/WEIGHTS.
+  var PICK = null, PICK_LABEL = null;
   function score(i, sig, w) {
     sig = sig || SIG || {}; w = w || WEIGHTS;
     var s = 0;
@@ -191,7 +194,17 @@
   function signals(cfg) {
     cfg = cfg || {};
     var stash = readJson("giiift-shop-context", {}) || {};
-    var vertical = (function () { try { var V = global.GIIIFTVertical; return (V && typeof V.current === "function" && V.current()) || stash.vertical || null; } catch (e) { return null; } })();
+    // vertical-engine's API is active() → the merged pack (id 'core' = no vertical).
+    // M1/M2 called a nonexistent current() behind a typeof guard, so this signal only
+    // ever fired via the stash — fixed in M6 (the vertical-preset milestone needs it).
+    var vertical = (function () {
+      try {
+        var V = global.GIIIFTVertical;
+        if (V && typeof V.active === "function") { var a = V.active(); if (a && a.id && a.id !== "core") return a.id; }
+        if (V && typeof V.current === "function") { var c = V.current(); if (c) return c; }
+        return stash.vertical || null;
+      } catch (e) { return null; }
+    })();
     var taste = readJson("giiift-taste", null);
     return {
       occasion: stash.occasion || null,
@@ -321,7 +334,15 @@
     }
     var foot = el("div", "mk-detail-foot");
     foot.appendChild(el("div", "mk-price big", priceHtml(item.price)));
-    if (api.cartApi) {   // checkout module loaded: real cart CTAs
+    if (PICK) {   // M6 embedded surfaces: the mount owns the action (picker / pick-one shelf)
+      var pick = el("button", "mk-get big", esc(PICK_LABEL)); pick.type = "button";
+      pick.addEventListener("click", function () {
+        track("market_pick", { id: item.id });
+        var r = PICK(item, { close: close, button: pick });
+        if (r !== false) { pick.textContent = "Done ✓"; setTimeout(close, 320); }
+      });
+      foot.appendChild(pick);
+    } else if (api.cartApi) {   // checkout module loaded: real cart CTAs
       var add = el("button", "mk-get big", "Add to cart"); add.type = "button";
       add.addEventListener("click", function () { api.cartApi.add(item); add.textContent = "Added ✓"; setTimeout(function () { close(); api.cartApi.open(); }, 320); });
       foot.appendChild(add);
@@ -350,6 +371,8 @@
 
     // signals + weights for this surface (§5); pricing loads in parallel with the catalog
     SIG = signals(cfg); WEIGHTS = Object.assign({}, DEFAULT_WEIGHTS, cfg.weights || {});
+    PICK = typeof cfg.onPick === "function" ? cfg.onPick : null;
+    PICK_LABEL = cfg.onPickLabel || "Add to gift";
     loadPricing();
 
     // header: balance + credit chips (never conflated, §7) + title + search + sort
