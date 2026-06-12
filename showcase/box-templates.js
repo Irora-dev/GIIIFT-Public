@@ -185,6 +185,34 @@
     return doc;
   }
 
+  /* M5: THE custom engine-doc validator both ends run (sender before ship,
+   * receive before render — the cleanText convention, scaled up to a whole
+   * doc). The heavy lifting is GIIIFTBox.normalize, already a strict
+   * allowlister: panel/sticker ids must exist in their registries, layer
+   * types/fonts/patterns/aligns are enums, every number is clamped, strings
+   * are capped, art src is regex-gated, layers cap at the engine's
+   * MAX_LAYERS per face. cleanDoc adds the gift-payload POLICY on top:
+   *   - a hard size ceiling (the doc rides Supabase rows / localStorage,
+   *     never the ?g= token — CDN URL limits; oversized returns null rather
+   *     than truncating someone's art into a surprise)
+   *   - no `features` (lock / minigame / self-destruct are receive-side
+   *     gates owned by the unlock-kit lane's UX — an un-authored gate must
+   *     never ride into a gift through a raw payload)
+   * Returns a fresh normalized doc, or null (callers fall back to the
+   * template / palette paths). */
+  var DOC_MAX_BYTES = 49152;
+  function cleanDoc(doc) {
+    if (!doc || typeof doc !== "object" || Array.isArray(doc)) return null;
+    var GBX = global.GIIIFTBox;
+    if (!GBX || typeof GBX.normalize !== "function") return null;
+    try {
+      if (JSON.stringify(doc).length > DOC_MAX_BYTES) return null;
+      var out = GBX.normalize(doc);
+      delete out.features;
+      return out;
+    } catch (e) { return null; }
+  }
+
   /* Build a full engine doc for a template:
    *   doc("expedition", { c1, c2, accent, to, from, note, title })
    *   (title = the sender's own Front text; title slots prefer it over the name)
@@ -226,5 +254,5 @@
     };
   }
 
-  global.GIIIFTBoxTemplates = { list: TEMPLATES, get: get, doc: doc, slots: slots, cleanText: cleanText, applyText: applyText };
+  global.GIIIFTBoxTemplates = { list: TEMPLATES, get: get, doc: doc, slots: slots, cleanText: cleanText, applyText: applyText, cleanDoc: cleanDoc };
 })(typeof window !== "undefined" ? window : this);

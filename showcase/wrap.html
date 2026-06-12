@@ -2191,6 +2191,31 @@
           d.ph = phKey;
         } catch (e) { console.warn('[GIIIFT] photos too large to stash, sending without:', e); }
       }
+      // M5: a lab-crafted CUSTOM doc survives to the recipient. Far too big for
+      // the ?g= token (CDN URL limits), it rides (a) the Supabase short-link /
+      // intent payloads as `cd` and (b) a same-device localStorage key (`d.cdk`,
+      // the photos precedent) so backend-less demos still open the real thing.
+      // cleanDoc here == cleanDoc on receive: what ships is exactly what renders.
+      let customDoc = null;
+      if (!cfg.template && window.GIIIFTFlow && window.GIIIFTBoxTemplates && GIIIFTBoxTemplates.cleanDoc) {
+        const rawDoc = GIIIFTFlow.ctx().get('labDoc');
+        customDoc = rawDoc ? GIIIFTBoxTemplates.cleanDoc(rawDoc) : null;
+        if (rawDoc && !customDoc) console.warn('[GIIIFT] custom doc rejected (size/shape); sending the palette box');
+        if (customDoc) {
+          try {
+            const cdKey = Math.random().toString(36).slice(2, 10);
+            localStorage.setItem('giiift-doc:' + cdKey, JSON.stringify(customDoc));
+            d.cdk = cdKey;
+          } catch (e) { console.warn('[GIIIFT] custom doc too large to stash locally:', e); }
+          // the token's palette keys mirror the DOC (not just cfg) so a cross-device
+          // fallback box always wears the custom design's colours, however labDoc arrived
+          const dp = customDoc.palette || {};
+          if (dp.c1 && lc(dp.c1) !== DEF.cardboard) d.c = dp.c1; else delete d.c;
+          if (dp.c2 && lc(dp.c2) !== DEF.cardboard2) d.k = dp.c2; else delete d.k;
+          if (dp.accent && lc(dp.accent) !== DEF.accent) d.x = dp.accent; else delete d.x;
+          if (dp.finish && dp.finish !== DEF.finish) d.f = dp.finish; else delete d.f;
+        }
+      }
       const compact = {
         t: strip(cfg.labelTo, /^to:\s*/i),
         f: strip(cfg.from, /^from:\s*/i),
@@ -2206,17 +2231,20 @@
       if (retailEntry) compact.r = { p: retailEntry.retail };
       if (giftOccasion) compact.o = giftOccasion;   // → recipient's shop lead shelf ("Birthday from Misty → …")
       if (V) V.stamp(compact);   // the vertical travels with the gift → the receive page speaks the same language
-      lastCompact = compact;
+      // backend payloads (short link + Link/Social intents) carry the full doc;
+      // the self-contained token below stays lean by design
+      lastCompact = customDoc ? Object.assign({}, compact, { cd: customDoc }) : compact;
       let token = 'demo';
       try { token = btoa(unescape(encodeURIComponent(JSON.stringify(compact)))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, ''); } catch (e) {}
       // Always have a working link; upgrade to a tiny /g/<code> link if Supabase stores it.
       const setLink = (url) => { finishUrl = url; const o = document.getElementById('fp-open'); if (o) o.href = url; };
       setLink(location.origin + '/showcase/box.html?g=' + token);
-      createShortGift(compact).then(code => { if (code) setLink(location.origin + '/g/' + code); })
+      createShortGift(lastCompact).then(code => { if (code) setLink(location.origin + '/g/' + code); })
         .catch(err => console.warn('[GIIIFT] short link unavailable, using self-contained link:', err));
       const toName = (cfg.labelTo || '').replace(/^to:\s*/i, '').trim() || 'someone';
       document.getElementById('fp-sub').textContent = vtxt('wrappedFor', { to: toName, count: contents.length, s: contents.length === 1 ? '' : 's' },
         'Wrapped for ' + toName + ' · ' + contents.length + ' item' + (contents.length === 1 ? '' : 's') + '.');
+      if (customDoc && !SB) document.getElementById('fp-sub').textContent += ' · custom box opens on this device (demo)';
       const upkg = document.getElementById('dv-pkg-user');
       if (upkg) { upkg.style.setProperty('--pkg1', cfg.cardboard || '#7c3aed'); upkg.style.setProperty('--pkg2', cfg.cardboard2 || cfg.cardboard || '#ec4899'); upkg.style.setProperty('--pkg-accent', cfg.accent || '#fde68a'); }
       // ---- finalize: build the stage kit, then let the transition engine pick one ----
