@@ -133,7 +133,7 @@
       <div class="head-row">
         <span class="ctx-chip" id="ctx-chip" hidden></span>
         <button type="button" class="topup" id="topup">+ Top up to get more</button>
-        <a class="topup" href="/orders.html" style="text-decoration:none">Your orders →</a>
+        <a class="topup" href="/showcase/orders.html" style="text-decoration:none">Your orders →</a>
       </div>
     </header>
 
@@ -150,10 +150,12 @@
 
   <!-- the marketplace engine + per-type cards + source adapters (demo mode until
        MARKET_SOURCE_* legs flip on; see /api/market/catalog) -->
-  <script src="/market-engine.js"></script>
-  <script src="/market-cards.js"></script>
-  <script src="/market-sources.js"></script>
-  <script src="/market-checkout.js"></script>
+  <script src="/showcase/market-engine.js"></script>
+  <script src="/showcase/market-cards.js"></script>
+  <script src="/showcase/routing.js"></script>
+  <script src="/showcase/market-sources.js"></script>
+  <script src="/showcase/market-rails.js"></script>
+  <script src="/showcase/market-checkout.js"></script>
   <script>
   (function () {
     'use strict';
@@ -209,8 +211,20 @@
       }
     })();
     document.getElementById('topup').addEventListener('click', function () {
+      // M4: the onramp rail (Coinbase-first MoR, MoonPay fallback; bank methods ride the
+      // provider widgets; destination = the user's OWN wallet). Demo without provider env.
+      var btn = this;
       GIIIFTMarket.track('topup_intent', { balance: balance });
-      this.textContent = 'Top-ups arrive with checkout (M2)';
+      var rails = GIIIFTMarket.railsApi;
+      if (!rails) { btn.textContent = 'Top-ups unavailable'; return; }
+      btn.disabled = true;
+      var was = btn.textContent;
+      btn.textContent = 'Opening top-up…';
+      rails.topup(25).then(function (res) {
+        btn.disabled = false;
+        btn.textContent = res.live ? ('Continue in ' + res.label + ' ↗') : 'Demo top-up arrived ✓';
+        setTimeout(function () { btn.textContent = was; }, 3200);
+      });
     });
 
     /* ---- mount the engine (bare: this page owns hero/aurora/footer) ----
@@ -229,6 +243,7 @@
     window.__shop = GIIIFTMarket.mount('#market', {
       key: 'shop',
       bare: true,
+      balanceUsd: balance,   // signal-only (this page owns the balance hero); M4 composite + priceFit read it
       search: true, sort: true,
       searchPlaceholder: vtxt('searchPh', null, 'Search cards, packs, art, real things…'),
       facets: [

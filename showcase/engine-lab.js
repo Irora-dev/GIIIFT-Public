@@ -54,9 +54,9 @@
   var FONTS = Object.keys(GBX.FONTS);                       // full engine library, insertion order = curated order
   var FONT_CATS = [["classic", "Classic"], ["bold", "Bold"], ["fun", "Fun"], ["script", "Script"], ["tech", "Tech"], ["loud", "Loud"], ["dark", "Dark"]];
   function fontMeta(k) { return (GBX.FONT_META || {})[k] || { name: k, cat: "bold", vibe: [] }; }
-  var LAYER_ICON = { text: "T", graffiti: "✎", stamp: "◈", note: "✉", label: "▤", sticker: "★", art: "▢", shape: "▰", frame: "⬚", seal: "✦", postmark: "◉", barcode: "‖", decal: "❖", fade: "◧" };
-  var LAYER_NAME = { sticker: "Glyph", decal: "Sticker", text: "Text", graffiti: "Graffiti", stamp: "Stamp", note: "Note", label: "Label", art: "Art", shape: "Shape", frame: "Photo frame", seal: "Seal", postmark: "Postmark", barcode: "Barcode", fade: "Fade" };
-  var ADD_TYPES = ["text", "graffiti", "stamp", "note", "label", "sticker", "art", "shape", "frame", "fade", "seal", "postmark", "barcode"];
+  var LAYER_ICON = { text: "T", graffiti: "✎", stamp: "◈", note: "✉", label: "▤", sticker: "★", art: "▢", shape: "▰", frame: "⬚", qr: "▦", seal: "✦", postmark: "◉", barcode: "‖", decal: "❖", fade: "◧" };
+  var LAYER_NAME = { sticker: "Glyph", decal: "Sticker", text: "Text", graffiti: "Graffiti", stamp: "Stamp", note: "Note", label: "Label", art: "Art", shape: "Shape", frame: "Photo frame", qr: "QR code", seal: "Seal", postmark: "Postmark", barcode: "Barcode", fade: "Fade" };
+  var ADD_TYPES = ["text", "graffiti", "stamp", "note", "label", "sticker", "art", "shape", "frame", "qr", "fade", "seal", "postmark", "barcode"];
   var ELEMENT_SCALE = 0.8;   // owner tune (2026-06-11): freshly placed elements land ~20% smaller — scales size/w/h at place time (fades stay full-bleed; templates and existing docs untouched)
   var LAYER_DEFAULTS = {
     text: { t: "text", value: "Your text", x: .5, y: .5, w: .72, font: "display", size: .11, weight: 600, color: "#fde68a", align: "center", italic: true, rotate: 0, lineHeight: 1.05, letterSpacing: 0, style: "plain", outline1: "#ffffff", outline2: "#111111", effect: "none", effectColor: "#ffe066", curve: 0, fillKind: "solid", fill2: "#7c3aed", fillAngle: 135, finish: "none" },
@@ -72,6 +72,7 @@
     fade: { t: "fade", kind: "linear", color: "#000000", angle: 0, opacity: 1, x: .5, y: .75, w: 1, h: .55, rotate: 0 },
     shape: { t: "shape", shape: "rect", fill: "#fde68a", fillKind: "solid", fill2: "#7c3aed", fillAngle: 135, stroke: "#111111", strokeW: 0, strokeStyle: "solid", radius: .12, x: .5, y: .5, w: .5, h: .2, opacity: 1, rotate: 0 },
     frame: { t: "frame", frame: "circle", src: "", stroke: "#ffffff", strokeW: 0, radius: .16, x: .5, y: .5, w: .42, h: .42, opacity: 1, rotate: 0 },
+    qr: { t: "qr", value: "https://giiift.com/g/your-gift", ecc: "M", dark: "#11141b", light: "#ffffff", x: .5, y: .5, w: .4, opacity: 1, rotate: 0 },
   };
   var RG = function (min, max, step, unit) { return { k: "range", min: min, max: max, step: step, unit: unit || "" }; };
   var POS = [["x", RG(0, 1, .01)], ["y", RG(0, 1, .01)], ["rotate", RG(-180, 180, 1, "°")], ["anim", "anim"], ["blend", "blendkind"]];
@@ -91,6 +92,7 @@
     fade: [["kind", "fadekind"], ["color", "color"], ["angle", RG(0, 360, 1, "°")], ["opacity", RG(0, 1, .05)], ["w", RG(.05, 1, .01)], ["h", RG(.05, 1, .01)]].concat(POS),
     shape: [["shape", "shapekind"], ["fill", "color"], ["fillKind", "fillkind"], ["fill2", "color"], ["fillAngle", RG(0, 360, 1, "°")], ["fillFade", "bool"], ["stroke", "color"], ["strokeW", RG(0, .06, .002)], ["strokeStyle", "strokestyle"], ["radius", RG(0, .5, .01)], ["opacity", RG(0, 1, .05)], ["flipX", "bool"], ["flipY", "bool"], ["w", RG(.02, 1, .01)], ["h", RG(.02, 1, .01)]].concat(POS),
     frame: [["frame", "framekind"], ["src", "framephoto"], ["stroke", "color"], ["strokeW", RG(0, .06, .002)], ["radius", RG(0, .5, .01)], ["opacity", RG(0, 1, .05)], ["w", RG(.05, 1, .01)], ["h", RG(.05, 1, .01)]].concat(POS),
+    qr: [["value", "text"], ["ecc", "qrecc"], ["dark", "color"], ["transparentBg", "qrtransp"], ["light", "color"], ["opacity", RG(0, 1, .05)], ["w", RG(.15, 1, .01)]].concat(POS),
   };
   var SHAPE_OPTS = [{ value: "rect", label: "▭" }, { value: "ellipse", label: "●" }, { value: "line", label: "▬" }, { value: "triangle", label: "▲" }, { value: "star", label: "★" }, { value: "diamond", label: "◆" }, { value: "heart", label: "♥" }, { value: "arrow", label: "➤" }, { value: "bubble", label: "💬" }, { value: "burst", label: "✸" }, { value: "ribbon", label: "🔖" }];
   var FRAME_OPTS = [{ value: "circle", label: "●" }, { value: "rounded", label: "▢" }, { value: "rect", label: "▭" }, { value: "heart", label: "♥" }, { value: "star", label: "★" }, { value: "triangle", label: "▲" }, { value: "hexagon", label: "⬢" }, { value: "blob", label: "☁" }];
@@ -804,6 +806,7 @@
       if ((prop === "fill2" || prop === "fillAngle" || prop === "fillFade") && (L.fillKind || "solid") === "solid") return;   // gradient sub-controls only when a gradient fill is on
       if (prop === "fillAngle" && L.fillKind === "radial") return;   // angle is linear-only
       if (prop === "fill2" && L.fillFade) return;                    // fade-to-transparent ignores the 2nd colour
+      if (prop === "light" && L.light === "none") return;            // QR background colour hidden when transparent
       g.appendChild(buildPropControl(L, prop, kind));
     });
     body.appendChild(g);
@@ -813,6 +816,14 @@
       fpRow.appendChild(bc);
       if (styleClip && styleClip.fam === styleFam(L.t)) { var bp = el("button", "btn"); bp.textContent = "Paste style"; bp.title = "⌥⌘V"; bp.addEventListener("click", pasteStyle); fpRow.appendChild(bp); }
       body.appendChild(fpRow);
+    }
+    if (L.t === "art" && typeof L.src === "string" && L.src) {
+      var cg = group("Crop", L.crop ? "This photo is reframed. Re-crop or clear it." : "Reframe the photo to any window.");
+      var cb = el("button", "btn"); cb.textContent = "⛶ Crop / reframe"; cb.style.cssText = "width:100%;font-weight:600";
+      cb.addEventListener("click", function () { cropTool(L); });
+      cg.appendChild(cb);
+      if (L.crop) { var clr = el("button", "btn"); clr.textContent = "Clear crop"; clr.style.cssText = "width:100%;margin-top:5px;font-size:11px"; clr.addEventListener("click", function () { delete L.crop; rerender(); record(); renderInspector(); toast("Crop cleared"); }); cg.appendChild(clr); }
+      body.appendChild(cg);
     }
     if (L.t === "art" && typeof L.src === "string" && L.src.indexOf("data:") === 0) {
       var tg = group("Cutout", "Erase leftover background, or restore parts the AI over-cut.");
@@ -889,7 +900,7 @@
     body.appendChild(tip);
   }
   function buildPropControl(L, prop, kind) {
-    var label = prop === "flipX" ? "Flip ↔" : prop === "flipY" ? "Flip ↕" : prop === "outline1" ? "Outline" : prop === "outline2" ? "Edge" : prop === "effectColor" ? "Effect colour" : prop === "fillKind" ? "Fill" : prop === "fill2" ? "Fill 2" : prop === "fillAngle" ? "Angle" : prop === "fillFade" ? "Fade to clear" : prop === "saturate" ? "Saturation" : prop === "lineHeight" ? "Line height" : prop === "letterSpacing" ? "Letter spacing" : prop === "strokeStyle" ? "Border style" : prop === "outlineW" ? "Sticker outline" : prop === "outlineColor" ? "Outline colour" : prop === "softShadow" ? "Soft shadow" : prop === "finish" ? "Finish" : prop === "look" ? "Looks" : prop === "glyphs" ? "Pick a glyph" : prop === "anim" ? "Animate" : prop === "blend" ? "Blend" : cap(prop);
+    var label = prop === "flipX" ? "Flip ↔" : prop === "flipY" ? "Flip ↕" : prop === "outline1" ? "Outline" : prop === "outline2" ? "Edge" : prop === "effectColor" ? "Effect colour" : prop === "fillKind" ? "Fill" : prop === "fill2" ? "Fill 2" : prop === "fillAngle" ? "Angle" : prop === "fillFade" ? "Fade to clear" : prop === "saturate" ? "Saturation" : prop === "lineHeight" ? "Line height" : prop === "letterSpacing" ? "Letter spacing" : prop === "strokeStyle" ? "Border style" : prop === "outlineW" ? "Sticker outline" : prop === "outlineColor" ? "Outline colour" : prop === "softShadow" ? "Soft shadow" : prop === "finish" ? "Finish" : prop === "look" ? "Looks" : prop === "glyphs" ? "Pick a glyph" : prop === "anim" ? "Animate" : prop === "blend" ? "Blend" : prop === "ecc" ? "Error correction" : prop === "dark" ? "Modules" : prop === "light" ? "Background" : prop === "transparentBg" ? "Transparent bg" : cap(prop);
     function setV(v, c) { L[prop] = v; rerender(); if (c) record(); if (prop === "value" || prop === "title" || prop === "label") updateCrumb(); }
     if (kind === "text") return textField(label, function () { return L[prop]; }, setV);
     if (kind === "textarea") return textField(label, function () { return L[prop]; }, setV, { area: true });
@@ -915,6 +926,8 @@
     if (kind === "artlooks") return artLooksField(L);
     if (kind === "glyphgrid") return glyphGridField(L);
     if (kind === "framekind") return segField(label, FRAME_OPTS, function () { return L.frame || "circle"; }, function (v) { setV(v, true); renderInspector(); });
+    if (kind === "qrecc") return segField(label, [{ value: "L", label: "L" }, { value: "M", label: "M" }, { value: "Q", label: "Q" }, { value: "H", label: "H" }], function () { return L.ecc || "M"; }, function (v) { setV(v, true); });
+    if (kind === "qrtransp") return toggleField(label, function () { return L.light === "none"; }, function (on) { L.light = on ? "none" : "#ffffff"; rerender(); record(); renderInspector(); });
     if (kind === "fillkind") return segField(label, [{ value: "solid", label: "Solid" }, { value: "linear", label: "Linear" }, { value: "radial", label: "Radial" }], function () { return L.fillKind || "solid"; }, function (v) { setV(v, true); renderInspector(); });
     if (kind === "anim") return segField(label, [{ value: "none", label: "None" }, { value: "pop", label: "Pop" }, { value: "fade", label: "Fade" }, { value: "rise", label: "Rise" }, { value: "spin", label: "Spin" }, { value: "float", label: "Float" }], function () { return L.anim || "none"; }, function (v) { if (v === "none") delete L.anim; else L.anim = v; rerender(); record(); });
     if (kind === "blendkind") {
@@ -2700,7 +2713,21 @@
     var idSafe = id.replace(/[^a-z0-9]/g, "");
     (f.layers || []).forEach(function (L) {
       var _bStart = svg.length;   // mark, so the per-layer blend wrap below can enclose whatever this layer appends
-      if (L.t === "art" && L.src) {
+      if (L.t === "art" && L.src && L.crop) {                  // manual reframe: clip the crop window to the layer box
+        var cw100 = L.w * 100, ch100 = L.h * 100, cx0 = L.x * 100 - cw100 / 2, cy0 = L.y * 100 - ch100 / 2;
+        var fullW = cw100 / L.crop.w, fullH = ch100 / L.crop.h, imgX = cx0 - L.crop.x * fullW, imgY = cy0 - L.crop.y * fullH;
+        var cfb = [];
+        if (L.brightness != null && L.brightness !== 1) cfb.push("brightness(" + L.brightness + ")");
+        if (L.contrast != null && L.contrast !== 1) cfb.push("contrast(" + L.contrast + ")");
+        if (L.saturate != null && L.saturate !== 1) cfb.push("saturate(" + L.saturate + ")");
+        if (L.blur) cfb.push("blur(" + r2(L.blur * 100) + "px)");
+        if (L.sepia) cfb.push("sepia(" + L.sepia + ")");
+        var ccid = idSafe + "Crop" + (gradN++), crr = L.radius ? Math.min(cw100, ch100) * L.radius : 0;
+        extraDefs += '<clipPath id="' + ccid + '"><rect x="' + r2(cx0) + '" y="' + r2(cy0) + '" width="' + r2(cw100) + '" height="' + r2(ch100) + '" rx="' + r2(crr) + '"/></clipPath>';
+        var cimg = '<image href="' + L.src + '" x="' + r2(imgX) + '" y="' + r2(imgY) + '" width="' + r2(fullW) + '" height="' + r2(fullH) + '" preserveAspectRatio="none" clip-path="url(#' + ccid + ')"' + (L.opacity != null && L.opacity < 1 ? ' opacity="' + r2(L.opacity) + '"' : '') + (cfb.length ? ' style="filter:' + cfb.join(" ") + '"' : '') + '/>';
+        var ctf = exportTf(L);
+        svg += ctf.length ? '<g transform="' + ctf.join(' ') + '">' + cimg + '</g>' : cimg;
+      } else if (L.t === "art" && L.src) {
         var z = L.zoom || 1, iw = L.w * 100 * z, ih = L.h * 100 * z;
         var x = L.x * 100 - iw / 2, y = L.y * 100 - ih / 2, par = (L.fit === "contain") ? "xMidYMid meet" : "xMidYMid slice";
         var afb = [];
@@ -2857,6 +2884,18 @@
           }
           var fOut = fEl + border2;
           svg += L.rotate ? '<g transform="rotate(' + r2(L.rotate) + ' ' + r2(L.x * 100) + ' ' + r2(L.y * 100) + ')">' + fOut + '</g>' : fOut;
+        }
+      } else if (L.t === "qr") {
+        var qm = GBX.qrMatrix && GBX.qrMatrix(L.value, L.ecc);
+        if (!qm) { skipped++; }                                // value too big for v10 — nothing to bake
+        else {
+          var quiet = 4, D = qm.count + quiet * 2, qsz = (L.w || .4) * 100, qx = L.x * 100 - qsz / 2, qy = L.y * 100 - qsz / 2;
+          var qd = "", qr2, qc;
+          for (qr2 = 0; qr2 < qm.count; qr2++) { qc = 0; while (qc < qm.count) { if (qm.modules[qr2][qc]) { var qs = qc; while (qc < qm.count && qm.modules[qr2][qc]) qc++; var qrun = qc - qs; qd += "M" + (qs + quiet) + " " + (qr2 + quiet) + "h" + qrun + "v1h-" + qrun + "z"; } else qc++; } }
+          var qbg = (L.light && L.light !== "none") ? '<rect width="' + D + '" height="' + D + '" fill="' + L.light + '"/>' : '';
+          var qsvg = '<svg x="' + r2(qx) + '" y="' + r2(qy) + '" width="' + r2(qsz) + '" height="' + r2(qsz) + '" viewBox="0 0 ' + D + ' ' + D + '" shape-rendering="crispEdges">' + qbg + '<path d="' + qd + '" fill="' + (L.dark || "#11141b") + '"/></svg>';
+          var qtf = exportTf(L);
+          svg += qtf.length ? '<g transform="' + qtf.join(' ') + '">' + qsvg + '</g>' : qsvg;
         }
       } else if (L.t) { skipped++; }
       if (L.blend && /^[a-z-]+$/.test(L.blend) && svg.length > _bStart) svg = svg.slice(0, _bStart) + '<g style="mix-blend-mode:' + L.blend + '">' + svg.slice(_bStart) + '</g>';   // per-layer blend parity
@@ -3258,6 +3297,81 @@
       setTimeout(function () { bd.focus(); }, 0);
     };
     img.onerror = function () { toast("Couldn't load that image to edit", true); };
+    img.src = L.src;
+  }
+
+  /* ---------------- crop / reframe tool (manual sub-window of a photo) ---------------- */
+  function cropTool(L) {
+    if (!L || L.t !== "art" || typeof L.src !== "string" || !L.src) return;
+    var img = new Image();
+    img.onload = function () {
+      var nat = Math.max(img.width, img.height) || 1, scale = Math.min(1, 720 / nat);
+      var W = Math.max(1, Math.round(img.width * scale)), H = Math.max(1, Math.round(img.height * scale));
+      var MIN = Math.max(20, Math.round(Math.min(W, H) * 0.08));
+      // crop rect in canvas px — seed from the existing crop, else the whole image
+      var rx = L.crop ? L.crop.x * W : 0, ry = L.crop ? L.crop.y * H : 0, rw = L.crop ? L.crop.w * W : W, rh = L.crop ? L.crop.h * H : H;
+      var prev = document.activeElement, drag = null;
+      var back = el("div", "modal-back"), m = el("div", "modal tu-modal");
+      m.setAttribute("role", "dialog"); m.setAttribute("aria-modal", "true"); m.setAttribute("aria-label", "Crop photo");
+      var h = el("h3"); h.textContent = "Crop / reframe"; m.appendChild(h);
+      var note = el("p"); note.style.cssText = "font-size:11px;opacity:.65;margin-bottom:8px"; note.textContent = "Drag the frame to move it, the handles to resize. The framed area fills the layer."; m.appendChild(note);
+      var stageEl = el("div", "tu-stage"); var view = el("canvas", "tu-view"); view.width = W; view.height = H; stageEl.appendChild(view); m.appendChild(stageEl);
+      var vx = view.getContext("2d");
+      function handles() { return { nw: [rx, ry], n: [rx + rw / 2, ry], ne: [rx + rw, ry], e: [rx + rw, ry + rh / 2], se: [rx + rw, ry + rh], s: [rx + rw / 2, ry + rh], sw: [rx, ry + rh], w: [rx, ry + rh / 2] }; }
+      function draw() {
+        vx.clearRect(0, 0, W, H); vx.drawImage(img, 0, 0, W, H);
+        vx.fillStyle = "rgba(8,11,20,.62)";                    // scrim outside the crop
+        vx.fillRect(0, 0, W, ry); vx.fillRect(0, ry + rh, W, H - ry - rh); vx.fillRect(0, ry, rx, rh); vx.fillRect(rx + rw, ry, W - rx - rw, rh);
+        vx.strokeStyle = "rgba(255,255,255,.28)"; vx.lineWidth = 1;   // rule-of-thirds
+        for (var t = 1; t <= 2; t++) { vx.beginPath(); vx.moveTo(rx + rw * t / 3, ry); vx.lineTo(rx + rw * t / 3, ry + rh); vx.stroke(); vx.beginPath(); vx.moveTo(rx, ry + rh * t / 3); vx.lineTo(rx + rw, ry + rh * t / 3); vx.stroke(); }
+        vx.strokeStyle = "#fff"; vx.lineWidth = 2; vx.strokeRect(rx, ry, rw, rh);
+        var hs = handles(), hsz = Math.max(7, Math.round(Math.min(W, H) * 0.022));
+        vx.fillStyle = "#fff"; Object.keys(hs).forEach(function (k) { vx.fillRect(hs[k][0] - hsz / 2, hs[k][1] - hsz / 2, hsz, hsz); });
+      }
+      draw();
+      function toPx(ev) { var r = view.getBoundingClientRect(); return { x: (ev.clientX - r.left) * (W / r.width), y: (ev.clientY - r.top) * (H / r.height), tol: 14 * (W / r.width) }; }
+      function hitHandle(p) { var hs = handles(), best = null, bd = p.tol; Object.keys(hs).forEach(function (k) { var d = Math.hypot(hs[k][0] - p.x, hs[k][1] - p.y); if (d <= bd) { bd = d; best = k; } }); return best; }
+      view.addEventListener("pointerdown", function (ev) {
+        ev.preventDefault(); var p = toPx(ev), hh = hitHandle(p);
+        if (hh) drag = { mode: hh, x: p.x, y: p.y };
+        else if (p.x >= rx && p.x <= rx + rw && p.y >= ry && p.y <= ry + rh) drag = { mode: "move", x: p.x, y: p.y, ox: rx, oy: ry };
+        else drag = null;
+        if (drag) { try { view.setPointerCapture(ev.pointerId); } catch (e) {} }
+      });
+      view.addEventListener("pointermove", function (ev) {
+        if (!drag) return; var p = toPx(ev);
+        if (drag.mode === "move") {
+          rx = Math.max(0, Math.min(W - rw, drag.ox + (p.x - drag.x))); ry = Math.max(0, Math.min(H - rh, drag.oy + (p.y - drag.y)));
+        } else {
+          var x2 = rx + rw, y2 = ry + rh, mx = Math.max(0, Math.min(W, p.x)), my = Math.max(0, Math.min(H, p.y)), md = drag.mode;
+          if (md.indexOf("w") >= 0) rx = Math.min(mx, x2 - MIN);
+          if (md.indexOf("e") >= 0) x2 = Math.max(mx, rx + MIN);
+          if (md.indexOf("n") >= 0) ry = Math.min(my, y2 - MIN);
+          if (md.indexOf("s") >= 0) y2 = Math.max(my, ry + MIN);
+          rw = x2 - rx; rh = y2 - ry;
+        }
+        draw();
+      });
+      function stop(ev) { drag = null; try { view.releasePointerCapture(ev.pointerId); } catch (e) {} }
+      view.addEventListener("pointerup", stop); view.addEventListener("pointercancel", stop);
+      var foot = el("div", "tu-foot");
+      var br = el("button", "btn"); br.textContent = "Reset"; br.addEventListener("click", function () { rx = 0; ry = 0; rw = W; rh = H; draw(); });
+      var bc = el("button", "btn"); bc.textContent = "Cancel"; bc.addEventListener("click", close);
+      var bd2 = el("button", "btn acc"); bd2.textContent = "Apply"; bd2.addEventListener("click", commit);
+      foot.append(br, bc, bd2); m.appendChild(foot);
+      function close() { back.remove(); document.removeEventListener("keydown", onKey, true); if (prev && prev.focus) prev.focus(); }
+      function onKey(e) { if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); close(); } }
+      function commit() {
+        if (rx <= 1 && ry <= 1 && rw >= W - 1 && rh >= H - 1) { delete L.crop; announce("Crop cleared"); }
+        else L.crop = { x: +(rx / W).toFixed(4), y: +(ry / H).toFixed(4), w: +(rw / W).toFixed(4), h: +(rh / H).toFixed(4) };
+        close(); rerender(); record(); renderInspector(); toast(L.crop ? "Photo reframed" : "Crop cleared");
+      }
+      back.appendChild(m); document.body.appendChild(back);
+      back.addEventListener("pointerdown", function (e) { if (e.target === back) close(); });
+      document.addEventListener("keydown", onKey, true);
+      setTimeout(function () { bd2.focus(); }, 0);
+    };
+    img.onerror = function () { toast("Couldn't load that image to crop", true); };
     img.src = L.src;
   }
 

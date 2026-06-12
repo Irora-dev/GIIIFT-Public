@@ -1,0 +1,89 @@
+<!doctype html>
+<!-- GIIIFT · FAQ (marketplace M5, spec §9). Static, lane-owned. Plain words for the
+     money questions: balance vs credit, custody posture, fees, refunds, storefronts.
+     Checkout and the account page link here contextually. -->
+<html lang="en" data-theme="dark">
+<head>
+<script>/* public showcase mirror: always demo mode */try{localStorage.setItem("giiift-demo","1");localStorage.setItem("giiift-authed","1");}catch(e){}window.GIIIFT_CAPS={intents:false,oauth:false,telemetry:false};</script>
+<meta name="robots" content="noindex, nofollow, noarchive">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>GIIIFT · How the shop works</title>
+  <meta name="description" content="Balance vs GIIIFT credit, how buying works, custody, fees, refunds — in plain words." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@700&family=Space+Mono:wght@400;700&display=swap" />
+  <link rel="icon" type="image/svg+xml" href="/showcase/favicon.svg" />
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { background: #0a0a0c; color: #eef0f4; font-family: 'Inter', system-ui, sans-serif; min-height: 100vh; }
+    .wrap { max-width: 720px; margin: 0 auto; padding: 36px 20px 90px; }
+    .crumb { font: 600 11px 'Space Mono', monospace; letter-spacing: .16em; text-transform: uppercase; color: rgba(243,244,242,.4); display: flex; gap: 14px; }
+    .crumb a { color: inherit; text-decoration: none; } .crumb a:hover { color: #fff; }
+    h1 { font: 700 28px/1.1 'Space Grotesk', sans-serif; margin: 10px 0 6px;
+      background: linear-gradient(180deg,#fff,#b8f5dd 72%,#6fe6c0); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+    .sub { color: rgba(243,244,242,.55); font-size: 13px; margin-bottom: 26px; }
+    details { border: 1px solid rgba(255,255,255,.09); border-radius: 13px; background: linear-gradient(180deg,rgba(24,26,33,.55),rgba(15,16,21,.66)); margin-bottom: 10px; overflow: hidden; }
+    summary { padding: 14px 16px; font: 600 14px 'Inter'; cursor: pointer; list-style: none; display: flex; align-items: center; gap: 10px; }
+    summary::-webkit-details-marker { display: none; }
+    summary::before { content: '+'; font: 700 15px 'Space Mono', monospace; color: #00FF9D; width: 16px; }
+    details[open] summary::before { content: '−'; }
+    summary:hover { background: rgba(255,255,255,.03); }
+    .a { padding: 0 16px 14px 42px; color: rgba(243,244,242,.62); font: 500 13px/1.6 'Inter'; }
+    .a b { color: #eef0f4; } .a code { font-family: 'Space Mono', monospace; font-size: 11.5px; color: #b8f5dd; }
+    .a a { color: #00FF9D; text-decoration: none; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="crumb"><a href="/showcase/shop.html">← Shop</a><a href="/showcase/shop.html">Account</a><a href="/showcase/orders.html">Orders</a></div>
+    <h1>How the shop works</h1>
+    <p class="sub">The money questions, answered in plain words.</p>
+
+    <details open>
+      <summary>What's the difference between Balance and GIIIFT credit?</summary>
+      <div class="a"><b>Balance is real money</b> — your own USDC, sitting in your own wallet. It buys anything in the shop: cards, art, real things. <b>GIIIFT credit is the perks currency</b> — welcome bonuses and rewards. It only buys GIIIFT-made goods (premium boxes, game gates, Plus time). The two never mix, never convert, and are always shown separately. One checkout can use both at once, as separate legs on the same receipt.</div>
+    </details>
+
+    <details>
+      <summary>Who holds my money?</summary>
+      <div class="a"><b>You do.</b> Your balance lives in your own wallet, and every purchase is signed by you, from your wallet. When you top up, the payment provider (Coinbase or MoonPay) sends the funds straight to <b>your</b> address — GIIIFT is never in the middle and can never freeze, move, or lose your funds. There is no GIIIFT account balance anywhere on a GIIIFT server.</div>
+    </details>
+
+    <details>
+      <summary>How does buying actually work?</summary>
+      <div class="a">Add things to the cart and hit Pay. The shop quotes everything up front as one number. Onchain items are bought by your wallet directly. Real things hand off to the merchant's own checkout, paid from your wallet. If an item lives on another chain, the route is quoted up front ("settles silently") and executed from your wallet too. Your order's progress ticks live, step by step, and lands in <a href="/showcase/orders.html">Orders</a> with a receipt.</div>
+    </details>
+
+    <details>
+      <summary>What if my balance doesn't cover it?</summary>
+      <div class="a">Checkout becomes <b>"Top up &amp; pay"</b>: one flow, two steps. The shortfall is topped up first (card or bank, via Coinbase or MoonPay, into your own wallet), then the purchase pays from balance as normal. You see both steps and one total before you commit. If a top-up stalls, the order waits safely and is resumable from Orders — nothing is charged twice; orders are idempotent.</div>
+    </details>
+
+    <details>
+      <summary>What are the fees?</summary>
+      <div class="a">Every fee is shown on the quote before you pay — there are no fees that appear afterwards. The fee schedule is one public config file (<code>market-pricing.json</code>); when it changes, every quote everywhere changes with it. Top-up provider fees belong to the provider and are shown in their widget; we default to the cheapest route first.</div>
+    </details>
+
+    <details>
+      <summary>Refunds and failed orders?</summary>
+      <div class="a">If an order fails mid-flight it parks as <b>failed</b> or <b>awaiting funds</b>, never half-charged, and can be resumed from <a href="/showcase/orders.html">Orders</a>. Onchain purchases that already settled are final (that's the chain, not us) — anything that didn't settle simply never left your wallet. GIIIFT credit spent on a failed order is restored by the same ledger that spent it.</div>
+    </details>
+
+    <details>
+      <summary>What's a storefront?</summary>
+      <div class="a">A curated corner of the shop with an owner — <code>/s/&lt;handle&gt;</code>. Creators pin items, write why they picked them, and share the link. When an enrolled creator sends you a gift, the receive page can open on <i>their</i> picks. Storefronts are taste, not custody: buying from one works exactly like buying from the main shop, from your own wallet.</div>
+    </details>
+
+    <details>
+      <summary>How do affiliates earn?</summary>
+      <div class="a">Enrolled affiliates earn from <b>GIIIFT's own fee revenue</b> (or a flat bounty) when someone they onboarded makes a paid purchase — never a percentage of the money you move. Sending gifts stays free; the engine, not the transfer, pays the program.</div>
+    </details>
+
+    <details>
+      <summary>What data do you keep?</summary>
+      <div class="a">No personal information in the market tables — identities are hashed, and money tables are written only by the server. Anonymous usage telemetry can be switched off per device in <a href="/showcase/shop.html">Account → Settings</a> (the <code>giiift-telemetry-off</code> switch). Your orders and history are downloadable any time as CSV or JSON from the same page — your copy, not ours.</div>
+    </details>
+  </div>
+</body>
+</html>

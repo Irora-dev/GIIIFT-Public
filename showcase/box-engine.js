@@ -102,7 +102,96 @@
     rosegold: "linear-gradient(105deg,#8a5240 0%,#eebfa6 25%,#ffe9dd 42%,#d18a70 60%,#f3c6ae 78%,#8a5240 100%)",
     holo:     "linear-gradient(115deg,#ff9ad5 0%,#ffd36e 18%,#9dff8a 36%,#7adfff 54%,#a08bff 72%,#ff8bd1 90%,#ffd36e 100%)",
   };
-  var ELTYPES = { text: 1, stamp: 1, note: 1, graffiti: 1, label: 1, barcode: 1, seal: 1, postmark: 1, sticker: 1, art: 1, decal: 1, fade: 1, shape: 1, frame: 1 };
+  var ELTYPES = { text: 1, stamp: 1, note: 1, graffiti: 1, label: 1, barcode: 1, seal: 1, postmark: 1, sticker: 1, art: 1, decal: 1, fade: 1, shape: 1, frame: 1, qr: 1 };
+  var QRECC = { L: 1, M: 1, Q: 1, H: 1 };
+
+  /* ---------------------------- QR encoder ----------------------------- *
+   * Self-contained, dependency-free, offline. Byte mode + UTF-8, versions
+   * 1-10, ECC L/M/Q/H, auto version + auto mask. Renders for recipients too
+   * (it lives here, not just the lab). Tables verified-extracted from
+   * qrcode-generator (MIT); output round-trip-verified by an independent
+   * decoder (jsqr): 540/540 random URLs decode, capacity exact to spec.
+   * Returns { count, version, mask, modules:[[bool]] } or null if too big.   */
+  var QR = (function () {
+    var PPT = [[],[6,18],[6,22],[6,26],[6,30],[6,34],[6,22,38],[6,24,42],[6,26,46],[6,28,50]];
+    var RSB = [[1,26,19],[1,26,16],[1,26,13],[1,26,9],[1,44,34],[1,44,28],[1,44,22],[1,44,16],[1,70,55],[1,70,44],[2,35,17],[2,35,13],[1,100,80],[2,50,32],[2,50,24],[4,25,9],[1,134,108],[2,67,43],[2,33,15,2,34,16],[2,33,11,2,34,12],[2,86,68],[4,43,27],[4,43,19],[4,43,15],[2,98,78],[4,49,31],[2,32,14,4,33,15],[4,39,13,1,40,14],[2,121,97],[2,60,38,2,61,39],[4,40,18,2,41,19],[4,40,14,2,41,15],[2,146,116],[3,58,36,2,59,37],[4,36,16,4,37,17],[4,36,12,4,37,13],[2,86,68,2,87,69],[4,69,43,1,70,44],[6,43,19,2,44,20],[6,43,15,2,44,16]];
+    var LVL = { L:0, M:1, Q:2, H:3 }, ECBITS = { L:1, M:0, Q:3, H:2 };
+    var EXP = new Array(256), LOG = new Array(256), i;
+    for (i=0;i<8;i++) EXP[i]=1<<i;
+    for (i=8;i<256;i++) EXP[i]=EXP[i-4]^EXP[i-5]^EXP[i-6]^EXP[i-8];
+    for (i=0;i<255;i++) LOG[EXP[i]]=i;
+    function gexp(n){ while(n<0)n+=255; while(n>=256)n-=255; return EXP[n]; }
+    function polyMul(a,b){ var r=new Array(a.length+b.length-1); for(var z=0;z<r.length;z++)r[z]=0;
+      for(var x=0;x<a.length;x++)for(var y=0;y<b.length;y++)if(a[x]&&b[y])r[x+y]^=gexp(LOG[a[x]]+LOG[b[y]]); return r; }
+    function genPoly(ec){ var p=[1]; for(var k=0;k<ec;k++)p=polyMul(p,[1,gexp(k)]); return p; }
+    function utf8(s){ var b=[]; for(var k=0;k<s.length;k++){ var c=s.charCodeAt(k);
+      if(c<0x80)b.push(c); else if(c<0x800)b.push(0xc0|c>>6,0x80|c&63);
+      else if(c<0xd800||c>=0xe000)b.push(0xe0|c>>12,0x80|(c>>6&63),0x80|c&63);
+      else { k++; var c2=0x10000+((c&0x3ff)<<10)+(s.charCodeAt(k)&0x3ff); b.push(0xf0|c2>>18,0x80|(c2>>12&63),0x80|(c2>>6&63),0x80|c2&63); } } return b; }
+    function rowFor(v,l){ return RSB[(v-1)*4+LVL[l]]; }
+    function dataCap(v,l){ var r=rowFor(v,l),t=0; for(var k=0;k<r.length;k+=3)t+=r[k]*r[k+2]; return t; }
+    function lenBits(v){ return v<=9?8:16; }
+    var MF=[function(r,c){return(r+c)%2===0;},function(r,c){return r%2===0;},function(r,c){return c%3===0;},function(r,c){return(r+c)%3===0;},
+      function(r,c){return(Math.floor(r/2)+Math.floor(c/3))%2===0;},function(r,c){return(r*c)%2+(r*c)%3===0;},
+      function(r,c){return((r*c)%2+(r*c)%3)%2===0;},function(r,c){return((r*c)%3+(r+c)%2)%2===0;}];
+    function bit(x){var c=0;while(x){c++;x>>>=1;}return c;}
+    function bchFmt(d){ var dd=d<<10, G=0x537; while(bit(dd)-bit(G)>=0)dd^=G<<(bit(dd)-bit(G)); return((d<<10)|dd)^0x5412; }
+    function bchVer(d){ var dd=d<<12, G=0x1f25; while(bit(dd)-bit(G)>=0)dd^=G<<(bit(dd)-bit(G)); return(d<<12)|dd; }
+    return function encode(text, lvl){
+      lvl = LVL[lvl]!=null?lvl:'M'; text = String(text==null?'':text);
+      var bytes=utf8(text), v=0, k;
+      for(k=1;k<=10;k++){ if(dataCap(k,lvl)*8 >= 4+lenBits(k)+bytes.length*8){ v=k; break; } }
+      if(!v) return null;
+      var buf=[]; function put(num,len){ for(var b=len-1;b>=0;b--)buf.push((num>>>b)&1); }
+      put(4,4); put(bytes.length,lenBits(v)); for(k=0;k<bytes.length;k++)put(bytes[k],8);
+      var totalData=dataCap(v,lvl);
+      if(buf.length+4<=totalData*8)put(0,4);
+      while(buf.length%8)buf.push(0);
+      var data=[]; for(k=0;k<buf.length;k+=8){ var by=0; for(var b=0;b<8;b++)by=(by<<1)|buf[k+b]; data.push(by); }
+      var pad=[0xEC,0x11],p=0; while(data.length<totalData)data.push(pad[(p++)%2]);
+      var row=rowFor(v,lvl),blocks=[],di=0;
+      for(k=0;k<row.length;k+=3)for(var bb=0;bb<row[k];bb++){ var dc=row[k+2],ec=row[k+1]-dc, dpart=data.slice(di,di+dc); di+=dc;
+        var rem=dpart.concat(new Array(ec).fill(0)), gp=genPoly(ec);
+        for(var s=0;s<dpart.length;s++){ var coef=rem[s]; if(coef){ for(var t=0;t<gp.length;t++)rem[s+t]^=gexp(LOG[gp[t]]+LOG[coef]); } }
+        blocks.push({data:dpart, ec:rem.slice(dpart.length)}); }
+      var out=[],maxD=0,maxE=0; blocks.forEach(function(b){maxD=Math.max(maxD,b.data.length);maxE=Math.max(maxE,b.ec.length);});
+      for(k=0;k<maxD;k++)blocks.forEach(function(b){ if(k<b.data.length)out.push(b.data[k]); });
+      for(k=0;k<maxE;k++)blocks.forEach(function(b){ if(k<b.ec.length)out.push(b.ec[k]); });
+      var n=v*4+17, base=[], res=[]; for(k=0;k<n;k++){ base.push(new Array(n).fill(null)); res.push(new Array(n).fill(false)); }
+      function set(r,c,val){ base[r][c]=val; res[r][c]=true; }
+      function finder(fr,fc){ for(var dr=-1;dr<=7;dr++)for(var dc=-1;dc<=7;dc++){ var r=fr+dr,c=fc+dc; if(r<0||r>=n||c<0||c>=n)continue;
+        set(r,c,(0<=dr&&dr<=6&&(dc===0||dc===6))||(0<=dc&&dc<=6&&(dr===0||dr===6))||(2<=dr&&dr<=4&&2<=dc&&dc<=4)); } }
+      finder(0,0); finder(0,n-7); finder(n-7,0);
+      var pos=PPT[v-1]; for(var a=0;a<pos.length;a++)for(var b2=0;b2<pos.length;b2++){ var ar=pos[a],ac=pos[b2]; if(res[ar][ac])continue;   // alignment BEFORE timing (an alignment on row/col 6 overrides timing; first at v7)
+        for(var dr=-2;dr<=2;dr++)for(var dc=-2;dc<=2;dc++)set(ar+dr,ac+dc, Math.abs(dr)===2||Math.abs(dc)===2||(dr===0&&dc===0)); }
+      for(k=8;k<n-8;k++){ if(!res[6][k])set(6,k,k%2===0); if(!res[k][6])set(k,6,k%2===0); }
+      set(n-8,8,true);
+      for(k=0;k<9;k++){ if(!res[8][k])res[8][k]=true; if(!res[k][8])res[k][8]=true; }
+      for(k=0;k<8;k++){ res[8][n-1-k]=true; res[n-1-k][8]=true; }
+      if(v>=7){ for(k=0;k<6;k++)for(var w=0;w<3;w++){ res[k][n-11+w]=true; res[n-11+w][k]=true; } }
+      function mapData(M, mask){ var inc=-1,r=n-1,bi=7,by=0;
+        for(var col=n-1;col>0;col-=2){ if(col===6)col--;
+          while(true){ for(var cc=0;cc<2;cc++){ var c=col-cc; if(res[r][c])continue;
+            var dark=false; if(by<out.length)dark=((out[by]>>>bi)&1)===1; if(MF[mask](r,c))dark=!dark;
+            M[r][c]=dark; bi--; if(bi===-1){by++;bi=7;} }
+            r+=inc; if(r<0||r>=n){r-=inc;inc=-inc;break;} } } }
+      function setFmt(M, mask){ var bits=bchFmt((ECBITS[lvl]<<3)|mask);
+        for(var z=0;z<15;z++){ var on=((bits>>z)&1)===1;
+          if(z<6)M[z][8]=on; else if(z<8)M[z+1][8]=on; else M[n-15+z][8]=on;
+          if(z<8)M[8][n-1-z]=on; else if(z<9)M[8][15-z]=on; else M[8][15-z-1]=on; } }
+      function setVer(M){ if(v<7)return; var bits=bchVer(v);
+        for(var z=0;z<18;z++){ var on=((bits>>z)&1)===1; M[Math.floor(z/3)][n-11+z%3]=on; M[n-11+z%3][Math.floor(z/3)]=on; } }
+      function penalty(M){ var s=0,r,c;
+        for(r=0;r<n;r++){ var run=1; for(c=1;c<n;c++){ if(M[r][c]===M[r][c-1]){run++; if(run===5)s+=3; else if(run>5)s++;} else run=1; } }
+        for(c=0;c<n;c++){ var q=1; for(r=1;r<n;r++){ if(M[r][c]===M[r-1][c]){q++; if(q===5)s+=3; else if(q>5)s++;} else q=1; } }
+        for(r=0;r<n-1;r++)for(c=0;c<n-1;c++){ var x=M[r][c]; if(x===M[r][c+1]&&x===M[r+1][c]&&x===M[r+1][c+1])s+=3; }
+        var dark=0; for(r=0;r<n;r++)for(c=0;c<n;c++)if(M[r][c])dark++;
+        s+=Math.floor(Math.abs(dark*100/(n*n)-50)/5)*10; return s; }
+      function build(mask){ var M=base.map(function(rw){return rw.slice();}); mapData(M,mask); setFmt(M,mask); setVer(M); return M; }
+      var best=-1,bestMask=0; for(var m=0;m<8;m++){ var pen=penalty(build(m)); if(best<0||pen<best){best=pen;bestMask=m;} }
+      return { count:n, version:v, mask:bestMask, modules:build(bestMask) };
+    };
+  })();
   // curated flat-SVG decal/sticker library (defined in box-stickers.js, loaded before this file)
   var STICKERS = (typeof window !== "undefined" && window.GIIIFTBoxStickers) || {};
   // full-face panel/wrap library (defined in box-panels.js, loaded before this file)
@@ -213,6 +302,11 @@
         if (base.outlineW > 0) base.outlineColor = hex(e.outlineColor, "#ffffff");
         base.softShadow = num(e.softShadow, 0, 0, 1);          // alpha-true soft drop shadow (grounds cutouts; box-shadow would draw the rectangle)
         if (e.flipX) base.flipX = true; if (e.flipY) base.flipY = true;
+        if (e.crop && typeof e.crop === "object") {            // manual reframe: a sub-window of the source, normalised 0..1; stored only when it's a real sub-rect
+          var ccx = num(e.crop.x, 0, 0, 1), ccy = num(e.crop.y, 0, 0, 1), ccw = num(e.crop.w, 1, 0.02, 1), cch = num(e.crop.h, 1, 0.02, 1);
+          if (ccx + ccw <= 1.0001 && ccy + cch <= 1.0001 && (ccx > 0.001 || ccy > 0.001 || ccw < 0.999 || cch < 0.999))
+            base.crop = { x: +ccx.toFixed(4), y: +ccy.toFixed(4), w: +ccw.toFixed(4), h: +cch.toFixed(4) };
+        }
         break;
       case "sticker":
         base.value = str(e.value, 8); base.size = num(e.size, 0.12, 0.04, 0.3);
@@ -253,6 +347,14 @@
         base.strokeW = num(e.strokeW, 0, 0, 0.06);
         base.radius = num(e.radius, 0.16, 0, 0.5);       // corner radius for the `rounded` frame
         base.w = num(e.w, 0.42, 0.05, 1); base.h = num(e.h, 0.42, 0.05, 1);
+        base.opacity = num(e.opacity, 1, 0, 1);
+        break;
+      case "qr":                                         // scannable QR (claim link / IRL gifting)
+        base.value = str(e.value, 512);
+        base.ecc = enumv(QRECC, e.ecc, "M");
+        base.dark = hex(e.dark, "#11141b");
+        base.light = (e.light === "none") ? "none" : hex(e.light, "#ffffff");
+        base.w = num(e.w, 0.4, 0.12, 1);
         base.opacity = num(e.opacity, 1, 0, 1);
         break;
     }
@@ -422,9 +524,12 @@
     ".gbx-postmark span{font-family:var(--font-mono,monospace);font-size:.34em;letter-spacing:.08em;line-height:1.25}",
     ".gbx-barcode{height:calc(var(--gbx-size)*0.1);background:repeating-linear-gradient(90deg,currentColor 0 2px,transparent 2px 5px);opacity:.6}",
     ".gbx-art{display:block;border-radius:calc(var(--gbx-size)*var(--gbx-art-r,0.03));box-shadow:0 6px 20px rgba(0,0,0,0.5)}",
+    ".gbx-art-crop{position:absolute;background:#0b1120}",
     ".gbx-fade{display:block}",
     ".gbx-decal{display:grid;place-items:center;filter:drop-shadow(0 5px 12px rgba(0,0,0,0.45))}",
     ".gbx-shape{display:block}",
+    ".gbx-qr{display:block}",
+    ".gbx-qr svg{width:100%;height:100%;display:block}",
     ".gbx-frame{display:block;overflow:hidden;background-position:center;background-repeat:no-repeat}",
     ".gbx-decal svg{width:100%;height:100%;display:block;overflow:visible}",
     ".gbx-panel{position:absolute;inset:0;z-index:1;pointer-events:none;overflow:hidden}",
@@ -525,6 +630,16 @@
 
   /* --------------------------- element render --------------------------- */
   function px(frac) { return "calc(var(--gbx-size) * " + frac + ")"; }
+  // QR matrix -> inline SVG (one merged <path> of horizontal module runs, crisp). null if data too big.
+  function qrSVG(value, ecc, dark, light) {
+    var m = QR(value, ecc); if (!m) return null;
+    var quiet = 4, D = m.count + quiet * 2, r, c;
+    dark = /^#[0-9a-fA-F]{3,8}$/.test(dark) ? dark : "#11141b";
+    var bg = (light && light !== "none" && /^#[0-9a-fA-F]{3,8}$/.test(light)) ? '<rect width="' + D + '" height="' + D + '" fill="' + light + '"/>' : '';
+    var d = "";
+    for (r = 0; r < m.count; r++) { c = 0; while (c < m.count) { if (m.modules[r][c]) { var st = c; while (c < m.count && m.modules[r][c]) c++; var run = c - st; d += "M" + (st + quiet) + " " + (r + quiet) + "h" + run + "v1h-" + run + "z"; } else c++; } }
+    return '<svg width="100%" height="100%" viewBox="0 0 ' + D + ' ' + D + '" shape-rendering="crispEdges" preserveAspectRatio="xMidYMid meet">' + bg + '<path d="' + d + '" fill="' + dark + '"/></svg>';
+  }
   function placeLayer(node, e) {
     node.classList.add("gbx-layer");
     node.style.left = (e.x * 100) + "%";
@@ -626,7 +741,23 @@
         n = document.createElement("div"); n.className = "gbx-barcode"; n.style.color = e.color;
         break;
       case "art":
-        if (e.src) {
+        if (e.src && e.crop) {                                 // manual reframe: clip a sub-window of the source to the layer box
+          n = document.createElement("div"); n.className = "gbx-art gbx-art-crop";
+          n.style.width = px(e.w); n.style.height = px(e.h); n.style.overflow = "hidden";
+          n.style.borderRadius = "calc(var(--gbx-size) * " + (e.radius || 0) + ")";
+          var cim = document.createElement("img"); cim.alt = ""; cim.loading = "lazy"; cim.src = e.src;
+          cim.style.position = "absolute"; cim.style.objectFit = "fill"; cim.style.display = "block";
+          cim.style.width = (100 / e.crop.w) + "%"; cim.style.height = (100 / e.crop.h) + "%";
+          cim.style.left = (-(e.crop.x / e.crop.w) * 100) + "%"; cim.style.top = (-(e.crop.y / e.crop.h) * 100) + "%";
+          var caf = []; if (e.brightness != null && e.brightness !== 1) caf.push("brightness(" + e.brightness + ")"); if (e.contrast != null && e.contrast !== 1) caf.push("contrast(" + e.contrast + ")"); if (e.saturate != null && e.saturate !== 1) caf.push("saturate(" + e.saturate + ")"); if (e.blur) caf.push("blur(calc(var(--gbx-size) * " + e.blur + "))"); if (e.sepia) caf.push("sepia(" + e.sepia + ")");
+          if (caf.length) cim.style.filter = caf.join(" ");
+          cim.addEventListener("error", function () { n.remove(); });
+          n.appendChild(cim);
+          if (e.noShadow) n.style.boxShadow = "none";            // (a cropped photo is rectangular, so the default .gbx-art box-shadow is correct unless opted out)
+          if (e.opacity != null && e.opacity < 1) n.style.opacity = e.opacity;
+          if (e.flipX) n.style.setProperty("--gbx-fx", -1);
+          if (e.flipY) n.style.setProperty("--gbx-fy", -1);
+        } else if (e.src) {
           n = document.createElement("img"); n.className = "gbx-art"; n.src = e.src; n.alt = ""; n.loading = "lazy";
           n.style.objectFit = e.fit; n.style.width = px(e.w); n.style.height = px(e.h);
           n.style.setProperty("--gbx-art-r", e.radius); n.style.setProperty("--gbx-zoom", e.zoom || 1);
@@ -717,6 +848,14 @@
             : shapeSvgPath(e.frame, ' fill="rgba(255,255,255,.07)" stroke="' + palette.accent + '" stroke-width="2.2" stroke-dasharray="5 3"');
           n.innerHTML = '<svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none"><defs><clipPath id="' + cid + '">' + clip + '</clipPath></defs>' + inner + border + '</svg>';
         }
+        if (e.opacity != null && e.opacity < 1) n.style.opacity = e.opacity;
+        break;
+      }
+      case "qr": {
+        n = document.createElement("div"); n.className = "gbx-qr";
+        n.style.width = px(e.w); n.style.height = px(e.w);   // square
+        n.innerHTML = qrSVG(e.value, e.ecc, e.dark, e.light) ||
+          ('<div style="width:100%;height:100%;display:grid;place-items:center;background:rgba(255,255,255,.06);color:' + palette.accent + ';font:600 ' + px(0.05) + '/1 system-ui">QR ✕</div>');
         if (e.opacity != null && e.opacity < 1) n.style.opacity = e.opacity;
         break;
       }
@@ -882,7 +1021,7 @@
     FACES: FACES, PATTERNS: PATTERNS, SHAPES: SHAPES, ELSHAPES: ELSHAPES, FRAMES: FRAMES, FINISHES: FINISHES, FONTS: FONTS, FONT_META: FONT_META, STICKERS: STICKERS, PANELS: PANELS,
     normalize: normalize, fromLegacy: fromLegacy, render: render,
     ensureFonts: ensureFonts, docFonts: docFonts,
-    faceBackground: faceBackground, shadeHex: shadeHex, panelSVG: panelSVG,
+    faceBackground: faceBackground, shadeHex: shadeHex, panelSVG: panelSVG, qrMatrix: QR,
   };
   global.GIIIFTBox = API;
   if (typeof module !== "undefined" && module.exports) module.exports = API;

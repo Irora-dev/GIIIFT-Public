@@ -1,0 +1,23 @@
+{
+  "_doc": "GIIIFT marketplace pricing — THE single source of truth (spec §14.5). Client engine fetches it (embedded zeros as fallback) and the /api/market/* edge functions read the same file, so changing a number here updates quotes across the whole system. All zeros until the owner sets the PRICING.md schedule.",
+  "_units": "percentages are 0-100; usd amounts are dollars; creditPerUsd is how many credits one dollar buys when credit-priced goods show a $ equivalent",
+  "marketplacePct": {
+    "default": 0,
+    "tcg-card": 0,
+    "pack": 0,
+    "art": 0,
+    "product": 0,
+    "digital-asset": 0,
+    "giiift-good": 0
+  },
+  "retailBufferUsd": 0,
+  "partnerSharePct": 0,
+  "affiliateSharePct": 0,
+  "creditPerUsd": 10,
+  "quoteTtlSec": 90,
+  "_onramp": "M4 rails config — provider order is Coinbase-first per docs/UNIT_ECONOMICS.md (zero-fee USDC vs MoonPay's $3.99 floor); bank methods ride INSIDE the providers' widgets (ACH/SEPA). Owner reorders/trims here, no code change.",
+  "onramp": {
+    "order": ["coinbase", "moonpay"],
+    "bankMethods": ["ach", "sepa"]
+  }
+}
