@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<script>/* public showcase mirror: always demo mode */try{localStorage.setItem("giiift-demo","1");localStorage.setItem("giiift-authed","1");}catch(e){}window.GIIIFT_CAPS={intents:false,oauth:false,telemetry:false};</script>
+<script>/* public showcase mirror: always demo mode */try{localStorage.setItem("giiift-demo","1");localStorage.setItem("giiift-authed","1");}catch(e){}window.GIIIFT_CAPS={intents:false,oauth:false,telemetry:false,payments:false};</script>
 <meta name="robots" content="noindex, nofollow, noarchive">
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -931,6 +931,15 @@
     .order-fee summary { cursor: pointer; list-style: none; display: inline; }
     .order-fee summary::-webkit-details-marker { display: none; }
     .order-fee .fee-why { font-size: 11.5px; color: var(--muted); line-height: 1.5; margin-top: 5px; max-width: 42ch; }
+    /* W6: rails state line (quoted → executing → fulfilled/failed) */
+    .order-state { margin-top: 8px; font-family: var(--font-mono); font-size: 12.8px; letter-spacing: .02em; color: var(--muted); display: flex; align-items: center; gap: 7px; }
+    .order-state .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--muted-2); flex: none; }
+    .order-state.is-doing .dot { background: #7bdfff; animation: ostate-pulse 1.1s infinite ease-in-out; }
+    .order-state.is-done { color: var(--accent-ui); }
+    .order-state.is-done .dot { background: var(--accent-ui); box-shadow: 0 0 7px rgba(0,255,157,.5); }
+    .order-state.is-fail { color: #ff6b6b; }
+    .order-state.is-fail .dot { background: #ff6b6b; }
+    @keyframes ostate-pulse { 0%, 100% { opacity: 1; } 50% { opacity: .35; } }
     .order-free .ofree { color: var(--accent-ui, #00FF9D); font-weight: 800; letter-spacing: 0.04em; }
     .order-total { border-bottom: 0; margin-top: 4px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.16);
       font-size: 15px; font-weight: 800; }
@@ -1048,7 +1057,8 @@
         <div class="order-lines" id="order-lines"></div>
         <div class="order-row order-free"><span>Sending the box</span><span class="ofree">FREE - always</span></div>
         <div class="order-row order-total"><span>Total today</span><span id="order-total">$0.00</span></div>
-        <div class="tfield-hint" id="order-note">No charge today - payment options are on the way. Sending is free, always.</div>
+        <div class="order-state" id="order-state" hidden></div>
+        <div class="tfield-hint" id="order-note">Nothing to charge today. Sending is free, always.</div>
       </template>
     
       <!-- DESIGN-LAB (M4, behind ?flow=lab; M4.5 also a hatch detour from the gallery) -->
@@ -2292,9 +2302,14 @@
           ? vtxt('sealHintReady', { count: contents.length, s: contents.length > 1 ? 's' : '' }, `${contents.length} item${contents.length>1?'s':''} inside · ready to seal`)
           : vtxt('sealHintEmpty', null, 'Add at least one asset to seal.');
       } else if (stage === 'order') {
-        primary.disabled = false;
-        primary.textContent = vtxt('orderBtn', null, 'Confirm & send →');
-        hint.textContent = vtxt('orderHint', null, 'Check the box one last time - then we wrap it for the road.');
+        const payable = orderPayable();   // W6: USD value in the box + payments capable
+        primary.disabled = orderPaying;
+        primary.textContent = orderPaying ? vtxt('orderPayingBtn', null, 'Paying…')
+          : payable ? vtxt('orderPayBtn', null, 'Pay & send →')
+          : vtxt('orderBtn', null, 'Confirm & send →');
+        hint.textContent = payable
+          ? vtxt('orderPayHint', null, 'One charge, right now - then we wrap it for the road.')
+          : vtxt('orderHint', null, 'Check the box one last time - then we wrap it for the road.');
       }
     }
 
@@ -2416,6 +2431,74 @@
       }
       const totalEl = document.getElementById('order-total');
       if (totalEl) totalEl.textContent = [t.total > 0 ? '$' + t.total.toFixed(2) : (t.nonUsd.length ? '' : '$0.00'), t.nonUsd.join(' + ')].filter(Boolean).join(' + ');
+      const note = document.getElementById('order-note');
+      if (note) {
+        note.textContent = demoOrder() && t.total > 0
+          ? 'Demo order - nothing is charged.'
+          : (orderPayable()
+            ? 'One charge when you hit Pay & send. Sending the box is free, always.'
+            : 'Nothing to charge today. Sending is free, always.');
+      }
+    }
+
+    // ---------- W6: the pay CTA, wired into market-rails (dark/demo-safe) ----------
+    // Payable when the box carries USD value (computeTotals already folds the goods
+    // fee in). The mirror ships GIIIFT_CAPS.payments:false → the order renders as a
+    // demo and payment is skipped; the dark product walks the rails' demo path (same
+    // states, same receipts) until provider keys exist. Rails stack lazy-loads on
+    // first pay so the wizard never carries the marketplace weight up front.
+    let orderPaid = false, orderPaying = false;
+    function demoOrder() {
+      if ((window.GIIIFT_CAPS || {}).payments === false) return true;
+      try { return localStorage.getItem('giiift-demo') === '1'; } catch (e) { return false; }
+    }
+    function orderPayable() { return !orderPaid && !demoOrder() && computeTotals().total > 0; }
+    const railScripts = {};
+    function loadOnce(src) {
+      if (!railScripts[src]) railScripts[src] = new Promise((res, rej) => {
+        const s = document.createElement('script');
+        s.src = src; s.onload = res; s.onerror = () => rej(new Error('failed to load ' + src));
+        document.head.appendChild(s);
+      });
+      return railScripts[src];
+    }
+    function paintOrderState(state, label) {
+      const el = document.getElementById('order-state');
+      if (!el) return;
+      el.hidden = false;
+      el.className = 'order-state' + (state === 'fulfilled' ? ' is-done' : state === 'failed' ? ' is-fail' : ' is-doing');
+      el.innerHTML = '';
+      const dot = document.createElement('span'); dot.className = 'dot';
+      el.appendChild(dot); el.appendChild(document.createTextNode(label));
+    }
+    async function startOrderPay() {
+      if (orderPaying || !orderPayable()) return;
+      orderPaying = true; updatePrimary();
+      paintOrderState('quoted', 'Preparing your order…');
+      try {
+        if (!window.GIIIFTMarketRails) { await loadOnce('/showcase/market-engine.js'); await loadOnce('/showcase/market-rails.js'); }
+        const total = +computeTotals().total.toFixed(2);
+        const q = { legs: [{ rail: 'balance', total: total }] };
+        const order = { id: 'wrap-' + Math.random().toString(36).slice(2, 9), live: false, balanceUsd: total };
+        const COPY = {
+          quoted: 'Quoting your order…',
+          'awaiting-funds': 'Topping up…',
+          executing: 'Paying $' + total.toFixed(2) + '…',
+          fulfilled: 'Paid · sending your box',
+          failed: "Payment didn't go through",
+        };
+        await window.GIIIFTMarketRails.execute(order, q, [], { onState: (o, state, extra) => {
+          if (state === 'failed') paintOrderState('failed', COPY.failed + (extra && extra.reason ? ' · ' + extra.reason : ''));
+          else paintOrderState(state, COPY[state] || state);
+          if (state === 'fulfilled') {
+            orderPaid = true;
+            setTimeout(() => GIIIFTFlow.next(), 750);   // a beat on the receipt, then the finalize transition
+          }
+        } });
+      } catch (e) {
+        paintOrderState('failed', "Payment didn't go through · " + ((e && e.message) || 'try again'));
+      }
+      orderPaying = false; updatePrimary();
     }
 
     function stepOrder() {
@@ -2848,7 +2931,10 @@
     // contents:add → drop animation, flow:seal → lid + tape (spec §2.4)
     GIIIFTStageBox.mount({ box: '#box', stage: '.box-stage', ctx: GIIIFTFlow.ctx(), deps: { faceBg, logoUrl } });
     paintEyebrows();   // step numbers derive from the order above (vertical tags ride vtxt)
-    primary.addEventListener('click', () => GIIIFTFlow.next());
+    primary.addEventListener('click', () => {
+      if (stage === 'order' && orderPayable()) { startOrderPay(); return; }   // W6: pay before advancing
+      GIIIFTFlow.next();
+    });
     document.getElementById('to-text').addEventListener('click', () => GIIIFTFlow.go('name'));   // "← Back to name" on the design step
 
     document.getElementById('copy-link').addEventListener('click', async (e) => {
