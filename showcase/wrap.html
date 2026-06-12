@@ -845,6 +845,9 @@
     @media (max-width: 735px) {
       .stage { grid-template-columns: 1fr; padding: 59px 12px 30px; gap: 16.5px; }
       .control-card { position: static; max-height: none; order: 2; margin-top: 0; }   /* the desktop -5vh lift is desktop-only */
+      /* the lab step's desktop workbench (minmax 680px) outranks .stage's 1fr here - re-pin it */
+      .stage.lab-step { grid-template-columns: 1fr; }
+      .stage.lab-step #lab-frame { height: 72vh; min-height: 440px; }
       /* CTA-above-form fix: dissolve the right column so the grid orders the pieces -
          steps + box first, the form card second, the ACTION under the card it acts on.
          Safe: revealScene() display:none's card/steps/action before the send panel,
@@ -1052,9 +1055,9 @@
       <div class="pane" id="pane-design-lab" hidden>
         <div class="card-head">
           <button type="button" class="back-link" id="lab-back" hidden>← Back to templates</button>
-          <div class="eyebrow" data-step-eyebrow="design-lab">// design</div>
+          <div class="eyebrow" data-step-eyebrow="design-lab">// design · the full lab</div>
           <h2>Design it your way</h2>
-          <p>The full box lab - layers, text, stickers, foil. Your edits ride straight into the gift.</p>
+          <p>The full box lab - layers, text, stickers, foil. Your edits ride straight into the gift, and you can back out any time.</p>
         </div>
         <iframe id="lab-frame" title="GIIIFT box lab"></iframe>
       </div>
@@ -2747,6 +2750,15 @@
       stage = 'design';
       document.querySelectorAll('.control-card > .pane').forEach(pn => { pn.hidden = pn.id !== 'pane-design-lab'; });
       document.querySelector('.stage').classList.add('lab-step');
+      // embed polish: backing out is ALWAYS offered - a direct ?flow=lab entry gets its
+      // snapshot here (the hatch path already took one), captured BEFORE the seed below
+      // overwrites the draft, so "← Back to templates" restores the pre-lab state exactly.
+      if (!labSnapshot) labSnapshot = {
+        cfg: JSON.parse(JSON.stringify(cfg)),
+        draft: (() => { try { return localStorage.getItem('giiift-lab-draft'); } catch (e) { return null; } })(),
+      };
+      const labBackBtn = document.getElementById('lab-back');
+      if (labBackBtn) labBackBtn.hidden = false;
       try {
         const doc = (cfg.template && window.GIIIFTBoxTemplates)
           ? GIIIFTBoxTemplates.doc(cfg.template, { c1: cfg.cardboard, c2: cfg.cardboard2, accent: cfg.accent,
@@ -2804,7 +2816,14 @@
           } catch (e) {}
           labSnapshot = null;
         }
-        GIIIFTFlow.go('design');
+        if (GIIIFTFlow.order().indexOf('design') === -1) {
+          // direct ?flow=lab entry: the gallery isn't in this array - swap to the
+          // canonical flow and land on the design step (live restart, M1-proven)
+          GIIIFTFlow.start({ steps: STEPS_CANON, rail: '#steps', initial: 'design', ctx: { cfg, contents } });
+          paintEyebrows();
+        } else {
+          GIIIFTFlow.go('design');
+        }
         paint(); syncForm(); syncPresets(); syncTpl(); renderTplSlots();
       });
     })();
@@ -2817,8 +2836,9 @@
     GIIIFTFlow.register({ key: 'send',   rail: { label: 'Send' },   enter: stepSend });
     GIIIFTFlow.register({ key: 'design-lab', rail: { label: 'Design' }, enter: stepDesignLab, exit: exitDesignLab });
     const FLOW_LAB = (() => { try { return new URLSearchParams(location.search).get('flow') === 'lab'; } catch (e) { return false; } })();
+    const STEPS_CANON = ['name', 'design', 'text', 'fill', 'seal', 'order', 'send'];
     GIIIFTFlow.start({
-      steps: FLOW_LAB ? ['name', 'design-lab', 'text', 'fill', 'seal', 'order', 'send'] : ['name', 'design', 'text', 'fill', 'seal', 'order', 'send'],
+      steps: FLOW_LAB ? ['name', 'design-lab', 'text', 'fill', 'seal', 'order', 'send'] : STEPS_CANON,
       rail: '#steps',
       initial: 'name',
       runEnter: false,   // boot matches the markup-initial name step (no autofocus on load)
