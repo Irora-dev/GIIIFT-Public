@@ -125,7 +125,7 @@
     /* sub-steps inside "make it yours": text → design */
     .sub-pane { display: flex; flex-direction: column; gap: 12px; }
     .sub-pane[hidden] { display: none; }
-    .back-link { align-self: flex-start; background: none; border: none; color: var(--muted); font-family: var(--font-main); font-size: 9.5px; font-weight: 600; cursor: pointer; padding: 0; margin-bottom: 7.5px; display: inline-flex; align-items: center; gap: 3px; transition: color .2s; }
+    .back-link { align-self: flex-start; background: none; border: none; color: var(--muted); font-family: var(--font-main); font-size: 12px; font-weight: 600; cursor: pointer; padding: 0; margin-bottom: 7.5px; display: inline-flex; align-items: center; gap: 3px; transition: color .2s; }
     .back-link:hover { color: var(--accent-ui); }
 
     /* vertical "one-tap pack" suggestions - injected when the active vertical defines wrap.suggested */
@@ -678,7 +678,7 @@
     .fp-send:active { transform: scale(.98); }
     @keyframes borealis-shift { to { background-position: 280% 50%; } }
     @keyframes borealis-glow { 0% { box-shadow: 0 0 16.5px -3px color-mix(in srgb, var(--bor-b, #4ba6b3) 45%, transparent); } 100% { box-shadow: 0 0 32px 2px color-mix(in srgb, var(--bor-bright, #8cdbe8) 62%, transparent); } }
-    .fp-open { display: inline-flex; align-items: center; gap: 6px; font-size: 10.5px; color: rgba(255,255,255,0.4); text-decoration: none; margin-top: 16.5px; align-self: center; transition: color .2s; }
+    .fp-open { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: rgba(255,255,255,0.4); text-decoration: none; margin-top: 16.5px; align-self: center; transition: color .2s; }
     .fp-open:hover { color: rgba(255,255,255,0.8); }
     .fp-open svg { width: 12px; height: 12px; }
     /* recipient capture (Privy delivery): segmented channel toggle + hint + sent state */
@@ -703,7 +703,7 @@
     .fp-sent-ic { flex: 0 0 auto; width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; background: rgba(0,255,157,0.16); color: #6fe6c0; font-weight: 700; }
     .fp-sent-h { font-weight: 600; font-size: 12px; color: #fff; }
     .fp-sent-sub { font-size: 10.1px; font-weight: 300; color: rgba(255,255,255,0.55); margin-top: 2.3px; line-height: 1.5; }
-    .fp-copy-fallback { display: inline-flex; align-items: center; gap: 5.3px; margin-top: 10.5px; background: none; border: none; color: rgba(255,255,255,0.4); font-family: var(--font-main); font-size: 9.8px; cursor: pointer; padding: 0; }
+    .fp-copy-fallback { display: inline-flex; align-items: center; gap: 5.3px; margin-top: 10.5px; background: none; border: none; color: rgba(255,255,255,0.4); font-family: var(--font-main); font-size: 12px; cursor: pointer; padding: 0; }
     .fp-copy-fallback:hover { color: rgba(255,255,255,0.85); }
     .fp-copy-fallback svg { width: 10.5px; height: 10.5px; }
     /* ===================== delivery animation (GIIIFT van) ===================== */
@@ -845,7 +845,14 @@
     @media (max-width: 735px) {
       .stage { grid-template-columns: 1fr; padding: 59px 12px 30px; gap: 16.5px; }
       .control-card { position: static; max-height: none; order: 2; margin-top: 0; }   /* the desktop -5vh lift is desktop-only */
-      .stage-right { order: 1; min-height: auto; }
+      /* CTA-above-form fix: dissolve the right column so the grid orders the pieces -
+         steps + box first, the form card second, the ACTION under the card it acts on.
+         Safe: revealScene() display:none's card/steps/action before the send panel,
+         and nothing JS-measures .stage-right itself. */
+      .stage-right { display: contents; }
+      .steps-card { order: 0; justify-self: center; }
+      .box-stage { order: 1; }
+      .stage-action { order: 3; justify-self: center; }
       /* the OPEN box paints ~1.6× its size (flaps); give it room and keep the
          CTA painting above it so the lid never buries "Design the box →" */
       .box-stage { min-height: 350px; }
@@ -853,6 +860,7 @@
       .stage-action { position: relative; z-index: 6; }
     }
     @media (max-width: 420px) {
+      .scene { margin-left: 10px; }   /* open-box union sat -17..343 @360; recentre without touching transform */
       .step .lbl { display: none; }
       .steps-card { gap: 4.5px; padding: 6.8px 10.5px; }
       .step .bar { width: 12px; }
@@ -929,8 +937,15 @@
     :where(button, a, input, select, [tabindex]):focus-visible {
       outline: 2px solid var(--accent-ui, #00FF9D); outline-offset: 2px; border-radius: 4px; }
     @media (pointer: coarse) {
-      .fp-seg button, #quick-amounts button, .vchip-row button, .pat, .add-btn { min-height: 40px; }
+      .fp-seg button, #quick-amounts button, .vchip-row button, .vchip, .pat, .add-btn { min-height: 40px; }
       .primary { min-height: 44px; }
+      /* tiny controls keep their visuals; an invisible ::after grows the hit area to ~40px */
+      .bi-more summary, .back-link, .fp-open, .fp-copy-fallback, .order-fee summary { position: relative; }
+      .bi-more summary::after, .back-link::after, .fp-open::after, .fp-copy-fallback::after, .order-fee summary::after {
+        content: ''; position: absolute; inset: -11px; }
+      .colorfield input[type="color"] { width: 40px; height: 40px; }
+      .surprise-row { min-height: 40px; align-items: center; }
+      .surprise-row input { width: 18px; height: 18px; }
     }
     .inside-count { font-family: "VT323", monospace; font-size: 12.8px; color: var(--accent, #fde68a); opacity: .9; }
     /* "Real thing" shelf (retail-gifting V1): reuses the .pick card system */
@@ -1628,7 +1643,7 @@
       const EB = {
         name:   { sel: '#sub-name .card-head .eyebrow',   tag: vtxt('nameTag',   null, 'name') },
         design: { sel: '#sub-design .card-head .eyebrow', tag: vtxt('designTag', null, 'design') },
-        fill:   { sel: '#pane-fill .card-head .eyebrow',  tag: vtxt('fillTag',   null, '') },
+        fill:   { sel: '#pane-fill .card-head .eyebrow',  tag: vtxt('fillTag',   null, 'gift') },
         text:   { sel: '#sub-text .card-head .eyebrow',   tag: vtxt('textTag',   null, 'personalize') },
         order:  { sel: '#pane-order .card-head .eyebrow',  tag: vtxt('orderTag',  null, 'order') },
       };

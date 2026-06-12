@@ -134,6 +134,7 @@
         bare: true, hero: false, search: false, sort: false, cart: false, credit: false,
         ids: ids,
         onPickLabel: mode === 'fund' ? 'Pick this one' : 'Gift this' + (name ? ' to ' + name : ''),
+        cardCta: mode === 'fund' ? 'Pick this one' : 'Gift this',
         onPick: function (item, ui) {
           if (mode === 'fund') {
             var i = picks.indexOf(item.id);

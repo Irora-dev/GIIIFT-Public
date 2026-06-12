@@ -77,7 +77,9 @@
   var SIG = null, WEIGHTS = DEFAULT_WEIGHTS;
   // cfg.onPick (M6): embedded surfaces (the wrap picker, the pick-one shelf) replace the
   // detail sheet's cart CTA with their own action. Mount-scoped like SIG/WEIGHTS.
-  var PICK = null, PICK_LABEL = null;
+  // cfg.cardCta (M7 follow-up): one label for every card-level CTA, so a surface whose
+  // detail action is "Gift this" doesn't show renderer defaults ("Collect"/"Get it").
+  var PICK = null, PICK_LABEL = null, CARD_CTA = null;
   function score(i, sig, w) {
     sig = sig || SIG || {}; w = w || WEIGHTS;
     var s = 0;
@@ -240,6 +242,7 @@
     catch (e) { card = defaultCard(item); }   // §8: one bad renderer never takes down a shelf
     card.style.setProperty("--tone", item.tone || "#00FF9D");
     card.setAttribute("data-aspect", item.media[0].aspect);
+    if (CARD_CTA) [].forEach.call(card.querySelectorAll(".mk-get"), function (b) { b.textContent = CARD_CTA; });
     card.addEventListener("click", function () { track("market_item_view", { id: item.id }); affinity.bump(item.type, item.brand, 1); openDetail(item); });
     var vis = card.querySelector(".mk-vis");
     if (vis && !vis.querySelector(".mk-heart")) {   // wishlist heart on every card (§5 save signal)
@@ -373,6 +376,7 @@
     SIG = signals(cfg); WEIGHTS = Object.assign({}, DEFAULT_WEIGHTS, cfg.weights || {});
     PICK = typeof cfg.onPick === "function" ? cfg.onPick : null;
     PICK_LABEL = cfg.onPickLabel || "Add to gift";
+    CARD_CTA = cfg.cardCta || null;
     loadPricing();
 
     // header: balance + credit chips (never conflated, §7) + title + search + sort

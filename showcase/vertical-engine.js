@@ -388,8 +388,8 @@
         nameTag: 'name',
         nameBtn: 'Design the box →',
         nameHint: 'Tell us who it’s for, then dress the box for them.',
-        designBtn: 'Fill the box →',
-        fillTag: '',                            // eyebrow numbers are COMPUTED from the flow order (wrap paintEyebrows); packs voice only the suffix tag
+        designBtn: 'Write the note →',
+        fillTag: 'gift',                            // eyebrow numbers are COMPUTED from the flow order (wrap paintEyebrows); packs voice only the suffix tag
         fillTitle: 'Fill the box',
         fillSub: 'Search a coin or token, set an amount, and drop it into the open box.',
         searchPh: 'Search assets - BTC, Solana…',

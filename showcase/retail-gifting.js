@@ -66,6 +66,51 @@
     return { r: { p: String(product.id) }, fundUSD: quote(product).fundUSD };
   }
 
+  // LIVE quote (async): the PRIMARY price-freshness guard. quote() above is the
+  // instant menu-based display; quoteLive() hits /api/retail-quote, which reads
+  // the merchant's CURRENT price, so the "you fund $X" the sender SIGNS is live,
+  // not the cached menu number. Returns the live fund amount + `changed` (surface
+  // "price updated to $X" before they commit) + `verified` (false = the store
+  // couldn't be reached so fundUSD fell back to the menu price; sending still
+  // works). docs/RETAIL_PRICE_FRESHNESS.md has the wrap-UI wiring.
+  async function quoteLive(productId, variantId) {
+    if (!productId) throw fail("unknown-product");
+    var qs = "productId=" + encodeURIComponent(String(productId));
+    if (variantId) qs += "&variantId=" + encodeURIComponent(String(variantId));
+    var res;
+    try { res = await fetch("/api/retail-quote?" + qs, { headers: { accept: "application/json" } }); }
+    catch (e) { throw fail("not-enabled", String(e)); }
+    if (!res || !res.ok) throw fail("not-enabled");
+    var data = await res.json();
+    if (!data || !data.ok) throw fail((data && data.reason) || "not-enabled");
+    return {
+      fundUSD: round2(data.fundUSD),          // fund THIS (live price + buffer)
+      livePriceUSD: data.livePriceUSD == null ? null : round2(data.livePriceUSD),
+      menuPriceUSD: round2(data.menuPriceUSD),
+      bufferUSD: round2(data.bufferUSD),
+      changed: !!data.changed,                // true -> show "price updated to $X" before signing
+      verified: !!data.verified,              // false -> couldn't confirm; fundUSD is the menu price
+      currency: "USD",
+    };
+  }
+
+  // SEND seam, LIVE variant (async): the gift fragment + the freshly-quoted fund
+  // amount, for the wrap UI to write AT COMMIT. Mirrors sendPayload() but fundUSD
+  // is the live amount and it carries `changed`/`verified` so the UI can confirm a
+  // moved price before the sender signs. Returns null for a missing id.
+  async function sendPayloadLive(productId, variantId) {
+    if (productId == null || productId === "") return null;
+    var q = await quoteLive(productId, variantId);
+    return {
+      r: { p: String(productId) },
+      fundUSD: q.fundUSD,
+      changed: q.changed,
+      verified: q.verified,
+      livePriceUSD: q.livePriceUSD,
+      menuPriceUSD: q.menuPriceUSD,
+    };
+  }
+
   // Resolve the recipient's claim step: the merchant-checkout handoff.
   // params: { variantId?, variantLabel?, email?, firstName?, lastName?,
   //           address1?, address2?, city?, province?, country?, zip?, mandateId? }
@@ -111,6 +156,8 @@
 
   window.giiiftRetailMenu = menu;
   window.giiiftRetailQuote = quote;
+  window.giiiftRetailQuoteLive = quoteLive;
   window.giiiftRetailSendPayload = sendPayload;
+  window.giiiftRetailSendPayloadLive = sendPayloadLive;
   window.giiiftRetailResolve = resolve;
 })();
