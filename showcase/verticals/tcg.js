@@ -65,7 +65,7 @@
         designTag: 'foil',   // composes '// step N · foil' — the number follows the flow order
         designTitle: 'Foil the pack',
         designSub: 'A designed box, or your own foil and colours.',
-        designBtn: 'Pack the box →',
+        designBtn: 'Make it personal →',
         designHint: 'Pick the foil, then stack the haul.',
         readyTitle: 'Their box<br>is ready.',
         readySub: 'Send it to their email, phone, or wallet. They rip it open from a link.',

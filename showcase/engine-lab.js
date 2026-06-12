@@ -191,6 +191,23 @@
           features: {}, items: [{ ticker: "ETH" }], meta: { brand: "Your Gift", serial: "" }
         };
       } },
+    { id: "sugar-panic", name: "Sugar Panic", desc: "Kawaii birthday bakery", cat: "occasion", c1: "#8BC3F0", c2: "#67AEE6", motif: (GBX.panelSVG ? GBX.panelSVG("sugar-cake") : ""),
+      build: function () {
+        return {
+          v: 2, shape: "mailer",
+          palette: { c1: "#8BC3F0", c2: "#67AEE6", accent: "#F28C9F", angle: 135, finish: "gradient" },
+          faces: {
+            front: { pos: "front", panel: "sugar-cake", pattern: "dots", layers: [] },
+            back: { pos: "back", panel: "sugar-slice", pattern: "dots", layers: [] },
+            left: { pos: "left", panel: "sugar-cupcake", pattern: "dots", layers: [] },
+            // the bakery order ticket carries to/message/from (the personal note face)
+            right: { pos: "right", panel: "sugar-msg", pattern: "dots", layers: [] },
+            top: { pos: "top", panel: "sugar-dots", pattern: "dots", layers: [] },
+            bottom: { pos: "bottom", panel: "sugar-stripes", pattern: "dots", layers: [] }
+          },
+          features: {}, items: [{ ticker: "USDC" }], meta: { brand: "Your Gift", serial: "" }
+        };
+      } },
   ];
   // Template gallery categories (occasion/type sections in the picker). New templates set their own `cat`; the map categorises the built-in wraps without editing their entries.
   var TPL_CATS = [["occasion", "Occasions"], ["seasonal", "Seasonal & holidays"], ["love", "Love & thanks"], ["crypto", "Crypto-native"], ["collector", "Collector & TCG"], ["style", "Wraps & styles"]];
@@ -826,10 +843,12 @@
       body.appendChild(cg);
     }
     if (L.t === "art" && typeof L.src === "string" && L.src.indexOf("data:") === 0) {
-      var tg = group("Cutout", "Erase leftover background, or restore parts the AI over-cut.");
-      var tb = el("button", "btn"); tb.textContent = "✂ Touch up"; tb.style.cssText = "width:100%;font-weight:600";
+      var tg = group("Cutout", "Remove the background with AI, then Touch up to clean the edges.");
+      var cob = el("button", "btn"); cob.textContent = "✂ Cut out subject"; cob.style.cssText = "width:100%;font-weight:600"; cob.title = "AI background removal on this image (downloads a 42 MB model once)";
+      cob.addEventListener("click", function () { cutOutLayer(L); });
+      var tb = el("button", "btn"); tb.textContent = "✎ Touch up edges"; tb.style.cssText = "width:100%;font-weight:600;margin-top:5px";
       tb.addEventListener("click", function () { touchUp(L); });
-      tg.appendChild(tb); body.appendChild(tg);
+      tg.append(cob, tb); body.appendChild(tg);
     }
     if (ADMIN && (L.t === "text" || L.t === "graffiti" || L.t === "art")) { var pg = pairingGroup(); if (pg) body.appendChild(pg); }
     var tip = el("div", "grp-note"); tip.style.marginTop = "4px";
@@ -2128,6 +2147,11 @@
     }
     wrap.append(sizeBtn("A−", -1, "Smaller text (↓)"), inp, sizeBtn("A+", 1, "Larger text (↑)"));
     document.body.appendChild(wrap);
+    // keep the floating editor on-screen: clamp to the right edge (same idiom as the context
+    // menu below), and on touch pin it near the top so the on-screen keyboard can't cover it.
+    var pw = wrap.getBoundingClientRect();
+    wrap.style.left = Math.max(8, Math.min(rect.left - 38, innerWidth - pw.width - 8)) + "px";
+    try { if (window.matchMedia("(pointer:coarse)").matches) wrap.style.top = "calc(8px + env(safe-area-inset-top,0px))"; } catch (e) {}
     editingText = true; inp.focus(); inp.select();
     var done = false;
     function commit(save, headedTo) {
@@ -3457,6 +3481,41 @@
       setTimeout(function () { bd2.focus(); }, 0);
     };
     img.onerror = function () { toast("Couldn't load that image to crop", true); };
+    img.src = L.src;
+  }
+
+  /* ---------------- AI cut-out on an EXISTING art layer ----------------
+   * The import dialog can cut out a subject on drop; this runs the same segmentation on a layer
+   * already on the box. Masks the FULL frame in place (no crop) so the subject keeps its exact box,
+   * fit and position — just the background goes transparent. Tags a restore base for Touch up. */
+  function cutOutLayer(L) {
+    if (!L || L.t !== "art" || typeof L.src !== "string") return;
+    if (segBusy) { toast("Already cutting one out — hang on", true); return; }
+    var img = new Image();
+    img.onload = function () {
+      segBusy = true; toast("Removing the background…"); announce("Removing the background");
+      var S0 = Math.max(img.width, img.height) || 1, sc = Math.min(1, 768 / S0);   // cap at 768 like the import path
+      var cv = document.createElement("canvas"); cv.width = Math.max(1, Math.round(img.width * sc)); cv.height = Math.max(1, Math.round(img.height * sc));
+      cv.getContext("2d").drawImage(img, 0, 0, cv.width, cv.height);
+      var W = cv.width, H = cv.height;
+      segmentMask(cv).then(function (mask) {
+        var mcv = maskToCanvas(mask, W, H), md = mcv.getContext("2d").getImageData(0, 0, W, H).data, bb = maskBBox(md, W, H);
+        segBusy = false;
+        if (!bb) { toast("No clear subject found — left as is", true); return; }
+        var fullBB = { x0: 0, y0: 0, bw: W, bh: H };
+        var cut = cutoutCanvas(cv, md, W, fullBB);                 // mask the whole frame → background transparent, subject in place
+        var uri = encodeUnderCap(cut, "image/webp", [0.8, 0.62]) || encodeUnderCap(cut, "image/png", [1]);
+        if (!uri) { toast("Cutout too heavy to embed — crop or shrink it first", true); return; }
+        tagCutout(L, cv, fullBB);                                  // restore base = the un-masked frame, so Touch up can bring edges back
+        L.src = uri; L.noShadow = true;
+        rerender(); record(); renderInspector();
+        toast("Background removed — Touch up to clean the edges"); announce("Background removed from the selected layer");
+      }).catch(function (err) {
+        console.error("[box lab] cut-out-layer failed", err); segBusy = false;
+        toast("Cutout failed (" + ((err && err.message) || "error") + ")", true);
+      });
+    };
+    img.onerror = function () { toast("Couldn't load that image to cut out", true); };
     img.src = L.src;
   }
 

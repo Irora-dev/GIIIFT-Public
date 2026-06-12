@@ -315,8 +315,11 @@
             mountBridgeRow(card, productId);
             mountReturnRow(card, productId, r.url, win);
           } else {
-            // dormant or merchant-not-live: honest state, balance remains the gift
-            go.textContent = "Not available yet: it stays in your balance";
+            // dormant / merchant-not-live / price drifted past the buffer: honest
+            // state, balance remains the gift (the resolve-time guard, retail.ts).
+            go.textContent = (r && r.reason === "price-drift-buffer-blown")
+              ? "This item's price just changed: it stays in your balance"
+              : "Not available yet: it stays in your balance";
             if (window.giiift && window.giiift.track) window.giiift.track("retail_claim_dormant", { productId: productId, reason: (r && r.reason) || "" });
           }
         } catch (e) {

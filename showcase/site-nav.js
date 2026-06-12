@@ -65,6 +65,8 @@
       ".site-nav .nav-vault,.site-nav .nav-login{font-family:'Inter',sans-serif;font-weight:600;font-size:10.5px;line-height:1;padding:8.3px 13.5px;border-radius:75px;border:1px solid rgba(255,255,255,0.12);background:rgba(255,255,255,0.08);color:#fff;text-decoration:none;cursor:pointer;display:inline-flex;align-items:center;gap:6px;transition:background .2s}",
       ".site-nav .nav-vault:hover,.site-nav .nav-login:hover{background:rgba(255,255,255,0.15)}",
       ".site-nav .nav-vault .v-dot{width:5.3px;height:5.3px;border-radius:50%;background:#00FF9D;box-shadow:0 0 6px #00FF9D}",
+      /* coarse-pointer tap floor (§10.3: ≥40px) — invisible hit-area expander, pill visuals unchanged */
+      "@media(pointer:coarse){.site-nav .snav-logo,.site-nav .nav-vault,.site-nav .nav-login{position:relative}.site-nav .snav-logo::after,.site-nav .nav-vault::after,.site-nav .nav-login::after{content:'';position:absolute;left:-4px;right:-4px;top:50%;height:40px;transform:translateY(-50%)}}",
       "@media(max-width:540px){.site-nav .snav-links{display:none}}",
       /* sign-in gate (vault / send when signed out) */
       ".giiift-gate{position:fixed;inset:0;z-index:350;display:flex;align-items:center;justify-content:center;padding:18px;background:rgba(8,8,11,0.66);-webkit-backdrop-filter:blur(15px);backdrop-filter:blur(15px);font-family:'Inter',sans-serif;animation:giiift-gate-in .3s ease both}",
