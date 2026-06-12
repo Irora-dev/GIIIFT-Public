@@ -118,6 +118,12 @@
     .shop-foot { margin-top: 63px; padding-top: 21px; border-top: 1px solid var(--border-color); color: var(--faint-ink); font-size: 9.4px; line-height: 1.7; display: flex; flex-wrap: wrap; gap: 7.5px 19.5px; }
     .shop-foot b { color: var(--muted-ink); font-weight: 600; }
 
+    /* W0 wrap-CTA: the spend surface funnels back into sending (every surface carries one) */
+    .wrap-band { margin-top: 42px; display: flex; align-items: center; justify-content: center; gap: 4px 10px; flex-wrap: wrap; padding: 13px 18px; border: 1px solid var(--border-color); border-radius: 12px; background: var(--panel-bg); font-size: 13px; color: var(--muted-ink); }
+    .wrap-band a { display: inline-flex; align-items: center; min-height: 40px; padding: 0 6px; gap: 6px; font-weight: 700; font-size: 13px; color: var(--accent); text-decoration: none; }
+    .wrap-band a:hover { text-decoration: underline; }
+    .wrap-band a:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 6px; }
+
     @media (prefers-reduced-motion: reduce) { * { animation-duration: .001ms !important; } }
   </style>
 </head>
@@ -138,6 +144,11 @@
     </header>
 
     <div id="market"></div>
+
+    <div class="wrap-band">
+      <span>Got someone in mind?</span>
+      <a href="/showcase/wrap.html">Wrap a gift →</a>
+    </div>
 
     <footer class="shop-foot">
       <span>Prices in <b>USD</b>. You spend credit, partners fulfil.</span>
