@@ -60,13 +60,22 @@
         .then(function (raws) { return (raws || []).map(function (r) { return s.item ? s.item(r) : normalize(r, k); }); })
         .catch(function () {
           var cached = snap && snap.items ? snap.items.filter(function (i) { return i.source === k; }) : [];
-          if (cached.length) usedSnap = true;
+          if (cached.length) { usedSnap = true; cached.__fromSnap = true; }   // M9 2.13: never re-snapshots itself
           return cached;
         });
     })).then(function (lists) {
       var all = []; lists.forEach(function (l) { all = all.concat(l); }); CACHE = all;
       api.staleCatalog = usedSnap;
-      if (!usedSnap && all.length) writeJson(SNAP_KEY, { at: Date.now(), items: all.slice(0, 160) });
+      // M9 2.13: snapshot per SOURCE — a healthy source refreshes its last-good copy
+      // even while a flaky sibling is serving from the snapshot.
+      if (all.length) {
+        var prev = (readJson(SNAP_KEY, null) || {}).items || [];
+        var freshKeys = {};
+        lists.forEach(function (l, i) { if (l.length && !l.__fromSnap) (keys[i] ? [keys[i]] : []).forEach(function (k) { freshKeys[k] = 1; }); });
+        var keep = prev.filter(function (it) { return !freshKeys[it.source]; });
+        var fresh = all.filter(function (it) { return freshKeys[it.source]; });
+        writeJson(SNAP_KEY, { at: Date.now(), items: keep.concat(fresh).slice(0, 160) });
+      }
       return all;
     });
   }
@@ -80,6 +89,15 @@
   // cfg.cardCta (M7 follow-up): one label for every card-level CTA, so a surface whose
   // detail action is "Gift this" doesn't show renderer defaults ("Collect"/"Get it").
   var PICK = null, PICK_LABEL = null, CARD_CTA = null;
+  // M9 2.16: the globals above are "the ACTIVE mount's view"; every mount owns a ctx
+  // and re-asserts it at render and interaction time, so two live mounts on one page
+  // stop cross-contaminating (the last mount used to hijack every surface's cards).
+  var ACTIVE_CTX = null;
+  function activateCtx(c) {
+    if (!c) return;
+    ACTIVE_CTX = c;
+    SIG = c.sig; WEIGHTS = c.weights; PICK = c.pick; PICK_LABEL = c.pickLabel; CARD_CTA = c.cardCta;
+  }
   function score(i, sig, w) {
     sig = sig || SIG || {}; w = w || WEIGHTS;
     var s = 0;
@@ -116,7 +134,12 @@
     if (q.maxUsd != null) out = out.filter(function (i) { return i.price.usd <= q.maxUsd; });
     if (q.vertical) out = out.filter(function (i) { return !i.vertical || i.vertical === q.vertical; });
     if (q.search) { var s = String(q.search).toLowerCase(); out = out.filter(function (i) { return (i.title + " " + i.brand + " " + i.subtitle + " " + i.tags.join(" ")).toLowerCase().indexOf(s) >= 0; }); }
-    out.sort(SORTS[q.sort] || SORTS.editorial);
+    if (!q.sort || q.sort === "editorial") {
+      // M9 2.9: decorate-sort — score() runs once per ITEM, not twice per comparison
+      var sc = new Map();
+      out.forEach(function (i) { sc.set(i, score(i)); });
+      out.sort(function (a, b) { return sc.get(b) - sc.get(a); });
+    } else out.sort(SORTS[q.sort] || SORTS.editorial);
     if (q.limit) out = out.slice(0, q.limit);
     return out;
   }
@@ -131,8 +154,12 @@
   function loadPricing() {
     if (pricingP) return pricingP;
     pricingP = fetch("/showcase/market-pricing.json").then(function (r) { return r.ok ? r.json() : null; })
-      .then(function (j) { if (j) PRICING = Object.assign({}, PRICING, j); return PRICING; })
-      .catch(function () { return PRICING; });
+      .then(function (j) {
+        if (j) { PRICING = Object.assign({}, PRICING, j); return PRICING; }
+        pricingP = null;   // M9 2.10: a failed load answers THIS call only — the next call retries
+        return PRICING;
+      })
+      .catch(function () { pricingP = null; return PRICING; });
     return pricingP;
   }
   function feePctFor(type) { var m = PRICING.marketplacePct || {}; return num(m[type] != null ? m[type] : m["default"]); }
@@ -144,9 +171,16 @@
   // ----- GIIIFT credit (§7): the perks currency. NEVER summed with Balance. Demo ledger
   // mirrors credit_ledger semantics (grants/spends with reasons) until the server exists. ---
   var credit = {
-    get: function () { var l = readJson("giiift-credit", null); if (!l) { l = { bal: 250, log: [{ delta: 250, reason: "welcome", at: Date.now() }] }; writeJson("giiift-credit", l); } return l.bal; },
-    spend: function (n, reason, ref) { var l = readJson("giiift-credit", { bal: 0, log: [] }); if (l.bal < n) return false; l.bal -= n; l.log.push({ delta: -n, reason: reason || "spend", ref: ref || null, at: Date.now() }); writeJson("giiift-credit", l); return true; },
-    grant: function (n, reason, ref) { var l = readJson("giiift-credit", { bal: 0, log: [] }); l.bal += n; l.log.push({ delta: n, reason: reason || "grant", ref: ref || null, at: Date.now() }); writeJson("giiift-credit", l); },
+    get: function () {
+      var l = readJson("giiift-credit", null);
+      if (!l) { l = { bal: 250, log: [{ delta: 250, reason: "welcome", at: Date.now() }] }; writeJson("giiift-credit", l); }
+      if (!isFinite(+l.bal)) { l.bal = 0; writeJson("giiift-credit", l); }   // M9 2.7: self-heal a NaN ledger
+      return +l.bal;
+    },
+    // M9 2.7: spend(NaN) corrupted the ledger forever and spend(-100) MINTED credit.
+    // Amounts must be finite and positive, on both spend and grant.
+    spend: function (n, reason, ref) { n = +n; if (!isFinite(n) || n <= 0) return false; var l = readJson("giiift-credit", { bal: 0, log: [] }); if (!isFinite(+l.bal)) l.bal = 0; if (l.bal < n) return false; l.bal = +l.bal - n; l.log.push({ delta: -n, reason: reason || "spend", ref: ref || null, at: Date.now() }); writeJson("giiift-credit", l); return true; },
+    grant: function (n, reason, ref) { n = +n; if (!isFinite(n) || n <= 0) return; var l = readJson("giiift-credit", { bal: 0, log: [] }); if (!isFinite(+l.bal)) l.bal = 0; l.bal = +l.bal + n; l.log.push({ delta: n, reason: reason || "grant", ref: ref || null, at: Date.now() }); writeJson("giiift-credit", l); },
   };
 
   // ----- wishlist hearts (the §5 "card saves" signal; existing giiift-wishlist key) -----
@@ -165,16 +199,18 @@
 
   // ----- behavior affinity (§5 signal 4): on-device recency-weighted tally, no server -----
   var HALF_LIFE_MS = 7 * 24 * 3600e3;
+  var AFF_MEMO = null;   // M9 2.9: one parse per batch; bump() invalidates
   var affinity = {
     bump: function (type, brand, w) {
       var a = readJson("giiift-market-affinity", []);
       a.push({ t: type || "", b: brand || "", w: w || 1, at: Date.now() });
       if (a.length > 200) a = a.slice(-200);
       writeJson("giiift-market-affinity", a);
+      AFF_MEMO = null;
     },
     counts: function () { return readJson("giiift-market-affinity", []).length; },
     of: function (type, brand) {
-      var a = readJson("giiift-market-affinity", []), s = 0, now = Date.now();
+      var a = AFF_MEMO || (AFF_MEMO = readJson("giiift-market-affinity", [])), s = 0, now = Date.now();
       for (var i = 0; i < a.length; i++) {
         var decay = Math.pow(0.5, (now - (a[i].at || now)) / HALF_LIFE_MS);
         if (a[i].t === type) s += (a[i].w || 1) * decay;
@@ -230,7 +266,7 @@
   // ----- rendering helpers -----
   function el(tag, cls, html) { var e = doc.createElement(tag); if (cls) e.className = cls; if (html != null) e.innerHTML = html; return e; }
   function esc(s) { return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }); }
-  function money(usd) { return "$" + (usd >= 100 ? Math.round(usd).toLocaleString() : usd.toFixed(2).replace(/\.00$/, "")); }
+  function money(usd) { usd = +usd; if (!isFinite(usd)) usd = 0; return "$" + (usd >= 100 ? Math.round(usd).toLocaleString() : usd.toFixed(2).replace(/\.00$/, "")); }
   function injectCss() {
     if (doc.getElementById("gmk-css")) return;
     var s = el("style"); s.id = "gmk-css"; s.textContent = CSS; doc.head.appendChild(s);
@@ -243,7 +279,8 @@
     card.style.setProperty("--tone", item.tone || "#00FF9D");
     card.setAttribute("data-aspect", item.media[0].aspect);
     if (CARD_CTA) [].forEach.call(card.querySelectorAll(".mk-get"), function (b) { b.textContent = CARD_CTA; });
-    card.addEventListener("click", function () { track("market_item_view", { id: item.id }); affinity.bump(item.type, item.brand, 1); openDetail(item); });
+    var cardCtx = ACTIVE_CTX;   // M9 2.16: the mount that built this card owns its clicks
+    card.addEventListener("click", function () { activateCtx(cardCtx); track("market_item_view", { id: item.id }); affinity.bump(item.type, item.brand, 1); openDetail(item); });
     var vis = card.querySelector(".mk-vis");
     if (vis && !vis.querySelector(".mk-heart")) {   // wishlist heart on every card (§5 save signal)
       var h = el("button", "mk-heart" + (wishlist.has(item.id) ? " on" : ""), "♥"); h.type = "button";
@@ -264,7 +301,11 @@
     return box;
   }
   function priceHtml(p) {
-    if (p.credit != null && !p.usd) return '<b>' + p.credit + ' cr</b>';
+    if (p.credit != null && !p.usd) {
+      var per = num((PRICING || {}).creditPerUsd);
+      var eq = per > 0 ? ' <span class="mk-crusd">~' + money(p.credit / per) + '</span>' : '';
+      return '<b>' + p.credit + ' cr</b>' + eq;
+    }
     var s = '<b>' + (p.kind === "from" || p.kind === "floor" ? (p.kind === "floor" ? "floor " : "from ") : "") + money(p.usd) + '</b>';
     if (p.compareUsd && p.compareUsd > p.usd) s += ' <s>' + money(p.compareUsd) + '</s>';
     return s;
@@ -372,11 +413,17 @@
     else host.appendChild(el("div", "mk-aurora"));
     var main = el("div", "mk-main"); host.appendChild(main);
 
-    // signals + weights for this surface (§5); pricing loads in parallel with the catalog
-    SIG = signals(cfg); WEIGHTS = Object.assign({}, DEFAULT_WEIGHTS, cfg.weights || {});
-    PICK = typeof cfg.onPick === "function" ? cfg.onPick : null;
-    PICK_LABEL = cfg.onPickLabel || "Add to gift";
-    CARD_CTA = cfg.cardCta || null;
+    // M9 2.16: per-mount context. Two live mounts on one page used to cross-contaminate
+    // through the module globals (the last mount's onPick hijacked every surface's cards).
+    // Each mount now owns its context; the globals are just "the active mount's view",
+    // re-asserted on every render and again at interaction time (card click).
+    var MCTX = {
+      sig: signals(cfg), weights: Object.assign({}, DEFAULT_WEIGHTS, cfg.weights || {}),
+      pick: typeof cfg.onPick === "function" ? cfg.onPick : null,
+      pickLabel: cfg.onPickLabel || "Add to gift",
+      cardCta: cfg.cardCta || null,
+    };
+    activateCtx(MCTX);
     loadPricing();
 
     // header: balance + credit chips (never conflated, §7) + title + search + sort
@@ -415,6 +462,7 @@
 
     var ITEMS = [];
     function render() {
+      MCTX.sig = signals(cfg); activateCtx(MCTX);   // M9 2.16: this mount owns this render
       shelvesEl.innerHTML = "";
       var sv = search.value.trim(), sortV = sort.value;
       if (sv || activeFacet || sortV !== "editorial") {
@@ -429,7 +477,6 @@
         // curated mode: the §5 dominance rule, then the view-config's shelves.
         // A cleared signal (taste pick / vertical session / >=5 interactions) makes the hero
         // lane THAT type; cold start gets the editorial shelves + the 10-second taste picker.
-        SIG = signals(cfg);
         var TYPE_TITLE = { "tcg-card": "Trading cards", pack: "Trading cards", art: "Digital art", product: "Real things", "giiift-good": "GIIIFT goods", "digital-asset": "Crypto" };
         var dom = cfg.hero === false ? null : dominantTypes(SIG);
         if (dom) {
@@ -495,6 +542,7 @@
     ".mk-foot{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:11px}.mk-price{font:500 14px 'Inter'}.mk-price b{font-weight:700}.mk-price s{color:var(--gmk-dim);font-size:12px;margin-left:3px}.mk-price.big b{font-size:22px}" +
     ".mk-get{padding:8px 13px;border-radius:9px;border:1px solid var(--gmk-border);background:#fff;color:#07120d;font:700 12px/1 'Inter';cursor:pointer;transition:.2s}.mk-get:hover{box-shadow:0 0 16px -4px rgba(255,255,255,.4)}.mk-get.big{padding:12px 18px;font-size:14px}.mk-get:disabled{background:transparent;color:var(--gmk-dim);border-color:var(--gmk-border);cursor:default;box-shadow:none}" +
     ".mk-chips{display:flex;gap:6px;flex-wrap:wrap;margin:10px 0}.mk-chip{padding:4px 9px;border-radius:7px;font:600 10px/1 'Space Mono',monospace;letter-spacing:.05em;background:color-mix(in srgb,var(--tone,#00FF9D) 14%,transparent);color:color-mix(in srgb,var(--tone,#00FF9D) 85%,#fff);border:1px solid color-mix(in srgb,var(--tone,#00FF9D) 28%,transparent)}" +
+    ".mk-crusd{font:500 11px 'Inter';color:var(--gmk-dim)}" +
     ".mk-loading,.mk-empty{padding:60px 20px;text-align:center;color:var(--gmk-dim);font:500 14px 'Inter'}" +
     ".mk-stale{margin:10px 0 0;padding:8px 12px;border:1px solid rgba(255,210,122,.3);border-radius:10px;color:#ffd27a;font:500 11.5px 'Inter';background:rgba(255,210,122,.06)}" +
     ".mk-ov{position:fixed;inset:0;z-index:60;display:grid;place-items:center;padding:20px;background:rgba(5,6,8,.6);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);opacity:0;transition:opacity .22s}.mk-ov.on{opacity:1}" +

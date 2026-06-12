@@ -150,6 +150,13 @@
     { id: "gift", title: "Gift", sub: "Assets inside the box", icon: "gift" },
     { id: "code", title: "Code", sub: "Import / export JSON", icon: "code" },
   ];
+  // SIMPLE-mode rail: the ~6 things everyone wants, grouped by intent. Each body
+  // delegates to existing actions/tools (no new engine surface). Advanced = TOOLS.
+  var SIMPLE_TOOLS = [
+    { id: "s-add", title: "Add", sub: "Text, photo, sticker", icon: "layers" },
+    { id: "s-change", title: "Change", sub: "Colour & font", icon: "box" },
+    { id: "s-whole", title: "Box", sub: "Layouts & design", icon: "templates" },
+  ];
 
   var STARTER = GBX.fromLegacy({
     brand: "Your Gift", sublabel: "A GIFT FOR YOU", note: "made with love", labelTo: "To: friend", from: "From: you",
@@ -164,6 +171,8 @@
       build: function () { return { palette: { c1: "#3c4248", c2: "#22262a", accent: "#ffcc00", angle: 135, finish: "matte" }, faces: { front: { panel: "cel-crate" } }, items: [{ ticker: "USDC" }] }; } },
     { id: "holographic", name: "Holographic", desc: "Iridescent foil wrap", c1: "#22d3ee", c2: "#a855f7", motif: (window.GIIIFTBoxStickers && GIIIFTBoxStickers["g-rare-star"] ? GIIIFTBoxStickers["g-rare-star"].svg : ""),
       build: function () { return { palette: { c1: "#22d3ee", c2: "#a855f7", accent: "#f5f3ff", angle: 135, finish: "holo" }, faces: { front: { panel: "holo" } }, items: [{ ticker: "SOL" }] }; } },
+    { id: "pop-mecha", name: "Pop Mecha", desc: "Retro pop control panel", c1: "#F26C2A", c2: "#4F61A1", motif: (GBX.panelSVG ? GBX.panelSVG("pop-mecha") : ""),
+      build: function () { return { palette: { c1: "#4F61A1", c2: "#8FD5ED", accent: "#F9C01A", angle: 135, finish: "gradient" }, faces: { front: { pos: "front", panel: "pop-mecha", layers: [] }, back: { pos: "back", panel: "pop-mecha-mech", layers: [] }, left: { pos: "left", panel: "pop-mecha-haz", layers: [] }, right: { pos: "right", panel: "pop-mecha-data", layers: [] }, top: { pos: "top", panel: "pop-mecha-strip", layers: [] }, bottom: { pos: "bottom", panel: "pop-mecha-code", layers: [] } }, items: [{ ticker: "USDC" }] }; } },
     { id: "parcel", name: "Parcel", desc: "Kraft paper & twine", c1: "#c9a472", c2: "#a87a48", motif: '<div style="font-size:30px">✉</div>',
       build: function () { return { palette: { c1: "#c9a472", c2: "#a87a48", accent: "#3a2a18", angle: 135, finish: "matte" }, faces: { front: { panel: "kraft" } }, items: [{ ticker: "USDC" }] }; } },
     { id: "manga", name: "Manga Box", desc: "Inked manga panel wrap", c1: "#7c3aed", c2: "#ec4899", motif: (GBX.panelSVG ? GBX.panelSVG("manga-front") : ""),
@@ -241,7 +250,12 @@
 
   /* ---------------- state ---------------- */
   var doc = GBX.normalize(STARTER);
-  var activeFace = "front", sel = null, selX = [], activeTool = "templates";   // selX: extra layer indices shift-clicked into the selection (same face as sel)
+  // Progressive disclosure: the lab opens in SIMPLE mode (intent-grouped, ~6 core
+  // actions) with the full tool rail behind an "Advanced" reveal. Returning users who
+  // chose Advanced stay there (localStorage). Advanced IS the original rail, untouched —
+  // a simple-mode issue degrades to Advanced and never breaks the editor.
+  var simpleMode = (function () { try { return !localStorage.getItem("giiift-lab-advanced"); } catch (e) { return true; } })();
+  var activeFace = "front", sel = null, selX = [], activeTool = simpleMode ? "s-add" : "templates";   // selX: extra layer indices shift-clicked into the selection (same face as sel)
   var clip = [];                                     // internal layer clipboard (Cmd/Ctrl+C → +V): deep-cloned layers, session-scoped, pastes onto the active face
   var labVertical = null;                            // lab-only "Recommended for" override (preview only — never writes the global vertical state)
   var cutBase = {}, cutSeq = 0;                      // touch-up brush: pre-mask crops keyed by layer.cutId, so Restore can re-add what the AI over-cut (session-only, never persisted)
@@ -874,7 +888,7 @@
   function emptyState(icon, t, s) { var e = el("div", "empty"); e.innerHTML = '<div class="e-ic">' + icon + '</div><div class="e-t">' + esc(t) + '</div><div class="e-s">' + esc(s) + "</div>"; return e; }
 
   /* ---------------- inspector dispatch ---------------- */
-  var TOOL_RENDER = { templates: toolTemplates, box: toolBox, faces: toolFaces, layers: toolLayers, stickers: toolStickers, panels: toolPanels, gift: toolGift, code: toolCode };
+  var TOOL_RENDER = { templates: toolTemplates, box: toolBox, faces: toolFaces, layers: toolLayers, stickers: toolStickers, panels: toolPanels, gift: toolGift, code: toolCode, "s-add": toolSAdd, "s-change": toolSChange, "s-whole": toolSWhole };
   function renderInspector() {
     var insp = $("#inspector");
     var ae = document.activeElement;
@@ -885,7 +899,7 @@
     var title, sub, icon, back = false;
     if (sel && multiSel()) { title = selAll().length + " elements"; sub = "selected on the " + sel.face + " face"; icon = ICON("layers"); back = true; }
     else if (sel) { var L = selLayer(); title = (LAYER_NAME[L.t] || L.t); sub = "on the " + sel.face + " face"; icon = ICON("props"); back = true; }
-    else { var t = TOOLS.find(function (x) { return x.id === activeTool; }); title = t.title; sub = t.sub; icon = ICON(t.icon); }
+    else { var t = TOOLS.concat(SIMPLE_TOOLS).find(function (x) { return x.id === activeTool; }) || TOOLS[0]; title = t.title; sub = t.sub; icon = ICON(t.icon); }
     var hc = el("div"); hc.style.cssText = "display:flex;align-items:center;gap:10px;flex:1;min-width:0";
     hc.innerHTML = '<div class="ih-ic" aria-hidden="true">' + icon + '</div><div style="min-width:0"><h2 class="ih-t" id="insp-title">' + esc(title) + '</h2><div class="ih-sub">' + esc(sub) + "</div></div>";
     head.appendChild(hc);
@@ -1720,9 +1734,58 @@
   }
   function focusActiveTool() { var ab = document.querySelector("#rail .rail-btn.on"); if (ab) ab.focus(); }
   function toggleSheet() { if (isMobile()) document.body.classList.toggle("sheet-open"); }
+  /* ---------------- simple mode (progressive disclosure) ---------------- */
+  function simpleActions(title, note, items) {                 // a row of big delegate buttons (reuses the addgrid/addcell styling)
+    var g = group(title, note), grid = el("div", "addgrid");
+    items.forEach(function (it) {
+      var b = el("button", "addcell"); b.type = "button";
+      b.innerHTML = '<span class="addcell-ic" aria-hidden="true">' + it.ic + '</span><span class="addcell-nm">' + it.nm + "</span>";
+      b.setAttribute("aria-label", it.nm);
+      b.addEventListener("click", it.fn);
+      grid.appendChild(b);
+    });
+    g.appendChild(grid); return g;
+  }
+  function toolSAdd(body) {
+    body.appendChild(simpleActions("Add something", "Tap one, then tap the box where you want it.", [
+      { ic: LAYER_ICON.text || "T", nm: "Text", fn: function () { armPlace("text"); } },
+      { ic: LAYER_ICON.art || "▣", nm: "Photo", fn: function () { armPlace("art"); } },
+      { ic: LAYER_ICON.sticker || "★", nm: "Sticker", fn: function () { setTool("stickers"); } },
+    ]));
+  }
+  function toolSChange(body) {
+    body.appendChild(simpleActions("Change this", "Recolour the box, or restyle the words.", [
+      { ic: "🎨", nm: "Box colour", fn: function () { setTool("box"); } },
+    ]));
+    var gf = group("Font", "Sets the font on every word on the box."), grid = el("div", "addgrid");
+    ["display", "anton", "playfair", "pacifico", "bangers", "righteous"].forEach(function (f) {
+      var b = el("button", "addcell"); b.type = "button";
+      b.innerHTML = '<span class="addcell-nm" style="font-size:12.5px">' + (fontMeta(f).name || f) + "</span>";
+      b.setAttribute("aria-label", "Use the " + (fontMeta(f).name || f) + " font");
+      b.addEventListener("click", function () { applyFontAll(f); });
+      grid.appendChild(b);
+    });
+    gf.appendChild(grid); body.appendChild(gf);
+  }
+  function toolSWhole(body) {
+    body.appendChild(simpleActions("Whole box", "Start from a ready-made design, or shuffle the whole look.", [
+      { ic: "▦", nm: "Layouts", fn: function () { setTool("templates"); } },
+      { ic: "🎲", nm: "Shuffle look", fn: shuffleLook },
+    ]));
+  }
+  function applyFontAll(f) {
+    FACES.forEach(function (pos) { ((doc.faces[pos] && doc.faces[pos].layers) || []).forEach(function (L) { if (L.t === "text" || L.t === "graffiti") L.font = f; }); });
+    rerender(); record(); announce("Font set to " + (fontMeta(f).name || f));
+  }
+  function setSimple(on) {
+    simpleMode = on;
+    try { on ? localStorage.removeItem("giiift-lab-advanced") : localStorage.setItem("giiift-lab-advanced", "1"); } catch (e) {}
+    buildRail(); setTool(on ? "s-add" : "templates");
+    announce(on ? "Simple view" : "Advanced tools shown");
+  }
   function buildRail() {
     var rail = $("#rail"); rail.innerHTML = ""; rail.setAttribute("role", "tablist"); rail.setAttribute("aria-label", "Editor tools");
-    TOOLS.forEach(function (t) {
+    (simpleMode ? SIMPLE_TOOLS : TOOLS).forEach(function (t) {
       var on = t.id === activeTool;
       var b = el("button", "rail-btn" + (on ? " on" : "")); b.dataset.tool = t.id; b.title = t.sub; b.type = "button";
       b.setAttribute("role", "tab"); b.setAttribute("aria-selected", on ? "true" : "false");
@@ -1730,6 +1793,12 @@
       b.addEventListener("click", function () { setTool(t.id); });
       rail.appendChild(b);
     });
+    // progressive-disclosure toggle, pinned to the bottom of the rail
+    var tog = el("button", "rail-btn"); tog.type = "button"; tog.style.marginTop = "auto";
+    tog.title = simpleMode ? "Show all tools" : "Back to the simple view";
+    tog.innerHTML = '<span class="rail-ic" aria-hidden="true">' + ICON(simpleMode ? "code" : "templates") + '</span><span class="rail-lbl">' + (simpleMode ? "Advanced" : "Simple") + "</span>";
+    tog.addEventListener("click", function () { setSimple(!simpleMode); });
+    rail.appendChild(tog);
   }
   function buildTopbar() {
     var tb = $("#topbar"); tb.innerHTML = '<span class="tb-logo" aria-hidden="true">G<span class="i1">I</span><span class="i2">I</span><span class="i3">I</span>FT box lab</span><div class="tb-crumb" id="crumb"></div><span class="tb-spacer"></span>';
@@ -2597,25 +2666,44 @@
   }
   function maybeCoach() {
     try { if (localStorage.getItem("giiift-lab-coached")) return; } catch (e) {}
+    // A friendly 3-beat coach (tap a face -> type -> spin), shown one beat at a time
+    // instead of one wall of tips. Skip / esc / tapping the veil all mark it seen.
+    var BEATS = [
+      { em: "👆", t: "Tap a face", d: "Tap any side of the box to start decorating that side." },
+      { em: "⌨️", t: "Type your words", d: "Double-tap text on the box to rewrite it, or add new text from the left." },
+      { em: "🖐️", t: "Spin it around", d: "Drag the empty space to spin the box and see every side." },
+    ];
+    var i = 0;
     var veil = el("div", "coach-veil");
     var c = el("div", "coach"); c.setAttribute("role", "dialog"); c.setAttribute("aria-modal", "true"); c.setAttribute("aria-labelledby", "coach-title");
-    c.innerHTML = '<h4>Quick start</h4><h3 id="coach-title">Welcome to the box lab</h3><ul>' +
-      '<li><span class="em" aria-hidden="true">🖐️</span><span>Drag empty space to <b>rotate</b> the box. Or click the box, then use the <b>arrow keys</b>.</span></li>' +
-      '<li><span class="em" aria-hidden="true">👆</span><span>Click a face to edit it. Drag any element to move it, the green corner to <b>resize</b>.</span></li>' +
-      '<li><span class="em" aria-hidden="true">⌨️</span><span>Double-click text on the box to type. Press the <b>?</b> button up top for all shortcuts.</span></li>' +
-      '</ul>';
-    function dismiss() {
+    function done() {
       try { localStorage.setItem("giiift-lab-coached", "1"); } catch (e) {}
-      document.removeEventListener("keydown", onEsc, true);
+      document.removeEventListener("keydown", onKey, true);
       veil.remove(); c.remove(); if (stage) stage.focus();
     }
-    function onEsc(e) { if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); dismiss(); } }
-    var go = el("button", "btn acc"); go.type = "button"; go.style.width = "100%"; go.textContent = "Start designing";
-    go.addEventListener("click", dismiss);
-    veil.addEventListener("pointerdown", function (e) { e.stopPropagation(); dismiss(); });
-    document.addEventListener("keydown", onEsc, true);
-    c.appendChild(go); stage.appendChild(veil); stage.appendChild(c);
-    setTimeout(function () { go.focus(); }, 0);
+    function step(n) { if (i + n > BEATS.length - 1) { done(); return; } i = Math.max(0, i + n); render(); }
+    function onKey(e) {
+      if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); done(); }
+      else if (e.key === "Enter" || e.key === "ArrowRight") { e.preventDefault(); step(1); }
+    }
+    function render() {
+      var b = BEATS[i], last = i === BEATS.length - 1;
+      var dots = '<div style="display:flex;gap:7px;margin:18px 0 0" aria-hidden="true">' +
+        BEATS.map(function (_x, k) { return '<span style="width:8px;height:8px;border-radius:50%;background:' + (k === i ? "#34d399" : "rgba(255,255,255,.22)") + '"></span>'; }).join("") + '</div>';
+      c.innerHTML = '<h4>Quick start · ' + (i + 1) + ' of ' + BEATS.length + '</h4>' +
+        '<h3 id="coach-title" style="display:flex;align-items:center;gap:14px"><span class="em" aria-hidden="true" style="font-size:34px;flex:0 0 auto">' + b.em + '</span>' + b.t + '</h3>' +
+        '<p style="font-size:17px;color:#e7e9ee;line-height:1.55;margin:0">' + b.d + '</p>' + dots;
+      var row = el("div"); row.style.cssText = "display:flex;gap:10px;align-items:center;margin-top:24px";
+      if (!last) { var skip = el("button", "btn"); skip.type = "button"; skip.textContent = "Skip"; skip.style.flex = "0 0 auto"; skip.addEventListener("click", done); row.appendChild(skip); }
+      var next = el("button", "btn acc"); next.type = "button"; next.style.flex = "1"; next.textContent = last ? "Start designing" : "Next";
+      next.addEventListener("click", function () { step(1); });
+      row.appendChild(next); c.appendChild(row);
+      setTimeout(function () { next.focus(); }, 0);
+    }
+    veil.addEventListener("pointerdown", function (e) { e.stopPropagation(); done(); });
+    document.addEventListener("keydown", onKey, true);
+    stage.appendChild(veil); stage.appendChild(c);
+    render();
   }
 
   /* ---------------- admin: in-browser panel authoring (?admin) ---------------- */
