@@ -1,0 +1,105 @@
+<!doctype html>
+<!-- GIIIFT · Orders v1 (marketplace M2, spec §9). Lane-owned standalone surface (zero
+     contention with me.html, which other lanes own); M5's account work consolidates it.
+     Demo mode lists localStorage giiift-orders; live mode (M4) reads /api/market/order. -->
+<html lang="en" data-theme="dark">
+<head>
+<script>/* public showcase mirror: always demo mode */try{localStorage.setItem("giiift-demo","1");localStorage.setItem("giiift-authed","1");}catch(e){}window.GIIIFT_CAPS={intents:false,oauth:false,telemetry:false};</script>
+<meta name="robots" content="noindex, nofollow, noarchive">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>GIIIFT · Your orders</title>
+  <meta name="robots" content="noindex" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@700&family=Space+Mono:wght@400;700&family=DM+Mono:wght@400;500&display=swap" />
+  <link rel="icon" type="image/svg+xml" href="/showcase/favicon.svg" />
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { background: #0a0a0c; color: #eef0f4; font-family: 'Inter', system-ui, sans-serif; min-height: 100vh; }
+    .wrap { position: relative; z-index: 1; max-width: 760px; margin: 0 auto; padding: 36px 20px 90px; }
+    .crumb { font: 600 11px 'Space Mono', monospace; letter-spacing: .16em; text-transform: uppercase; color: rgba(243,244,242,.4); }
+    .crumb a { color: inherit; text-decoration: none; } .crumb a:hover { color: #fff; }
+    h1 { font: 700 28px/1.1 'Space Grotesk', sans-serif; margin: 10px 0 6px;
+      background: linear-gradient(180deg,#fff,#b8f5dd 72%,#6fe6c0); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+    .sub { color: rgba(243,244,242,.55); font-size: 13px; margin-bottom: 22px; }
+    .bar { display: flex; gap: 10px; margin-bottom: 18px; }
+    .btn { padding: 9px 14px; border: 1px solid rgba(255,255,255,.12); border-radius: 10px; background: rgba(18,20,26,.6); color: #eef0f4; font: 600 12px 'Inter'; cursor: pointer; }
+    .btn:hover { border-color: rgba(255,255,255,.25); }
+    .order { border: 1px solid rgba(255,255,255,.09); border-radius: 14px; background: linear-gradient(180deg,rgba(24,26,33,.55),rgba(15,16,21,.66)); margin-bottom: 12px; overflow: hidden; }
+    .order-h { display: flex; align-items: center; gap: 12px; padding: 13px 16px; cursor: pointer; }
+    .order-h:hover { background: rgba(255,255,255,.03); }
+    .oid { font: 700 12px 'Space Mono', monospace; }
+    .owhen { color: rgba(243,244,242,.45); font-size: 11px; }
+    .oitems { color: rgba(243,244,242,.6); font-size: 12px; margin-left: auto; }
+    .order-b { display: none; padding: 0 16px 14px; }
+    .order.open .order-b { display: block; }
+    .mk-state { text-transform: uppercase; font: 700 10px 'Space Mono', monospace; letter-spacing: .08em; padding: 3px 8px; border-radius: 7px; border: 1px solid rgba(255,255,255,.12); }
+    .mk-state-fulfilled { color: #00FF9D; border-color: rgba(0,255,157,.35); }
+    .mk-state-awaiting-funds { color: #ffd27a; border-color: rgba(255,210,122,.35); }
+    .mk-state-failed { color: #ff6b6b; } .mk-state-quoted, .mk-state-executing { color: #7bdfff; }
+    .empty { padding: 60px 20px; text-align: center; color: rgba(243,244,242,.45); font-size: 14px; border: 1px dashed rgba(255,255,255,.12); border-radius: 14px; }
+    .empty a { color: #00FF9D; }
+    .resume { margin-top: 8px; }
+    /* receipt internals reuse the checkout module's classes */
+    .mk-leg { margin: 10px 0; padding: 10px 12px; border: 1px solid rgba(255,255,255,.09); border-radius: 11px; }
+    .mk-leg-h { font: 600 10px/1 'Space Mono', monospace; letter-spacing: .12em; text-transform: uppercase; color: rgba(243,244,242,.5); margin-bottom: 8px; }
+    .mk-leg-r { display: flex; justify-content: space-between; font: 500 12px 'Inter'; color: rgba(243,244,242,.55); padding: 2px 0; }
+    .mk-leg-r b { color: #eef0f4; } .mk-leg-r.tot { border-top: 1px solid rgba(255,255,255,.09); margin-top: 6px; padding-top: 7px; }
+    .mk-leg-r.tot b { color: #00FF9D; }
+    .mk-receipt i { color: rgba(243,244,242,.4); font-style: normal; font-size: 10px; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="crumb"><a href="/showcase/shop.html">← Back to the shop</a> &nbsp; <a href="/account">Account</a></div>
+    <h1>Your orders</h1>
+    <p class="sub">Every purchase, its state, and its receipt. CSV doubles as your own backup.</p>
+    <div class="bar">
+      <button type="button" class="btn" id="csv">Download CSV</button>
+    </div>
+    <div id="list"></div>
+  </div>
+
+  <script src="/showcase/market-engine.js"></script>
+  <script src="/showcase/routing.js"></script>
+  <script src="/showcase/market-sources.js"></script>
+  <script src="/showcase/market-rails.js"></script>
+  <script src="/showcase/market-checkout.js"></script>
+  <script>
+  (function () {
+    'use strict';
+    var MC = window.GIIIFTMarketCheckout, GM = window.GIIIFTMarket;
+    var list = document.getElementById('list');
+
+    function paint() {
+      var all = MC.orders();
+      if (!all.length) { list.innerHTML = '<div class="empty">No orders yet. <a href="/showcase/shop.html">Find something at the shop →</a></div>'; return; }
+      list.innerHTML = '';
+      all.forEach(function (o) {
+        var d = document.createElement('div'); d.className = 'order';
+        d.innerHTML = '<div class="order-h"><span class="oid">' + GM.esc(o.id) + '</span>' +
+          '<span class="mk-state mk-state-' + GM.esc(o.state) + '">' + GM.esc(o.state) + '</span>' +
+          '<span class="owhen">' + new Date(o.createdAt).toLocaleString() + '</span>' +
+          '<span class="oitems">' + (o.items || []).reduce(function (n, i) { return n + (i.qty || 1); }, 0) + ' item(s)</span></div>' +
+          '<div class="order-b">' + MC.receiptHtml(o) +
+          ((o.state === 'awaiting-funds' || o.state === 'failed') ? '<button type="button" class="btn resume" data-id="' + GM.esc(o.id) + '">Resume order</button>' : '') +
+          '</div>';
+        d.querySelector('.order-h').addEventListener('click', function () { d.classList.toggle('open'); });
+        var r = d.querySelector('.resume');
+        if (r) r.addEventListener('click', function (e) { e.stopPropagation(); r.disabled = true; MC.resume(o.id, function () { paint(); }); });
+        list.appendChild(d);
+      });
+    }
+    // demo orders resolve item ids against the catalog: load it, then paint
+    GM.loadCatalog({}).then(paint).catch(paint);
+
+    document.getElementById('csv').addEventListener('click', function () {
+      var blob = new Blob([MC.csv()], { type: 'text/csv' });
+      var a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'giiift-orders.csv'; a.click();
+      setTimeout(function () { URL.revokeObjectURL(a.href); }, 2000);
+    });
+  })();
+  </script>
+</body>
+</html>
