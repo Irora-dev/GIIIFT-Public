@@ -78,8 +78,8 @@
   var POS = [["x", RG(0, 1, .01)], ["y", RG(0, 1, .01)], ["rotate", RG(-180, 180, 1, "°")], ["anim", "anim"], ["blend", "blendkind"], ["shadow", "shadowkind"]];
   var BLEND_OPTS = [{ value: "normal", label: "Normal" }, { value: "multiply", label: "Multiply" }, { value: "screen", label: "Screen" }, { value: "overlay", label: "Overlay" }, { value: "soft-light", label: "Soft Light" }, { value: "hard-light", label: "Hard Light" }, { value: "darken", label: "Darken" }, { value: "lighten", label: "Lighten" }, { value: "color-dodge", label: "Color Dodge" }, { value: "color-burn", label: "Color Burn" }, { value: "difference", label: "Difference" }, { value: "exclusion", label: "Exclusion" }, { value: "hue", label: "Hue" }, { value: "saturation", label: "Saturation" }, { value: "color", label: "Color" }, { value: "luminosity", label: "Luminosity" }];
   var LAYER_FIELDS = {
-    text: [["value", "text"], ["font", "font"], ["style", "textstyle"], ["finish", "textfinish"], ["size", RG(.02, .4, .005)], ["weight", RG(100, 900, 50)], ["lineHeight", RG(.7, 2.5, .05)], ["letterSpacing", RG(-.1, .6, .01, "em")], ["color", "color"], ["outline1", "color"], ["outline2", "color"], ["effect", "texteffect"], ["effectColor", "color"], ["curve", RG(-180, 180, 1, "°")], ["fillKind", "fillkind"], ["fill2", "color"], ["fillAngle", RG(0, 360, 1, "°")], ["fillImage", "textimage"], ["align", "align"], ["italic", "bool"], ["w", RG(.05, 1, .01)]].concat(POS),
-    graffiti: [["value", "text"], ["font", "font"], ["style", "textstyle"], ["finish", "textfinish"], ["size", RG(.02, .4, .005)], ["lineHeight", RG(.7, 2.5, .05)], ["letterSpacing", RG(-.1, .6, .01, "em")], ["color", "color"], ["outline1", "color"], ["outline2", "color"], ["effect", "texteffect"], ["effectColor", "color"], ["curve", RG(-180, 180, 1, "°")], ["fillKind", "fillkind"], ["fill2", "color"], ["fillAngle", RG(0, 360, 1, "°")], ["fillImage", "textimage"], ["w", RG(.05, 1, .01)]].concat(POS),
+    text: [["value", "text"], ["textStyle", "textstyles"], ["font", "font"], ["finish", "textfinish"], ["size", RG(.02, .4, .005)], ["weight", RG(100, 900, 50)], ["lineHeight", RG(.7, 2.5, .05)], ["letterSpacing", RG(-.1, .6, .01, "em")], ["color", "color"], ["outline1", "color"], ["outline2", "color"], ["effect", "texteffect"], ["effectColor", "color"], ["curve", RG(-180, 180, 1, "°")], ["fillKind", "fillkind"], ["fill2", "color"], ["fillAngle", RG(0, 360, 1, "°")], ["fillImage", "textimage"], ["align", "align"], ["italic", "bool"], ["w", RG(.05, 1, .01)]].concat(POS),
+    graffiti: [["value", "text"], ["textStyle", "textstyles"], ["font", "font"], ["finish", "textfinish"], ["size", RG(.02, .4, .005)], ["lineHeight", RG(.7, 2.5, .05)], ["letterSpacing", RG(-.1, .6, .01, "em")], ["color", "color"], ["outline1", "color"], ["outline2", "color"], ["effect", "texteffect"], ["effectColor", "color"], ["curve", RG(-180, 180, 1, "°")], ["fillKind", "fillkind"], ["fill2", "color"], ["fillAngle", RG(0, 360, 1, "°")], ["fillImage", "textimage"], ["w", RG(.05, 1, .01)]].concat(POS),
     stamp: [["value", "text"], ["color", "color"], ["size", RG(.03, .16, .005)]].concat(POS),
     note: [["label", "text"], ["value", "textarea"], ["color", "color"], ["w", RG(.2, 1, .01)]].concat(POS),
     label: [["title", "text"], ["to", "text"], ["from", "text"], ["w", RG(.25, 1, .01)]].concat(POS),
@@ -115,6 +115,31 @@
     rerender(); record(); renderInspector(); announce("New look: " + p.name + " + " + (fontMeta(f).name || f));
   }
   var SWATCHES = ["#ffffff", "#0b1120", "#fde68a", "#f59e0b", "#ef4444", "#ec4899", "#a855f7", "#6366f1", "#0ea5e9", "#22d3ee", "#10b981", "#84cc16"];
+  // Pre-styled text pairings (Canva-style font combinations). DATA-ONLY: each is a
+  // bundle of EXISTING `text` layers that arrive sharing a fresh `grp` (persistent
+  // group), so they move/scale/reorder together. No engine change — addCombo()
+  // clones LAYER_DEFAULTS.text per spec. `accent:true` pulls the box palette accent.
+  // Fonts are all from STYLE_FONTS (already supported by the text layer's font field).
+  var TEXT_COMBOS = [
+    { id: "headline", name: "Headline", ic: "Aa", layers: [
+      { accent: true, set: { value: "HEADLINE", font: "anton", size: .13, weight: 800, italic: false, w: .86, y: .43, letterSpacing: .01 } },
+      { set: { value: "a little tagline here", font: "archivo", size: .045, weight: 600, italic: false, w: .8, y: .55, letterSpacing: .16, color: "#e5e7eb" } } ] },
+    { id: "elegant", name: "Elegant", ic: "✦", layers: [
+      { accent: true, set: { value: "With Love", font: "playfair", size: .12, weight: 500, italic: true, w: .86, y: .43 } },
+      { set: { value: "FOR SOMEONE SPECIAL", font: "cinzel", size: .04, weight: 600, italic: false, w: .82, y: .55, letterSpacing: .22, color: "#e5e7eb" } } ] },
+    { id: "playful", name: "Playful", ic: "~", layers: [
+      { accent: true, set: { value: "hooray!", font: "pacifico", size: .13, weight: 400, italic: false, w: .86, y: .43 } },
+      { set: { value: "you did it", font: "fredoka", size: .05, weight: 600, italic: false, w: .8, y: .56, color: "#e5e7eb" } } ] },
+    { id: "punch", name: "Punch", ic: "!", layers: [
+      { accent: true, set: { value: "WOW", font: "bangers", size: .15, weight: 400, italic: false, w: .86, y: .42 } },
+      { set: { value: "the big reveal", font: "bungee", size: .045, weight: 400, italic: false, w: .82, y: .56, letterSpacing: .04, color: "#e5e7eb" } } ] },
+    { id: "minimal", name: "Minimal", ic: "▍", layers: [
+      { accent: true, set: { value: "hello", font: "righteous", size: .12, weight: 400, italic: false, w: .86, y: .43 } },
+      { set: { value: "a note for you", font: "archivo", size: .045, weight: 500, italic: false, w: .8, y: .55, color: "#cbd5e1" } } ] },
+    { id: "retro", name: "Retro", ic: "▮", layers: [
+      { accent: true, set: { value: "LEVEL UP", font: "orbitron", size: .1, weight: 700, italic: false, w: .86, y: .43, letterSpacing: .06 } },
+      { set: { value: "achievement unlocked", font: "monoton", size: .05, weight: 400, italic: false, w: .84, y: .56, color: "#e5e7eb" } } ] },
+  ];
   var TOOLS = [
     { id: "templates", title: "Templates", sub: "Start from a design", icon: "templates" },
     { id: "box", title: "Box", sub: "Colour, finish & shape", icon: "box" },
@@ -455,6 +480,24 @@
     selectLayer(activeFace, L.length - 1); rerender(); record();
     announce((s.name || "Sticker") + " added");
   }
+  function addCombo(id) {                                       // Text combinations: a bundle of preset text layers in one persistent group
+    var combo = null; for (var ci = 0; ci < TEXT_COMBOS.length; ci++) if (TEXT_COMBOS[ci].id === id) { combo = TEXT_COMBOS[ci]; break; }
+    if (!combo) return;
+    var L = faceLayers(), gid = nextGrpId(), start = L.length;
+    var accent = (doc.palette && doc.palette.accent) || null;
+    combo.layers.forEach(function (spec) {
+      var o = clone(LAYER_DEFAULTS.text), s = spec.set || {};
+      Object.keys(s).forEach(function (key) { o[key] = s[key]; });
+      if (spec.accent && accent) o.color = accent;
+      if (o.size != null) o.size = +(o.size * ELEMENT_SCALE).toFixed(3);   // match the editor's element-scale tune
+      if (o.w != null) o.w = +(o.w * ELEMENT_SCALE).toFixed(3);
+      o.grp = gid;
+      L.push(o);
+    });
+    selectLayer(activeFace, start);                            // selecting the head auto-selects the whole persistent group (grp)
+    rerender(); record();
+    announce(combo.name + " text pairing added as a group to the " + activeFace + " face");
+  }
   function applyPanel(id) {
     if (!GBX.PANELS[id]) return; var f = doc.faces[activeFace];
     f.panel = id; delete f.panelText; delete f.panelScale;     // layers stay: panels are the base, compositions ride on top
@@ -751,6 +794,54 @@
     w.f.appendChild(gal);
     return w.f;
   }
+  /* ---- text STYLES: one-click "looks" (a bundle of existing text props: font + sticker outline + effect + foil + gradient). Hovering a chip previews it on the current text; click applies. Replaces the bare Plain/Sticker toggle. ---- */
+  var TEXT_STYLES = [
+    { id: "vibrant", name: "Vibrant", p: { font: "titan", color: "#e62024", style: "sticker", outline1: "#f5ebd6", outline2: "#f5ebd6", effect: "shadow", letterSpacing: -0.02, italic: false } },
+    { id: "comic", name: "Comic", p: { font: "bangers", color: "#fde68a", style: "sticker", outline1: "#ffffff", outline2: "#111111", effect: "shadow" } },
+    { id: "outline", name: "Outline", p: { font: "anton", color: "#f5ebd6", style: "sticker", outline1: "#165aae", outline2: "#165aae", effect: "none", italic: false } },
+    { id: "neon", name: "Neon", p: { font: "orbitron", color: "#eafff6", style: "plain", effect: "neon", effectColor: "#34f5c5" } },
+    { id: "gold", name: "Gold foil", p: { font: "cinzel", style: "plain", effect: "lift", finish: "gold" } },
+    { id: "sunset", name: "Sunset", p: { font: "anton", style: "plain", fillKind: "linear", color: "#fbc20b", fill2: "#f1681a", fillAngle: 95 } },
+    { id: "marker", name: "Marker", p: { font: "permanent", color: "#111111", style: "plain", effect: "none" } },
+    { id: "clean", name: "Clean", p: { style: "plain", effect: "none", finish: "none", fillKind: "solid" } },
+  ];
+  var STYLE_DEFS = { style: "plain", effect: "none", effectColor: "#ffe066", finish: "none", fillKind: "solid", fill2: "#7c3aed", fillAngle: 135, outline1: "#ffffff", outline2: "#111111", letterSpacing: 0, italic: false };
+  var STYLE_SNAP = Object.keys(STYLE_DEFS).concat(["font", "color", "weight"]);
+  function applyTextStyle(L, p) {                                  // reset the "look" props to neutral, then layer the style's overrides on top
+    Object.keys(STYLE_DEFS).forEach(function (k) { L[k] = STYLE_DEFS[k]; });
+    Object.keys(p).forEach(function (k) { L[k] = p[k]; });
+  }
+  function styleChipSample(p) {                                    // a small "Aa" rendered with the style, reusing the engine's own gbx-* CSS so the preview is faithful
+    var s = el("span", "tsx-sample gbx-text" + (p.style === "sticker" ? " gbx-ol" : "") + (p.effect && p.effect !== "none" ? " gbx-fx-" + p.effect : ""));
+    s.textContent = "Aa"; s.style.cssText = "font-size:24px;line-height:1.15;min-height:28px;display:flex;align-items:center;white-space:nowrap";
+    s.style.fontFamily = GBX.FONTS[p.font] || GBX.FONTS.display;
+    s.style.color = p.color || "#fde68a";
+    if (p.style === "sticker") { s.setAttribute("data-text", "Aa"); s.style.setProperty("--ol-c1", p.outline1 || "#ffffff"); s.style.setProperty("--ol-c2", p.outline2 || "#111111"); }
+    if (p.effect === "neon" || p.effect === "highlight") s.style.setProperty("--fx-c", p.effectColor || "#ffe066");
+    if (p.finish && p.finish !== "none") { s.style.backgroundImage = (GBX.FOILS && GBX.FOILS[p.finish]) || "linear-gradient(135deg,#a9791f,#ffe9a8,#a9791f)"; s.style.webkitBackgroundClip = "text"; s.style.backgroundClip = "text"; s.style.color = "transparent"; }
+    else if (p.fillKind === "linear" || p.fillKind === "radial") { var g2 = p.fill2 || p.color || "#f97316", c0 = p.color || "#f97316"; s.style.backgroundImage = (p.fillKind === "radial" ? "radial-gradient(circle," + c0 + "," + g2 + ")" : "linear-gradient(" + (p.fillAngle != null ? p.fillAngle : 135) + "deg," + c0 + "," + g2 + ")"); s.style.webkitBackgroundClip = "text"; s.style.backgroundClip = "text"; s.style.color = "transparent"; }
+    return s;
+  }
+  function textStyleField(L) {
+    var w = field("Text style");
+    var grid = el("div", "tsx-grid"); grid.style.cssText = "display:grid;grid-template-columns:repeat(2,1fr);gap:6px;margin-top:4px";
+    var canHover; try { canHover = matchMedia("(hover:hover)").matches; } catch (e) { canHover = false; }
+    TEXT_STYLES.forEach(function (st) {
+      var chip = el("button", "tsx-chip"); chip.type = "button"; chip.title = "Apply the " + st.name + " style";
+      chip.style.cssText = "display:flex;flex-direction:column;align-items:center;gap:2px;padding:9px 6px;border:1px solid var(--acc-line,#2a2f3a);border-radius:9px;background:rgba(255,255,255,.04);cursor:pointer;overflow:hidden";
+      chip.appendChild(styleChipSample(st.p));
+      var nm = el("span"); nm.textContent = st.name; nm.style.cssText = "font-size:10px;opacity:.7"; chip.appendChild(nm);
+      var orig = null;
+      if (canHover) {
+        chip.addEventListener("mouseenter", function () { if (editingText || gesture) return; orig = {}; STYLE_SNAP.forEach(function (k) { orig[k] = L[k]; }); applyTextStyle(L, st.p); rerender(); });
+        chip.addEventListener("mouseleave", function () { if (orig) { STYLE_SNAP.forEach(function (k) { if (orig[k] === undefined) delete L[k]; else L[k] = orig[k]; }); orig = null; rerender(); } });
+      }
+      chip.addEventListener("click", function () { orig = null; applyTextStyle(L, st.p); rerender(); record(); renderInspector(); announce(st.name + " style applied"); });
+      grid.appendChild(chip);
+    });
+    w.f.appendChild(grid);
+    return w.f;
+  }
   function textField(labelText, get, set, opts) {
     opts = opts || {}; var w = field(labelText);
     var inp = el(opts.area ? "textarea" : "input", "txt"); if (!opts.area) inp.type = "text";
@@ -926,6 +1017,7 @@
     if (kind === "color") return colorField(label, function () { return L[prop] || "#ffffff"; }, setV, true);
     if (kind === "bool") return toggleField(label, function () { return !!L[prop]; }, function (v) { setV(v, true); });
     if (kind === "font") return fontField(label, function () { return L[prop]; }, function (v) { setV(v, true); });
+    if (kind === "textstyles") return textStyleField(L);
     if (kind === "align") return segField(label, [{ value: "left", label: "Left" }, { value: "center", label: "Center" }, { value: "right", label: "Right" }], function () { return L[prop]; }, function (v) { setV(v, true); });
     if (kind === "fit") return segField(label, [{ value: "cover", label: "Cover" }, { value: "contain", label: "Contain" }], function () { return L[prop]; }, function (v) { setV(v, true); });
     if (kind === "fadekind") return segField(label, [{ value: "linear", label: "Linear" }, { value: "radial", label: "Radial" }], function () { return L[prop]; }, function (v) { setV(v, true); });
@@ -1298,6 +1390,17 @@
       add.appendChild(b);
     });
     g.appendChild(add); body.appendChild(g);
+
+    var gc = group("Text combinations", "Pre-styled pairings, dropped in as one group you can move together.");
+    var cgrid = el("div", "addgrid");
+    TEXT_COMBOS.forEach(function (c) {
+      var b = el("button", "addcell");
+      b.innerHTML = '<span class="addcell-ic" aria-hidden="true">' + c.ic + '</span><span class="addcell-nm">' + c.name + "</span>";
+      b.setAttribute("aria-label", "Add the " + c.name + " text pairing as a group");
+      b.addEventListener("click", function () { addCombo(c.id); });
+      cgrid.appendChild(b);
+    });
+    gc.appendChild(cgrid); body.appendChild(gc);
 
     var g2 = group("Stack", "Topmost is in front. Click to edit.");
     var L = faceLayers();
