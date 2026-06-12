@@ -87,6 +87,7 @@
     if (GM.railsApi) {
       return GM.railsApi.execute(order, q, rows || [], {
         onState: function (o, state, extra) { setState(o, state, extra); onStep(o); },
+        persist: function (o) { saveOrder(o); },   // M9 2.3: refs land in storage the moment they exist
         onStep: function (s) {
           var steps = order.steps = order.steps || [];
           var hit = steps.filter(function (x) { return x.label === s.label; })[0];
@@ -101,7 +102,10 @@
       setTimeout(function () {
         setState(order, "executing"); onStep(order);
         setTimeout(function () {
-          if (crLeg) GM.credit.spend(crLeg.total, "order", order.id);
+          // M9 2.11: an insufficient-credit spend FAILS the order (it used to fulfill free)
+          if (crLeg && !GM.credit.spend(crLeg.total, "order", order.id)) {
+            setState(order, "awaiting-funds", { needCredit: true, demo: true }); onStep(order); done(order); return;
+          }
           setState(order, "fulfilled", { demo: true }); onStep(order); writeCart([]); done(order);
         }, 700);
       }, 500);
@@ -136,6 +140,7 @@
     var pre = GM.railsApi
       ? GM.railsApi.execute(order, q, rows || [], {
           onState: function (o, state, extra) { if (state !== "fulfilled") { setState(o, state, extra); onStep(o); } },
+          persist: function (o) { saveOrder(o); },   // M9 2.3
           onStep: function (s) {
             var steps = order.steps = order.steps || [];
             var hit = steps.filter(function (x) { return x.label === s.label; })[0];
@@ -148,7 +153,14 @@
       return fetch("/api/market/order", { method: "POST", headers: authHeaders(), body: JSON.stringify({ action: "execute", id: order.id, refs: order.refs || [] }) })
         .then(function (r) { if (!r.ok) throw 0; return r.json(); })
         .then(function (srv) { paintFromServer(srv); return poll(8); })
-        .catch(function () { return walk(order, q, rows, onStep); });   // server went dark mid-flight → demo walk finishes the UX
+        .catch(function () {
+          // M9 2.1: a live order NEVER falls back to the demo walk — the rails may
+          // already have executed real purchases, and re-walking re-buys them. Park it;
+          // resume (Orders page) re-drives the server with the SAME evidence refs.
+          setState(order, "executing", { parked: "server-unreachable" });
+          order.parked = true; saveOrder(order); onStep(order);
+          return order;
+        });
     });
   }
 
@@ -181,7 +193,8 @@
     // the rails walk's step lines (M4): top-up → balance → credit, each ticking live
     if (order.steps && order.steps.length) {
       s += '<div class="mk-steps">' + order.steps.map(function (st) {
-        return '<div class="mk-step mk-step-' + esc(st.state) + '"><span class="mk-step-dot"></span>' + esc(st.label) + '</div>';
+        return '<div class="mk-step mk-step-' + esc(st.state) + '"><span class="mk-step-dot"></span>' + esc(st.label) +
+          (st.state === "await" ? ' <button type="button" class="mk-step-go">I\'ve topped up — continue</button>' : '') + '</div>';
       }).join("") + '</div>';
     }
     (order.legs || []).forEach(function (l) { s += legHtml(l); });
@@ -199,12 +212,24 @@
   function open() {
     var rows = cartItems();
     GM.track("market_checkout_start", { items: rows.length });
-    var ov = el("div", "mk-ov"); function close() { ov.classList.remove("on"); setTimeout(function () { ov.remove(); }, 220); }
+    var ov = el("div", "mk-ov");
+    // Part 3 3.4: dialog semantics + Escape-to-close (matches the engine's detail sheet)
+    ov.setAttribute("role", "dialog"); ov.setAttribute("aria-modal", "true"); ov.setAttribute("aria-label", "Your cart");
+    function onKey(e) { if (e.key === "Escape") close(); }
+    document.addEventListener("keydown", onKey);
+    function close() { document.removeEventListener("keydown", onKey); ov.classList.remove("on"); setTimeout(function () { ov.remove(); }, 220); }
     ov.addEventListener("click", function (e) { if (e.target === ov) close(); });
     var sheet = el("div", "mk-detail mk-cart"); ov.appendChild(sheet);
     document.body.appendChild(ov); requestAnimationFrame(function () { ov.classList.add("on"); });
 
+    // M9 2.2: a paint GENERATION token — every repaint bumps it, and a quote that
+    // resolves for an older generation is dropped, so stale resolutions can never pair
+    // old legs with new rows or stack handlers on the live Pay button.
+    var gen = 0, paying = false;
+
     function paint() {
+      if (paying) return;   // mid-settlement: the receipt owns the sheet
+      gen++;
       rows = cartItems();
       if (!rows.length) { sheet.innerHTML = '<div class="mk-detail-body"><div class="mk-detail-title">Your cart</div><p class="mk-detail-desc">Nothing in here yet.</p></div>'; return; }
       sheet.innerHTML = '<div class="mk-detail-body"><div class="mk-detail-title">Your cart</div>' +
@@ -221,7 +246,10 @@
         });
         rowEl.querySelector(".mk-crow-x").addEventListener("click", function () { writeCart(readCart().filter(function (x) { return x.id !== id; })); paint(); });
       });
+      var myGen = gen;
       quote(rows).then(function (q) {
+        if (myGen !== gen) return;   // M9 2.2: stale quote — a newer paint owns the sheet
+        q.expiresAt = Date.now() + (Number(q.ttlSec) || 90) * 1000;   // M9 2.14: client-side TTL
         var qEl = sheet.querySelector(".mk-quote"); if (!qEl) return;
         var sig = GM.sig() || {};
         var plan = GM.railsApi ? GM.railsApi.plan(q, sig.balanceUsd) : null;
@@ -244,7 +272,12 @@
         }
         var pay = sheet.querySelector(".mk-pay"); pay.disabled = false;
         if (plan && plan.composite) pay.textContent = "Top up & pay";
-        pay.addEventListener("click", function () {
+        // M9 2.2: single-assignment handler (onclick, never addEventListener) + a busy
+        // guard — one click is one order, no matter how many paints have run.
+        pay.onclick = function () {
+          if (paying) return;
+          if (q.expiresAt && Date.now() > q.expiresAt) { paint(); return; }   // M9 2.14: stale sheet re-quotes, never pays old numbers
+          paying = true;
           pay.disabled = true;
           var order = { id: "mk_" + Math.random().toString(36).slice(2, 10), idempotencyKey: Math.random().toString(36).slice(2) + Date.now(),
             createdAt: Date.now(), state: "created", demo: q.demo, balanceUsd: sig.balanceUsd,
@@ -260,9 +293,14 @@
           // live first (ships dark: 503/401/absent => the rails demo walk)
           fetch("/api/market/order", { method: "POST", headers: authHeaders(), body: JSON.stringify({ idempotencyKey: order.idempotencyKey, items: order.items }) })
             .then(function (res) { if (!res.ok) throw 0; return res.json(); })
-            .then(function (srv) { order.id = srv.id || order.id; order.demo = false; order.live = true; if (srv.legs) order.legs = srv.legs; executeLive(order, q, rows, step); })
+            .then(function (srv) {
+              // M9 2.5: the row re-keys to the server id — drop the client-id ghost
+              if (srv.id && srv.id !== order.id) { GM.writeJson("giiift-orders", orders().filter(function (x) { return x.id !== order.id; })); order.id = srv.id; }
+              order.demo = false; order.live = true; if (srv.legs) order.legs = srv.legs; saveOrder(order);
+              executeLive(order, q, rows, step);
+            })
             .catch(function () { walk(order, q, rows, step); });
-        });
+        };
       });
     }
     paint();
@@ -297,14 +335,27 @@
       });
     },
     csv: function () {   // §9: client-generated CSV, the user-side backup
+      // M9 2.12: money columns are 2dp (no 59.96999…) and every field is CSV-escaped
+      // (a comma/quote in a server-issued id or state can no longer shear the row).
+      function cell(v) { v = String(v == null ? "" : v); return /[",\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; }
+      function usd2(n) { n = Number(n); return isFinite(n) ? n.toFixed(2) : "0.00"; }
       var head = "id,created_at,state,items,subtotal_usd,fees_usd,total_usd,total_credit\n";
       return head + orders().map(function (o) {
         var bal = (o.legs || []).filter(function (l) { return l.rail === "balance"; })[0] || { subtotal: 0, fees: 0, total: 0 };
         var cr = (o.legs || []).filter(function (l) { return l.rail === "credit"; })[0] || { total: 0 };
-        return [o.id, new Date(o.createdAt).toISOString(), o.state, (o.items || []).length, bal.subtotal, bal.fees, bal.total, cr.total].join(",");
+        return [cell(o.id), cell(new Date(o.createdAt).toISOString()), cell(o.state), (o.items || []).length,
+          usd2(bal.subtotal), usd2(bal.fees), usd2(bal.total), Number(cr.total) || 0].join(",");
       }).join("\n");
     },
   };
+
+  // M9 2.4: the explicit "I've topped up" confirm — one delegated listener
+  document.addEventListener("click", function (e) {
+    var b = e.target && e.target.closest ? e.target.closest(".mk-step-go") : null;
+    if (!b) return;
+    b.disabled = true; b.textContent = "Checking…";
+    try { global.dispatchEvent(new CustomEvent("giiift:topup-confirmed")); } catch (er) {}
+  });
 
   // checkout CSS rides the engine sheet
   if (!document.getElementById("gmk-cart-css")) {
@@ -318,6 +369,8 @@
       ".mk-leg{margin:10px 0;padding:10px 12px;border:1px solid var(--gmk-border);border-radius:11px}.mk-leg-h{font:600 10px/1 'Space Mono',monospace;letter-spacing:.12em;text-transform:uppercase;color:var(--gmk-dim);margin-bottom:8px}.mk-leg-r{display:flex;justify-content:space-between;font:500 12px 'Inter';color:var(--gmk-dim);padding:2px 0}.mk-leg-r b{color:var(--gmk-ink)}.mk-leg-r.tot{border-top:1px solid var(--gmk-border);margin-top:6px;padding-top:7px}.mk-leg-r.tot b{color:var(--gmk-accent)}" +
       ".mk-demo-note{margin-top:8px;font:500 11px 'Inter';color:var(--gmk-dim)}.mk-orders-link{display:inline-block;margin-top:10px;color:var(--gmk-accent);font:600 12px 'Inter';text-decoration:none}" +
       ".mk-plan{margin:10px 0;padding:10px 12px;border:1px solid color-mix(in srgb,var(--gmk-accent) 30%,var(--gmk-border));border-radius:11px;background:color-mix(in srgb,var(--gmk-accent) 5%,transparent)}.mk-plan-s{display:flex;align-items:center;gap:9px;font:500 12px 'Inter';color:var(--gmk-ink);padding:3px 0}.mk-plan-s b{display:inline-grid;place-items:center;width:17px;height:17px;border-radius:50%;background:color-mix(in srgb,var(--gmk-accent) 22%,transparent);color:var(--gmk-accent);font:700 10px 'Space Mono',monospace}" +
+      ".mk-step-go{margin-left:8px;padding:4px 9px;border-radius:7px;border:1px solid color-mix(in srgb,#ffd27a 45%,transparent);background:color-mix(in srgb,#ffd27a 12%,transparent);color:#ffd27a;font:600 10.5px 'Inter';cursor:pointer}" +
+      ".mk-step-await{color:#ffd27a}.mk-step-await .mk-step-dot{background:#ffd27a;animation:mk-pulse 1.1s infinite ease-in-out}" +
       ".mk-steps{margin:10px 0 2px}.mk-step{display:flex;align-items:center;gap:8px;font:500 12px 'Inter';color:var(--gmk-dim);padding:3px 0}.mk-step-dot{width:7px;height:7px;border-radius:50%;background:var(--gmk-dim);flex:none}.mk-step-doing{color:#7bdfff}.mk-step-doing .mk-step-dot{background:#7bdfff;animation:mk-pulse 1.1s infinite ease-in-out}.mk-step-done{color:var(--gmk-ink)}.mk-step-done .mk-step-dot{background:var(--gmk-accent);box-shadow:0 0 7px color-mix(in srgb,var(--gmk-accent) 60%,transparent)}" +
       ".mk-state{text-transform:uppercase;font:700 10px 'Space Mono',monospace;letter-spacing:.08em}.mk-state-fulfilled{color:var(--gmk-accent)}.mk-state-awaiting-funds{color:#ffd27a}.mk-state-failed{color:#ff6b6b}.mk-state-executing,.mk-state-quoted{color:#7bdfff}" +
       ".mk-help{font:500 11.5px 'Inter';color:var(--gmk-dim);text-decoration:none}.mk-help:hover{color:var(--gmk-accent)}";

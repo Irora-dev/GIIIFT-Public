@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="en" data-theme="dark" data-crt="min">
 <head>
-<script>/* public showcase mirror: always demo mode */try{localStorage.setItem("giiift-demo","1");localStorage.setItem("giiift-authed","1");}catch(e){}window.GIIIFT_CAPS={intents:false,oauth:false,telemetry:false};</script>
+<script>/* public showcase mirror: always demo mode */try{localStorage.setItem("giiift-demo","1");localStorage.setItem("giiift-authed","1");}catch(e){}window.GIIIFT_CAPS={intents:false,oauth:false,telemetry:false,payments:false};</script>
 <meta name="robots" content="noindex, nofollow, noarchive">
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -399,6 +399,51 @@
     .fb-btn.on { background:var(--acc-soft); color:#eafff6; box-shadow:inset 0 0 0 1px var(--acc-line); }
     .fb-count { min-width:27px; height:27px; border-radius:14px; background:rgba(0,0,0,.5); border:1px solid var(--acc-line); color:#bdffe9; font-family:var(--font-mono); font-size:16px; line-height:25px; text-align:center; padding:0 7px; }
     .fb-panel { color:#ffd9a8; font-size:17px; line-height:1; }
+    /* ===== Box Engine v2 — readability pass (see docs/BOX_ENGINE_V2.md): bigger, higher-contrast
+       right panel + rail. Kept in ONE block so the scale is easy to tune. Placed before the
+       responsive @media below so desktop scales up while the mobile rules still apply. ===== */
+    :root { --insp-w:392px; }                                              /* wider panel for the larger type + controls */
+    .rail-ic, .rail-ic svg { width:34px; height:34px; }
+    .rail-lbl { font-size:12.5px; }
+    .insp-head { padding:17px 20px 14px; }
+    .insp-head .ih-ic { width:38px; height:38px; flex:0 0 38px; }
+    .insp-head .ih-ic svg { width:22px; height:22px; }
+    .insp-head .ih-t { font-size:19px; }
+    .insp-head .ih-sub { font-size:13.5px; color:var(--ink-dim); }
+    .insp-head .ih-back { font-size:13.5px; padding:8px 13px; }
+    .insp-body { padding:18px 20px 84px; gap:20px; }
+    .grp { gap:13px; }
+    .grp-h { font-size:14px; letter-spacing:.12em; color:rgba(180,255,238,.95); }
+    .grp-note { font-size:13.5px; color:var(--ink-dim); line-height:1.5; }
+    .field { gap:8px; }
+    .field-lbl { font-size:13.5px; color:rgba(255,255,255,.82); }
+    .field-lbl .v { font-size:14px; }
+    .txt { font-size:15px; padding:11px 13px; }
+    .btn { font-size:14.5px; padding:12px; }
+    .btn-add { font-size:14.5px; padding:13px; }
+    .seg button { font-size:13.5px; padding:10px 5px; }
+    .seg .badge { font-size:10px; }
+    .toggle .lbl { font-size:14.5px; }
+    .sw-h { font-size:13px; }
+    .stepper button { font-size:17px; width:30px; height:34px; }
+    .stepper input { font-size:14px; height:34px; }
+    .color .hex { font-size:14px; padding:10px 12px; }
+    .stk-grp { font-size:13px; }
+    /* the right-side "add element" grid: bigger cells, icons and labels (3 columns, not 4) */
+    .addgrid { grid-template-columns:repeat(3,1fr); gap:9px; }
+    .addcell { padding:15px 4px; gap:8px; border-radius:13px; }
+    .addcell-ic { font-size:26px; }
+    .addcell-nm { font-size:12.5px; }
+    /* card / tile names */
+    .preset .pn { font-size:11px; } .ftile-nm { font-size:11px; }
+    .tpl-name { font-size:14px; } .tpl-desc { font-size:12px; color:var(--ink-dim); }
+    /* "start with a gradient base" chips on the Templates landing */
+    .grad-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:8px; margin:8px 0 2px; }
+    .grad-chip { position:relative; height:52px; border-radius:12px; border:1px solid var(--line-2); cursor:pointer; overflow:hidden; padding:0; display:flex; align-items:flex-end; transition:.12s; }
+    .grad-chip::after { content:""; position:absolute; inset:0; background:linear-gradient(to top, rgba(0,0,0,.42), transparent 62%); }
+    .grad-chip:hover { border-color:var(--acc); transform:translateY(-1px); }
+    .grad-nm { position:relative; z-index:1; margin:0 0 7px 10px; font-size:12.5px; font-weight:700; color:#fff; text-shadow:0 1px 3px rgba(0,0,0,.6); }
+
     @media (max-width:1200px) { .fb-btn { font-size:15px; padding:11px 13px; gap:6px; } .fb-count { min-width:22px; height:22px; font-size:13.5px; line-height:20px; } }   /* narrow desktop: keep the bar inside the stage */
 
     /* ---------------- place-mode banner ---------------- */

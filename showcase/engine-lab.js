@@ -75,7 +75,7 @@
     qr: { t: "qr", value: "https://giiift.com/g/your-gift", ecc: "M", dark: "#11141b", light: "#ffffff", x: .5, y: .5, w: .4, opacity: 1, rotate: 0 },
   };
   var RG = function (min, max, step, unit) { return { k: "range", min: min, max: max, step: step, unit: unit || "" }; };
-  var POS = [["x", RG(0, 1, .01)], ["y", RG(0, 1, .01)], ["rotate", RG(-180, 180, 1, "°")], ["anim", "anim"], ["blend", "blendkind"], ["shadow", "shadowkind"]];
+  var POS = [["x", RG(0, 1, .01)], ["y", RG(0, 1, .01)], ["rotate", RG(-180, 180, 1, "°")], ["anim", "anim"], ["blend", "blendkind"], ["shadow", "shadowkind"], ["distress", "distresskind"]];
   var BLEND_OPTS = [{ value: "normal", label: "Normal" }, { value: "multiply", label: "Multiply" }, { value: "screen", label: "Screen" }, { value: "overlay", label: "Overlay" }, { value: "soft-light", label: "Soft Light" }, { value: "hard-light", label: "Hard Light" }, { value: "darken", label: "Darken" }, { value: "lighten", label: "Lighten" }, { value: "color-dodge", label: "Color Dodge" }, { value: "color-burn", label: "Color Burn" }, { value: "difference", label: "Difference" }, { value: "exclusion", label: "Exclusion" }, { value: "hue", label: "Hue" }, { value: "saturation", label: "Saturation" }, { value: "color", label: "Color" }, { value: "luminosity", label: "Luminosity" }];
   var LAYER_FIELDS = {
     text: [["value", "text"], ["textStyle", "textstyles"], ["font", "font"], ["finish", "textfinish"], ["size", RG(.02, .4, .005)], ["weight", RG(100, 900, 50)], ["lineHeight", RG(.7, 2.5, .05)], ["letterSpacing", RG(-.1, .6, .01, "em")], ["color", "color"], ["outline1", "color"], ["outline2", "color"], ["effect", "texteffect"], ["effectColor", "color"], ["curve", RG(-180, 180, 1, "°")], ["fillKind", "fillkind"], ["fill2", "color"], ["fillAngle", RG(0, 360, 1, "°")], ["fillImage", "textimage"], ["align", "align"], ["italic", "bool"], ["w", RG(.05, 1, .01)]].concat(POS),
@@ -91,11 +91,12 @@
     decal: [["id", "decalid"], ["w", RG(.08, 1, .01)], ["h", RG(.08, 1, .01)]].concat(POS),
     fade: [["kind", "fadekind"], ["color", "color"], ["angle", RG(0, 360, 1, "°")], ["opacity", RG(0, 1, .05)], ["w", RG(.05, 1, .01)], ["h", RG(.05, 1, .01)]].concat(POS),
     shape: [["shape", "shapekind"], ["fill", "color"], ["fillKind", "fillkind"], ["fill2", "color"], ["fillAngle", RG(0, 360, 1, "°")], ["fillFade", "bool"], ["stroke", "color"], ["strokeW", RG(0, .06, .002)], ["strokeStyle", "strokestyle"], ["radius", RG(0, .5, .01)], ["opacity", RG(0, 1, .05)], ["flipX", "bool"], ["flipY", "bool"], ["w", RG(.02, 1, .01)], ["h", RG(.02, 1, .01)]].concat(POS),
-    frame: [["frame", "framekind"], ["src", "framephoto"], ["stroke", "color"], ["strokeW", RG(0, .06, .002)], ["radius", RG(0, .5, .01)], ["opacity", RG(0, 1, .05)], ["w", RG(.05, 1, .01)], ["h", RG(.05, 1, .01)]].concat(POS),
+    frame: [["frame", "framekind"], ["treatment", "frametreat"], ["caption", "text"], ["src", "framephoto"], ["stroke", "color"], ["strokeW", RG(0, .06, .002)], ["radius", RG(0, .5, .01)], ["opacity", RG(0, 1, .05)], ["w", RG(.05, 1, .01)], ["h", RG(.05, 1, .01)]].concat(POS),
     qr: [["value", "text"], ["ecc", "qrecc"], ["dark", "color"], ["transparentBg", "qrtransp"], ["light", "color"], ["opacity", RG(0, 1, .05)], ["w", RG(.15, 1, .01)]].concat(POS),
   };
   var SHAPE_OPTS = [{ value: "rect", label: "▭" }, { value: "ellipse", label: "●" }, { value: "line", label: "▬" }, { value: "triangle", label: "▲" }, { value: "star", label: "★" }, { value: "diamond", label: "◆" }, { value: "heart", label: "♥" }, { value: "arrow", label: "➤" }, { value: "bubble", label: "💬" }, { value: "burst", label: "✸" }, { value: "ribbon", label: "🔖" }];
   var FRAME_OPTS = [{ value: "circle", label: "●" }, { value: "rounded", label: "▢" }, { value: "rect", label: "▭" }, { value: "heart", label: "♥" }, { value: "star", label: "★" }, { value: "triangle", label: "▲" }, { value: "hexagon", label: "⬢" }, { value: "blob", label: "☁" }];
+  var FRAMETREAT_OPTS = [{ value: "none", label: "None" }, { value: "polaroid", label: "Polaroid" }, { value: "tape", label: "Tape" }, { value: "torn", label: "Torn" }, { value: "film", label: "Film" }];
   var PRESETS = [
     { name: "Aurora", c1: "#7c3aed", c2: "#ec4899", accent: "#fde68a", finish: "gradient" },
     { name: "Mint", c1: "#059669", c2: "#34d399", accent: "#ecfeff", finish: "gradient" },
@@ -150,22 +151,122 @@
     { id: "gift", title: "Gift", sub: "Assets inside the box", icon: "gift" },
     { id: "code", title: "Code", sub: "Import / export JSON", icon: "code" },
   ];
+  // SIMPLE-mode rail: the ~6 things everyone wants, grouped by intent. Each body
+  // delegates to existing actions/tools (no new engine surface). Advanced = TOOLS.
+  var SIMPLE_TOOLS = [
+    { id: "s-start", title: "Templates", sub: "Pick a design or start blank", icon: "templates" },
+    { id: "s-add", title: "Add", sub: "Text, photo, sticker & more", icon: "layers" },
+    { id: "s-change", title: "Change", sub: "Colour & font", icon: "box" },
+  ];
+  // "Box" tool retired from the simple rail: its "Layouts" duplicated Templates and "Shuffle" only
+  // added a gradient — both now live on the Templates landing (Start blank / a gradient base / a design).
+  // Per-box colour + finish stay reachable via Change → "Box colour" (toolBox).
 
-  var STARTER = GBX.fromLegacy({
-    brand: "Your Gift", sublabel: "A GIFT FOR YOU", note: "made with love", labelTo: "To: friend", from: "From: you",
-    model: "Model: GF-001", qty: "Qty: 1", finish: "gradient", cardboard: "#7c3aed", cardboard2: "#ec4899", angle: 135, pattern: "dots", accent: "#fde68a",
-    items: [{ ticker: "ETH" }],
+  // Always start TRULY blank: a plain white box — no text, pattern, colour or symbols.
+  // Templates / the "Start blank" card layer everything else on top of this.
+  var STARTER = GBX.normalize({
+    shape: "mailer",
+    palette: { c1: "#ffffff", c2: "#ffffff", accent: "#ececec", angle: 135, finish: "matte" },
+    faces: {}, items: [],
   });
 
   /* ---------------- templates ---------------- */
   function tdoc(o) { return GBX.normalize(o); }
   var TEMPLATES = [
+    { id: "blueprint", name: "Blueprint", desc: "Adhesive-label wrap on blueprint paper", cat: "style", c1: "#8bc1e9", c2: "#4f96ff", motif: (GBX.panelSVG ? GBX.panelSVG("blueprint-hero") : ""),
+      build: function () {
+        // blueprint-blue backgrounds (box-panels.js) wearing the lb-* LABELS across
+        // all six faces — the owner's "Adhesive Typographic Systems" v2 sheet as a box.
+        return {
+          v: 2, shape: "mailer",
+          palette: { c1: "#8bc1e9", c2: "#4f96ff", accent: "#e6e600", angle: 135, finish: "matte" },
+          faces: {
+            front:  { pos: "front",  panel: "blueprint-hero",  layers: [
+              { t: "decal", id: "lb-manifest", x: 0.5,  y: 0.36, w: 0.66 },
+              { t: "decal", id: "lb-caution",  x: 0.5,  y: 0.83, w: 0.72, rotate: -6 } ] },
+            back:   { pos: "back",   panel: "blueprint-side",  layers: [
+              { t: "decal", id: "lb-authentic", x: 0.33, y: 0.36, w: 0.34, rotate: -10 },
+              { t: "decal", id: "lb-graffiti",  x: 0.6,  y: 0.72, w: 0.56, rotate: 2 } ] },
+            left:   { pos: "left",   panel: "blueprint-side",  layers: [
+              { t: "decal", id: "lb-void", x: 0.5, y: 0.38, w: 0.58, rotate: 3 },
+              { t: "decal", id: "lb-seal", x: 0.5, y: 0.83, w: 0.8,  rotate: -2 } ] },
+            right:  { pos: "right",  panel: "blueprint-side",  layers: [
+              { t: "decal", id: "lb-fragile-ego", x: 0.34, y: 0.42, w: 0.4,  rotate: 5 },
+              { t: "decal", id: "lb-expired",     x: 0.62, y: 0.82, w: 0.56, rotate: -5 } ] },
+            top:    { pos: "top",    panel: "blueprint-strip", layers: [
+              { t: "decal", id: "lb-command",   x: 0.5, y: 0.26, w: 0.76, rotate: -3 },
+              { t: "decal", id: "lb-loop-ring", x: 0.5, y: 0.68, w: 0.46 } ] },
+            bottom: { pos: "bottom", panel: "blueprint-strip", layers: [] }   // all 10 labels ride the other five faces; the base stays clean
+          },
+          features: {}, items: [{ ticker: "ETH" }], meta: { brand: "Your Gift", serial: "" }
+        };
+      } },
     { id: "cel-crate", name: "Cel Crate", desc: "Industrial full-face wrap", c1: "#3c4248", c2: "#22262a", motif: (window.GIIIFTBoxStickers && GIIIFTBoxStickers["ind-hazard"] ? GIIIFTBoxStickers["ind-hazard"].svg : ""),
       build: function () { return { palette: { c1: "#3c4248", c2: "#22262a", accent: "#ffcc00", angle: 135, finish: "matte" }, faces: { front: { panel: "cel-crate" } }, items: [{ ticker: "USDC" }] }; } },
+    // PROOF (template-panels -> editable layers): the cel-crate front, sliced into individual layers that fit the
+    // EXISTING element categories (shape / text / barcode). Every piece is now selectable + removable in the editor.
+    // FLAGGED (don't fit a category -> approximated; candidates for a new category): the hazard-stripe PATTERN (-> solid
+    // yellow; needs a pattern fill or a hazard-tape element) and the two diagonal CUT-CORNER polygons (-> rects; the
+    // shape set has no arbitrary polygon). See docs/TEMPLATE_LAYERS.md.
+    { id: "cel-crate-edit", name: "Cel Crate (editable)", desc: "Same crate — every piece a layer you can delete", cat: "style", c1: "#3c4248", c2: "#22262a", motif: (window.GIIIFTBoxStickers && GIIIFTBoxStickers["ind-hazard"] ? GIIIFTBoxStickers["ind-hazard"].svg : ""),
+      build: function () { return { palette: { c1: "#3c4248", c2: "#22262a", accent: "#ffcc00", angle: 135, finish: "matte" }, items: [{ ticker: "USDC" }], faces: { front: { pos: "front", layers: [
+        { t: "shape", shape: "rect", x: .5, y: .5, w: 1, h: 1, fill: "#3c4248", fillKind: "linear", fill2: "#22262a", fillAngle: 135, radius: 0, stroke: "none" },                 // metal base
+        { t: "shape", shape: "rect", x: .845, y: .15, w: .31, h: .30, fill: "#2b2f34", radius: 0, stroke: "#090a0c", strokeW: .008 },                                               // FLAG: cut-corner polygon -> rect
+        { t: "shape", shape: "rect", x: .23, y: .80, w: .46, h: .40, fill: "#cf2030", radius: 0, stroke: "#090a0c", strokeW: .008 },                                                // FLAG: slanted polygon -> rect
+        { t: "shape", shape: "rect", x: .5, y: .297, w: 1, h: .014, fill: "#090a0c", radius: 0, stroke: "none" },                                                                   // h divider
+        { t: "shape", shape: "rect", x: .697, y: .5, w: .014, h: 1, fill: "#090a0c", radius: 0, stroke: "none" },                                                                   // v divider
+        { t: "shape", shape: "rect", x: .5, y: .5, w: .97, h: .97, fill: "none", stroke: "#4b525a", strokeW: .015, radius: 0 },                                                     // border
+        { t: "shape", shape: "rect", x: .18, y: .125, w: .44, h: .11, fill: "#ffcc00", rotate: -6, radius: 0, stroke: "#090a0c", strokeW: .012 },                                   // FLAG: hazard stripe pattern -> solid
+        { t: "shape", shape: "rect", x: .25, y: .27, w: .36, h: .22, fill: "#ffcc00", rotate: -2, radius: .03, stroke: "#090a0c", strokeW: .014 },                                  // caution box
+        { t: "text", value: "CAUTION", x: .22, y: .225, w: .34, size: .075, weight: 900, color: "#090a0c", font: "bebas", align: "center", rotate: -2 },
+        { t: "shape", shape: "rect", x: .25, y: .285, w: .32, h: .006, fill: "#090a0c", rotate: -2, radius: 0, stroke: "none" },                                                    // caution rule
+        { t: "text", value: "CLASS IV BIO-HAZARD", x: .25, y: .315, w: .34, size: .03, weight: 700, color: "#090a0c", font: "sharetech", align: "center", rotate: -2 },
+        { t: "text", value: "DO NOT OPEN SEALS", x: .25, y: .35, w: .34, size: .03, weight: 700, color: "#090a0c", font: "sharetech", align: "center", rotate: -2 },
+        { t: "shape", shape: "rect", x: .39, y: .56, w: .42, h: .20, fill: "#0b0c0e", rotate: 3, radius: .01, stroke: "#4b525a", strokeW: .012 },                                   // cyber plate
+        { t: "text", value: "準備完了", x: .40, y: .55, w: .4, size: .085, weight: 900, color: "#44ff00", font: "archivo", italic: true, align: "center", rotate: 3 },
+        { t: "text", value: "▶ NO REMORSE", x: .40, y: .625, w: .4, size: .034, weight: 700, color: "#d6511b", font: "sharetech", align: "center", rotate: 3 },
+        { t: "shape", shape: "rect", x: .21, y: .845, w: .32, h: .21, fill: "#f0eee4", rotate: 1, radius: .005, stroke: "#090a0c", strokeW: .012 },                                 // shipping label card
+        { t: "shape", shape: "rect", x: .21, y: .77, w: .32, h: .06, fill: "#090a0c", rotate: 1, radius: 0, stroke: "none" },                                                      // label header bar
+        { t: "text", value: "BAD HABITS", x: .21, y: .787, w: .30, size: .04, weight: 700, color: "#f0eee4", font: "bebas", align: "center", rotate: 1 },
+        { t: "barcode", x: .21, y: .86, w: .26, color: "#090a0c", rotate: 1 },
+        { t: "text", value: "INFINITY 5000", x: .21, y: .935, w: .30, size: .03, weight: 400, color: "#090a0c", font: "sharetech", align: "center", rotate: 1 },
+        { t: "text", value: "REJECT", x: .85, y: .79, w: .74, size: .115, weight: 700, color: "#f0eee4", font: "pacifico", italic: true, align: "center", rotate: -10, shadow: { x: 0, y: .004, blur: .006, color: "#090a0c", opacity: .9 } },
+        { t: "shape", shape: "ellipse", x: .05, y: .05, w: .04, h: .04, fill: "#2b2f34", stroke: "#090a0c", strokeW: .008 },
+        { t: "shape", shape: "ellipse", x: .95, y: .05, w: .04, h: .04, fill: "#2b2f34", stroke: "#090a0c", strokeW: .008 },
+        { t: "shape", shape: "ellipse", x: .95, y: .95, w: .04, h: .04, fill: "#2b2f34", stroke: "#090a0c", strokeW: .008 },
+        { t: "shape", shape: "ellipse", x: .05, y: .95, w: .04, h: .04, fill: "#2b2f34", stroke: "#090a0c", strokeW: .008 },
+        { t: "shape", shape: "ellipse", x: .05, y: .30, w: .04, h: .04, fill: "#2b2f34", stroke: "#090a0c", strokeW: .008 },
+        { t: "shape", shape: "ellipse", x: .70, y: .30, w: .04, h: .04, fill: "#2b2f34", stroke: "#090a0c", strokeW: .008 },
+      ] } } }; } },
     { id: "holographic", name: "Holographic", desc: "Iridescent foil wrap", c1: "#22d3ee", c2: "#a855f7", motif: (window.GIIIFTBoxStickers && GIIIFTBoxStickers["g-rare-star"] ? GIIIFTBoxStickers["g-rare-star"].svg : ""),
       build: function () { return { palette: { c1: "#22d3ee", c2: "#a855f7", accent: "#f5f3ff", angle: 135, finish: "holo" }, faces: { front: { panel: "holo" } }, items: [{ ticker: "SOL" }] }; } },
-    { id: "parcel", name: "Parcel", desc: "Kraft paper & twine", c1: "#c9a472", c2: "#a87a48", motif: '<div style="font-size:30px">✉</div>',
-      build: function () { return { palette: { c1: "#c9a472", c2: "#a87a48", accent: "#3a2a18", angle: 135, finish: "matte" }, faces: { front: { panel: "kraft" } }, items: [{ ticker: "USDC" }] }; } },
+    { id: "pop-mecha", name: "Pop Mecha", desc: "Retro pop control panel", c1: "#F26C2A", c2: "#4F61A1", motif: (GBX.panelSVG ? GBX.panelSVG("pop-mecha") : ""),
+      build: function () { return { palette: { c1: "#4F61A1", c2: "#8FD5ED", accent: "#F9C01A", angle: 135, finish: "gradient" }, faces: { front: { pos: "front", panel: "pop-mecha", layers: [] }, back: { pos: "back", panel: "pop-mecha-mech", layers: [] }, left: { pos: "left", panel: "pop-mecha-haz", layers: [] }, right: { pos: "right", panel: "pop-mecha-data", layers: [] }, top: { pos: "top", panel: "pop-mecha-strip", layers: [] }, bottom: { pos: "bottom", panel: "pop-mecha-code", layers: [] } }, items: [{ ticker: "USDC" }] }; } },
+    // ROLLOUT (template-panels -> editable layers, after the cel-crate proof): the kraft "Parcel" front,
+    // sliced from the monolithic `kraft` panel into individual removable layers (shape / text). 0 paths in the
+    // source, so it slices faithfully. Editable bits ({{msg}}/{{stamp}}/{{avion}}/{{fragile}}) are now plain text layers.
+    { id: "parcel", name: "Parcel", desc: "Kraft paper & twine — every piece a layer", c1: "#c9a472", c2: "#a87a48", motif: '<div style="font-size:30px">✉</div>',
+      build: function () { return { palette: { c1: "#c9a472", c2: "#a87a48", accent: "#3a2a18", angle: 135, finish: "matte" }, items: [{ ticker: "USDC" }], faces: { front: { pos: "front", layers: [
+        { t: "shape", shape: "rect", x: .5, y: .5, w: 1, h: 1, fill: "#c9a472", fillKind: "linear", fill2: "#a87a48", fillAngle: 120, radius: 0, stroke: "none" },                 // kraft paper base
+        { t: "shape", shape: "rect", x: .5, y: .5, w: .99, h: .99, fill: "none", stroke: "#8a5f33", strokeW: .008, opacity: .5, radius: 0 },                                       // inner border
+        { t: "shape", shape: "rect", x: .495, y: .5, w: .09, h: 1, fill: "#6f4a28", radius: 0, stroke: "none" },                                                                  // twine — vertical band
+        { t: "shape", shape: "rect", x: .5, y: .625, w: 1, h: .09, fill: "#6f4a28", radius: 0, stroke: "none" },                                                                  // twine — horizontal band
+        { t: "shape", shape: "rect", x: .496, y: .5, w: .012, h: 1, fill: "#4d3019", radius: 0, stroke: "none" },                                                                 // twine vertical shadow
+        { t: "shape", shape: "rect", x: .5, y: .626, w: 1, h: .012, fill: "#4d3019", radius: 0, stroke: "none" },                                                                 // twine horizontal shadow
+        { t: "shape", shape: "ellipse", x: .495, y: .625, w: .1, h: .1, fill: "#5e3d20", stroke: "#3a2410", strokeW: .008 },                                                      // knot
+        { t: "shape", shape: "rect", x: .33, y: .30, w: .48, h: .32, fill: "#f6f1e4", stroke: "#3a2a18", strokeW: .01, rotate: -2, radius: 0 },                                   // address card
+        { t: "shape", shape: "rect", x: .37, y: .21, w: .34, h: .006, fill: "#b8a989", rotate: -2, radius: 0, stroke: "none" },                                                   // ruled line
+        { t: "shape", shape: "rect", x: .33, y: .28, w: .42, h: .006, fill: "#b8a989", rotate: -2, radius: 0, stroke: "none" },                                                   // ruled line
+        { t: "shape", shape: "rect", x: .33, y: .35, w: .42, h: .006, fill: "#b8a989", rotate: -2, radius: 0, stroke: "none" },                                                   // ruled line
+        { t: "text", value: "TO:", x: .27, y: .205, w: .3, size: .034, weight: 400, color: "#3a2a18", font: "sharetech", align: "left", rotate: -2 },
+        { t: "text", value: "with love", x: .34, y: .42, w: .44, size: .052, italic: true, color: "#3a2a18", font: "display", align: "left", rotate: -2 },                        // {{msg}}
+        { t: "shape", shape: "rect", x: .82, y: .20, w: .24, h: .24, fill: "#d8c4a0", stroke: "#ffffff", strokeW: .014, strokeStyle: "dashed", rotate: 7, radius: 0 },            // stamp paper (perforated)
+        { t: "shape", shape: "ellipse", x: .82, y: .20, w: .16, h: .16, fill: "#b0473a", rotate: 7 },                                                                             // wax seal
+        { t: "text", value: "G", x: .82, y: .20, w: .2, size: .07, weight: 700, color: "#f6f1e4", font: "logo", align: "center", rotate: 7 },                                     // {{stamp}}
+        { t: "shape", shape: "rect", x: .77, y: .825, w: .34, h: .09, fill: "#1f4f8a", radius: 0, stroke: "none" },                                                               // air-mail band
+        { t: "text", value: "PAR AVION", x: .77, y: .825, w: .34, size: .04, weight: 400, color: "#ffffff", font: "sharetech", align: "center", letterSpacing: .06 },             // {{avion}}
+        { t: "text", value: "FRAGILE", x: .26, y: .74, w: .5, size: .07, weight: 900, color: "#b0473a", font: "bebas", align: "center", rotate: -8 }                              // {{fragile}}
+      ] } } }; } },
     { id: "manga", name: "Manga Box", desc: "Inked manga panel wrap", c1: "#7c3aed", c2: "#ec4899", motif: (GBX.panelSVG ? GBX.panelSVG("manga-front") : ""),
       build: function () {
         return {
@@ -241,7 +342,12 @@
 
   /* ---------------- state ---------------- */
   var doc = GBX.normalize(STARTER);
-  var activeFace = "front", sel = null, selX = [], activeTool = "templates";   // selX: extra layer indices shift-clicked into the selection (same face as sel)
+  // Progressive disclosure: the lab opens in SIMPLE mode (intent-grouped, ~6 core
+  // actions) with the full tool rail behind an "Advanced" reveal. Returning users who
+  // chose Advanced stay there (localStorage). Advanced IS the original rail, untouched —
+  // a simple-mode issue degrades to Advanced and never breaks the editor.
+  var simpleMode = (function () { try { return !localStorage.getItem("giiift-lab-advanced"); } catch (e) { return true; } })();
+  var activeFace = "front", sel = null, selX = [], activeTool = simpleMode ? "s-start" : "templates";   // simple mode opens on Templates (pick a design or start blank); selX: extra layer indices shift-clicked into the selection (same face as sel)
   var clip = [];                                     // internal layer clipboard (Cmd/Ctrl+C → +V): deep-cloned layers, session-scoped, pastes onto the active face
   var labVertical = null;                            // lab-only "Recommended for" override (preview only — never writes the global vertical state)
   var cutBase = {}, cutSeq = 0;                      // touch-up brush: pre-mask crops keyed by layer.cutId, so Restore can re-add what the AI over-cut (session-only, never persisted)
@@ -797,15 +903,29 @@
   /* ---- text STYLES: one-click "looks" (a bundle of existing text props: font + sticker outline + effect + foil + gradient). Hovering a chip previews it on the current text; click applies. Replaces the bare Plain/Sticker toggle. ---- */
   var TEXT_STYLES = [
     { id: "vibrant", name: "Vibrant", p: { font: "titan", color: "#e62024", style: "sticker", outline1: "#f5ebd6", outline2: "#f5ebd6", effect: "shadow", letterSpacing: -0.02, italic: false } },
+    { id: "glitch", name: "Glitch", p: { font: "archivo", color: "#e0e0d8", style: "plain", effect: "chromatic", letterSpacing: 0.02 } },
+    { id: "halftone", name: "Halftone", p: { font: "anton", color: "#151515", style: "plain", fillKind: "halftone" } },
+    { id: "worn", name: "Worn", p: { font: "archivo", color: "#cfc8b8", style: "plain", distress: 2 } },
     { id: "comic", name: "Comic", p: { font: "bangers", color: "#fde68a", style: "sticker", outline1: "#ffffff", outline2: "#111111", effect: "shadow" } },
     { id: "outline", name: "Outline", p: { font: "anton", color: "#f5ebd6", style: "sticker", outline1: "#165aae", outline2: "#165aae", effect: "none", italic: false } },
     { id: "neon", name: "Neon", p: { font: "orbitron", color: "#eafff6", style: "plain", effect: "neon", effectColor: "#34f5c5" } },
     { id: "gold", name: "Gold foil", p: { font: "cinzel", style: "plain", effect: "lift", finish: "gold" } },
     { id: "sunset", name: "Sunset", p: { font: "anton", style: "plain", fillKind: "linear", color: "#fbc20b", fill2: "#f1681a", fillAngle: 95 } },
     { id: "marker", name: "Marker", p: { font: "permanent", color: "#111111", style: "plain", effect: "none" } },
+    { id: "riot", name: "Riot", p: { font: "anton", color: "#eae5d9", style: "sticker", outline1: "#e82a85", outline2: "#151515", effect: "lift", letterSpacing: 0.02 } },
+    { id: "bubble", name: "Bubble", p: { font: "luckiest", color: "#151515", style: "sticker", outline1: "#f4f4f0", outline2: "#151515", effect: "shadow" } },
+    { id: "tag", name: "Tag", p: { font: "permanent", color: "#e82a85", style: "sticker", outline1: "#f4f4f0", outline2: "#151515", effect: "shadow" } },
+    { id: "acid", name: "Acid", p: { font: "bungee", color: "#1fa637", style: "sticker", outline1: "#151515", outline2: "#151515", effect: "shadow" } },
+    { id: "riso", name: "Riso Pop", p: { font: "anton", color: "#e2f82d", style: "sticker", outline1: "#15181a", outline2: "#15181a", letterSpacing: 0.04, effect: "none" } },
+    { id: "terminal", name: "Terminal", p: { font: "orbitron", color: "#5cf25c", style: "plain", effect: "neon", effectColor: "#5cf25c", letterSpacing: 0.08 } },
+    { id: "hazard", name: "Hazard", p: { font: "bebas", color: "#5cf25c", style: "sticker", outline1: "#7a9ee6", outline2: "#e685b5", effect: "shadow", letterSpacing: 0.04 } },
+    { id: "gothic", name: "Gothic", p: { font: "fraktur", color: "#151515", style: "plain", effect: "none" } },
+    { id: "typewriter", name: "Typewriter", p: { font: "typewriter", color: "#222222", style: "plain", effect: "none", letterSpacing: 0.02 } },
+    { id: "pixel", name: "Pixel", p: { font: "pressstart", color: "#5cf25c", style: "plain", effect: "none" } },
+    { id: "creep", name: "Creep", p: { font: "creepster", color: "#1fa637", style: "sticker", outline1: "#151515", outline2: "#151515", effect: "none" } },
     { id: "clean", name: "Clean", p: { style: "plain", effect: "none", finish: "none", fillKind: "solid" } },
   ];
-  var STYLE_DEFS = { style: "plain", effect: "none", effectColor: "#ffe066", finish: "none", fillKind: "solid", fill2: "#7c3aed", fillAngle: 135, outline1: "#ffffff", outline2: "#111111", letterSpacing: 0, italic: false };
+  var STYLE_DEFS = { style: "plain", effect: "none", effectColor: "#ffe066", finish: "none", fillKind: "solid", fill2: "#7c3aed", fillAngle: 135, outline1: "#ffffff", outline2: "#111111", letterSpacing: 0, italic: false, distress: 0 };
   var STYLE_SNAP = Object.keys(STYLE_DEFS).concat(["font", "color", "weight"]);
   function applyTextStyle(L, p) {                                  // reset the "look" props to neutral, then layer the style's overrides on top
     Object.keys(STYLE_DEFS).forEach(function (k) { L[k] = STYLE_DEFS[k]; });
@@ -820,6 +940,8 @@
     if (p.effect === "neon" || p.effect === "highlight") s.style.setProperty("--fx-c", p.effectColor || "#ffe066");
     if (p.finish && p.finish !== "none") { s.style.backgroundImage = (GBX.FOILS && GBX.FOILS[p.finish]) || "linear-gradient(135deg,#a9791f,#ffe9a8,#a9791f)"; s.style.webkitBackgroundClip = "text"; s.style.backgroundClip = "text"; s.style.color = "transparent"; }
     else if (p.fillKind === "linear" || p.fillKind === "radial") { var g2 = p.fill2 || p.color || "#f97316", c0 = p.color || "#f97316"; s.style.backgroundImage = (p.fillKind === "radial" ? "radial-gradient(circle," + c0 + "," + g2 + ")" : "linear-gradient(" + (p.fillAngle != null ? p.fillAngle : 135) + "deg," + c0 + "," + g2 + ")"); s.style.webkitBackgroundClip = "text"; s.style.backgroundClip = "text"; s.style.color = "transparent"; }
+    else if (p.fillKind === "halftone") { s.style.backgroundImage = "radial-gradient(" + (p.color || "#151515") + " 30%, transparent 32%)"; s.style.backgroundSize = "8px 8px"; s.style.webkitBackgroundClip = "text"; s.style.backgroundClip = "text"; s.style.color = "transparent"; }
+    if (p.distress) s.style.filter = "url(#gbx-distress-" + p.distress + ")";
     return s;
   }
   function textStyleField(L) {
@@ -874,7 +996,7 @@
   function emptyState(icon, t, s) { var e = el("div", "empty"); e.innerHTML = '<div class="e-ic">' + icon + '</div><div class="e-t">' + esc(t) + '</div><div class="e-s">' + esc(s) + "</div>"; return e; }
 
   /* ---------------- inspector dispatch ---------------- */
-  var TOOL_RENDER = { templates: toolTemplates, box: toolBox, faces: toolFaces, layers: toolLayers, stickers: toolStickers, panels: toolPanels, gift: toolGift, code: toolCode };
+  var TOOL_RENDER = { templates: toolTemplates, box: toolBox, faces: toolFaces, layers: toolLayers, stickers: toolStickers, panels: toolPanels, gift: toolGift, code: toolCode, "s-start": toolTemplates, "s-add": toolSAdd, "s-change": toolSChange, "s-whole": toolSWhole };
   function renderInspector() {
     var insp = $("#inspector");
     var ae = document.activeElement;
@@ -885,7 +1007,7 @@
     var title, sub, icon, back = false;
     if (sel && multiSel()) { title = selAll().length + " elements"; sub = "selected on the " + sel.face + " face"; icon = ICON("layers"); back = true; }
     else if (sel) { var L = selLayer(); title = (LAYER_NAME[L.t] || L.t); sub = "on the " + sel.face + " face"; icon = ICON("props"); back = true; }
-    else { var t = TOOLS.find(function (x) { return x.id === activeTool; }); title = t.title; sub = t.sub; icon = ICON(t.icon); }
+    else { var t = TOOLS.concat(SIMPLE_TOOLS).find(function (x) { return x.id === activeTool; }) || TOOLS[0]; title = t.title; sub = t.sub; icon = ICON(t.icon); }
     var hc = el("div"); hc.style.cssText = "display:flex;align-items:center;gap:10px;flex:1;min-width:0";
     hc.innerHTML = '<div class="ih-ic" aria-hidden="true">' + icon + '</div><div style="min-width:0"><h2 class="ih-t" id="insp-title">' + esc(title) + '</h2><div class="ih-sub">' + esc(sub) + "</div></div>";
     head.appendChild(hc);
@@ -911,6 +1033,7 @@
       if (prop === "outlineColor" && !(L.outlineW > 0)) return;      // outline colour only once there is an outline
       if (prop === "strokeStyle" && L.stroke === "none") return;   // border style whenever a stroke colour is set (sliders don't re-render the inspector, so don't gate on width)
       if (prop === "radius" && ((L.t === "shape" && L.shape !== "rect") || (L.t === "frame" && L.frame !== "rounded"))) return;   // corner radius only for rects / rounded frames
+      if (prop === "caption" && L.treatment !== "polaroid") return;   // the polaroid caption strip only
       if ((prop === "fill2" || prop === "fillAngle" || prop === "fillFade") && (L.fillKind || "solid") === "solid") return;   // gradient sub-controls only when a gradient fill is on
       if (prop === "fillAngle" && L.fillKind === "radial") return;   // angle is linear-only
       if (prop === "fill2" && L.fillFade) return;                    // fade-to-transparent ignores the 2nd colour
@@ -1010,7 +1133,7 @@
     body.appendChild(tip);
   }
   function buildPropControl(L, prop, kind) {
-    var label = prop === "flipX" ? "Flip ↔" : prop === "flipY" ? "Flip ↕" : prop === "outline1" ? "Outline" : prop === "outline2" ? "Edge" : prop === "effectColor" ? "Effect colour" : prop === "fillKind" ? "Fill" : prop === "fill2" ? "Fill 2" : prop === "fillAngle" ? "Angle" : prop === "fillFade" ? "Fade to clear" : prop === "saturate" ? "Saturation" : prop === "lineHeight" ? "Line height" : prop === "letterSpacing" ? "Letter spacing" : prop === "strokeStyle" ? "Border style" : prop === "outlineW" ? "Sticker outline" : prop === "outlineColor" ? "Outline colour" : prop === "softShadow" ? "Soft shadow" : prop === "finish" ? "Finish" : prop === "look" ? "Looks" : prop === "glyphs" ? "Pick a glyph" : prop === "anim" ? "Animate" : prop === "blend" ? "Blend" : prop === "ecc" ? "Error correction" : prop === "dark" ? "Modules" : prop === "light" ? "Background" : prop === "transparentBg" ? "Transparent bg" : cap(prop);
+    var label = prop === "flipX" ? "Flip ↔" : prop === "flipY" ? "Flip ↕" : prop === "outline1" ? "Outline" : prop === "outline2" ? "Edge" : prop === "effectColor" ? "Effect colour" : prop === "fillKind" ? "Fill" : prop === "fill2" ? "Fill 2" : prop === "fillAngle" ? "Angle" : prop === "fillFade" ? "Fade to clear" : prop === "saturate" ? "Saturation" : prop === "lineHeight" ? "Line height" : prop === "letterSpacing" ? "Letter spacing" : prop === "strokeStyle" ? "Border style" : prop === "outlineW" ? "Sticker outline" : prop === "outlineColor" ? "Outline colour" : prop === "softShadow" ? "Soft shadow" : prop === "finish" ? "Finish" : prop === "look" ? "Looks" : prop === "glyphs" ? "Pick a glyph" : prop === "anim" ? "Animate" : prop === "treatment" ? "Frame style" : prop === "caption" ? "Caption" : prop === "blend" ? "Blend" : prop === "ecc" ? "Error correction" : prop === "dark" ? "Modules" : prop === "light" ? "Background" : prop === "transparentBg" ? "Transparent bg" : cap(prop);
     function setV(v, c) { L[prop] = v; rerender(); if (c) record(); if (prop === "value" || prop === "title" || prop === "label") updateCrumb(); }
     if (kind === "text") return textField(label, function () { return L[prop]; }, setV);
     if (kind === "textarea") return textField(label, function () { return L[prop]; }, setV, { area: true });
@@ -1022,7 +1145,7 @@
     if (kind === "fit") return segField(label, [{ value: "cover", label: "Cover" }, { value: "contain", label: "Contain" }], function () { return L[prop]; }, function (v) { setV(v, true); });
     if (kind === "fadekind") return segField(label, [{ value: "linear", label: "Linear" }, { value: "radial", label: "Radial" }], function () { return L[prop]; }, function (v) { setV(v, true); });
     if (kind === "textstyle") return segField(label, [{ value: "plain", label: "Plain" }, { value: "sticker", label: "Sticker" }], function () { return L.style || "plain"; }, function (v) { setV(v, true); renderInspector(); });   // re-render so the outline colour pickers show/hide
-    if (kind === "texteffect") return segField(label, [{ value: "none", label: "None" }, { value: "shadow", label: "Shadow" }, { value: "lift", label: "Lift" }, { value: "neon", label: "Neon" }, { value: "highlight", label: "Mark" }], function () { return L.effect || "none"; }, function (v) {
+    if (kind === "texteffect") return segField(label, [{ value: "none", label: "None" }, { value: "shadow", label: "Shadow" }, { value: "lift", label: "Lift" }, { value: "neon", label: "Neon" }, { value: "highlight", label: "Mark" }, { value: "chromatic", label: "Split" }], function () { return L.effect || "none"; }, function (v) {
       if (v === "highlight" && (!L.effectColor || L.effectColor.toLowerCase() === "#ffe066")) {   // stock marker default only: auto-contrast it against the text colour (light text would vanish on the yellow marker)
         var hc = parseInt(String(L.color || "#ffffff").slice(1), 16);
         var hlum = (0.2126 * ((hc >> 16) & 255) + 0.7152 * ((hc >> 8) & 255) + 0.0722 * (hc & 255)) / 255;
@@ -1037,9 +1160,10 @@
     if (kind === "artlooks") return artLooksField(L);
     if (kind === "glyphgrid") return glyphGridField(L);
     if (kind === "framekind") return segField(label, FRAME_OPTS, function () { return L.frame || "circle"; }, function (v) { setV(v, true); renderInspector(); });
+    if (kind === "frametreat") return segField(label, FRAMETREAT_OPTS, function () { return L.treatment || "none"; }, function (v) { if (v === "none") delete L.treatment; else L.treatment = v; rerender(); record(); renderInspector(); });
     if (kind === "qrecc") return segField(label, [{ value: "L", label: "L" }, { value: "M", label: "M" }, { value: "Q", label: "Q" }, { value: "H", label: "H" }], function () { return L.ecc || "M"; }, function (v) { setV(v, true); });
     if (kind === "qrtransp") return toggleField(label, function () { return L.light === "none"; }, function (on) { L.light = on ? "none" : "#ffffff"; rerender(); record(); renderInspector(); });
-    if (kind === "fillkind") return segField(label, [{ value: "solid", label: "Solid" }, { value: "linear", label: "Linear" }, { value: "radial", label: "Radial" }], function () { return L.fillKind || "solid"; }, function (v) { setV(v, true); renderInspector(); });
+    if (kind === "fillkind") { var fko = [{ value: "solid", label: "Solid" }, { value: "linear", label: "Linear" }, { value: "radial", label: "Radial" }]; if (L.t === "text" || L.t === "graffiti") fko.push({ value: "halftone", label: "Halftone" }); return segField(label, fko, function () { return L.fillKind || "solid"; }, function (v) { setV(v, true); renderInspector(); }); }
     if (kind === "anim") return segField(label, [{ value: "none", label: "None" }, { value: "pop", label: "Pop" }, { value: "fade", label: "Fade" }, { value: "rise", label: "Rise" }, { value: "spin", label: "Spin" }, { value: "float", label: "Float" }], function () { return L.anim || "none"; }, function (v) { if (v === "none") delete L.anim; else L.anim = v; rerender(); record(); });
     if (kind === "blendkind") {
       var bw = field(label);
@@ -1051,6 +1175,7 @@
     if (kind === "framephoto") return framePhotoField(L);
     if (kind === "duotone") return duotoneField(L);
     if (kind === "shadowkind") return shadowField(L);
+    if (kind === "distresskind") return segField(label, [{ value: "0", label: "None" }, { value: "1", label: "Light" }, { value: "2", label: "Worn" }, { value: "3", label: "Heavy" }], function () { return String(L.distress || 0); }, function (v) { var dn = +v; if (!dn) delete L.distress; else L.distress = dn; rerender(); record(); });
     if (kind === "textimage") return textImageField(L);
     if (kind && kind.k === "range") return numField(label, function () { return L[prop] != null ? L[prop] : 0; }, setV, kind);
     return el("div");
@@ -1241,7 +1366,30 @@
   }
   function toolTemplates(body) {
     if (ADMIN) body.appendChild(templateAuthoringGroup());
-    var g = group(null, "Pick a starting point. You can change anything afterwards.");
+    var g = group(null, "Start blank, pick a gradient base, or choose a design below.");
+    function goBuild() { setTool(simpleMode ? "s-add" : "layers"); }   // after starting, land on Add so the next step is obvious
+    var blank = el("button", "btn-add"); blank.textContent = "＋ Start blank · a plain white box";
+    blank.style.cssText = "width:100%;font-weight:700;margin-bottom:8px";
+    blank.addEventListener("click", function () { resetDoc(); goBuild(); toast("Blank white box — add your first element from Add"); });
+    g.appendChild(blank);
+    // Start with a gradient base: a plain box pre-filled with a ready palette. Absorbs the retired
+    // Shuffle's "adds a gradient" value, but choosable + repeatable; refine via Change → Box colour.
+    var gh = el("div", "sw-h"); gh.textContent = "Or start with a gradient base"; g.appendChild(gh);
+    var ggrid = el("div", "grad-grid");
+    PRESETS.forEach(function (p) {
+      var b = el("button", "grad-chip"); b.type = "button";
+      b.style.backgroundImage = "linear-gradient(135deg," + p.c1 + "," + p.c2 + ")";
+      b.innerHTML = '<span class="grad-nm">' + esc(p.name) + "</span>";
+      b.setAttribute("aria-label", "Start with the " + p.name + " gradient base");
+      b.addEventListener("click", function () {
+        resetDoc();
+        doc.palette.c1 = p.c1; doc.palette.c2 = p.c2; doc.palette.accent = p.accent; doc.palette.finish = p.finish; doc.palette.angle = 135;
+        rerender(); record(); goBuild(); toast(p.name + " base — add your first element from Add");
+      });
+      ggrid.appendChild(b);
+    });
+    g.appendChild(ggrid);
+    var th = el("div", "sw-h"); th.textContent = "Or choose a design"; g.appendChild(th);
     function tplCard(t) {
       var card = el("button", "tpl-card");
       var prev = el("div", "tpl-prev"); prev.style.background = "linear-gradient(135deg," + t.c1 + "55," + t.c2 + "55)";   // faint tint until the real mini box renders
@@ -1515,7 +1663,7 @@
       c.addEventListener("click", function () { armPlace("decal:" + id); });
       return c;
     });
-    var groups = { web3: "Web3", game: "Game / TCG", street: "Streetwear", industrial: "Industrial" };
+    var groups = { web3: "Web3", game: "Game / TCG", street: "Streetwear", industrial: "Industrial", label: "Labels" };
     Object.keys(groups).forEach(function (grp) {
       var ids = Object.keys(all).filter(function (k) { return all[k].group === grp; });
       if (!ids.length) return;
@@ -1720,9 +1868,64 @@
   }
   function focusActiveTool() { var ab = document.querySelector("#rail .rail-btn.on"); if (ab) ab.focus(); }
   function toggleSheet() { if (isMobile()) document.body.classList.toggle("sheet-open"); }
+  /* ---------------- simple mode (progressive disclosure) ---------------- */
+  function simpleActions(title, note, items) {                 // a row of big delegate buttons (reuses the addgrid/addcell styling)
+    var g = group(title, note), grid = el("div", "addgrid");
+    items.forEach(function (it) {
+      var b = el("button", "addcell"); b.type = "button";
+      b.innerHTML = '<span class="addcell-ic" aria-hidden="true">' + it.ic + '</span><span class="addcell-nm">' + it.nm + "</span>";
+      b.setAttribute("aria-label", it.nm);
+      b.addEventListener("click", it.fn);
+      grid.appendChild(b);
+    });
+    g.appendChild(grid); return g;
+  }
+  function toolSAdd(body) {
+    body.appendChild(simpleActions("Add something", "Tap one, then tap the box where you want it.", [
+      { ic: LAYER_ICON.text || "T", nm: "Text", fn: function () { armPlace("text"); } },
+      { ic: LAYER_ICON.art || "▢", nm: "Photo", fn: function () { armPlace("art"); } },
+      { ic: LAYER_ICON.sticker || "★", nm: "Sticker", fn: function () { setTool("stickers"); } },
+      { ic: LAYER_ICON.shape || "▰", nm: "Shape", fn: function () { armPlace("shape"); } },
+      { ic: LAYER_ICON.frame || "⬚", nm: "Frame", fn: function () { armPlace("frame"); } },
+      { ic: LAYER_ICON.label || "▤", nm: "Label", fn: function () { armPlace("label"); } },
+      { ic: LAYER_ICON.note || "✉", nm: "Note", fn: function () { armPlace("note"); } },
+      { ic: LAYER_ICON.stamp || "◈", nm: "Stamp", fn: function () { armPlace("stamp"); } },
+      { ic: LAYER_ICON.qr || "▦", nm: "QR", fn: function () { armPlace("qr"); } },
+    ]));
+  }
+  function toolSChange(body) {
+    body.appendChild(simpleActions("Change this", "Recolour the box, or restyle the words.", [
+      { ic: "🎨", nm: "Box colour", fn: function () { setTool("box"); } },
+    ]));
+    var gf = group("Font", "Sets the font on every word on the box."), grid = el("div", "addgrid");
+    ["display", "anton", "playfair", "pacifico", "bangers", "righteous"].forEach(function (f) {
+      var b = el("button", "addcell"); b.type = "button";
+      b.innerHTML = '<span class="addcell-nm" style="font-size:12.5px">' + (fontMeta(f).name || f) + "</span>";
+      b.setAttribute("aria-label", "Use the " + (fontMeta(f).name || f) + " font");
+      b.addEventListener("click", function () { applyFontAll(f); });
+      grid.appendChild(b);
+    });
+    gf.appendChild(grid); body.appendChild(gf);
+  }
+  function toolSWhole(body) {
+    body.appendChild(simpleActions("Whole box", "Start from a ready-made design, or shuffle the whole look.", [
+      { ic: "▦", nm: "Layouts", fn: function () { setTool("templates"); } },
+      { ic: "🎲", nm: "Shuffle look", fn: shuffleLook },
+    ]));
+  }
+  function applyFontAll(f) {
+    FACES.forEach(function (pos) { ((doc.faces[pos] && doc.faces[pos].layers) || []).forEach(function (L) { if (L.t === "text" || L.t === "graffiti") L.font = f; }); });
+    rerender(); record(); announce("Font set to " + (fontMeta(f).name || f));
+  }
+  function setSimple(on) {
+    simpleMode = on;
+    try { on ? localStorage.removeItem("giiift-lab-advanced") : localStorage.setItem("giiift-lab-advanced", "1"); } catch (e) {}
+    buildRail(); setTool(on ? "s-start" : "templates");
+    announce(on ? "Simple view" : "Advanced tools shown");
+  }
   function buildRail() {
     var rail = $("#rail"); rail.innerHTML = ""; rail.setAttribute("role", "tablist"); rail.setAttribute("aria-label", "Editor tools");
-    TOOLS.forEach(function (t) {
+    (simpleMode ? SIMPLE_TOOLS : TOOLS).forEach(function (t) {
       var on = t.id === activeTool;
       var b = el("button", "rail-btn" + (on ? " on" : "")); b.dataset.tool = t.id; b.title = t.sub; b.type = "button";
       b.setAttribute("role", "tab"); b.setAttribute("aria-selected", on ? "true" : "false");
@@ -1730,6 +1933,12 @@
       b.addEventListener("click", function () { setTool(t.id); });
       rail.appendChild(b);
     });
+    // progressive-disclosure toggle, pinned to the bottom of the rail
+    var tog = el("button", "rail-btn"); tog.type = "button"; tog.style.marginTop = "auto";
+    tog.title = simpleMode ? "Show all tools" : "Back to the simple view";
+    tog.innerHTML = '<span class="rail-ic" aria-hidden="true">' + ICON(simpleMode ? "code" : "templates") + '</span><span class="rail-lbl">' + (simpleMode ? "Advanced" : "Simple") + "</span>";
+    tog.addEventListener("click", function () { setSimple(!simpleMode); });
+    rail.appendChild(tog);
   }
   function buildTopbar() {
     var tb = $("#topbar"); tb.innerHTML = '<span class="tb-logo" aria-hidden="true">G<span class="i1">I</span><span class="i2">I</span><span class="i3">I</span>FT box lab</span><div class="tb-crumb" id="crumb"></div><span class="tb-spacer"></span>';
@@ -2597,25 +2806,44 @@
   }
   function maybeCoach() {
     try { if (localStorage.getItem("giiift-lab-coached")) return; } catch (e) {}
+    // A friendly 3-beat coach (tap a face -> type -> spin), shown one beat at a time
+    // instead of one wall of tips. Skip / esc / tapping the veil all mark it seen.
+    var BEATS = [
+      { em: "👆", t: "Tap a face", d: "Tap any side of the box to start decorating that side." },
+      { em: "⌨️", t: "Type your words", d: "Double-tap text on the box to rewrite it, or add new text from the left." },
+      { em: "🖐️", t: "Spin it around", d: "Drag the empty space to spin the box and see every side." },
+    ];
+    var i = 0;
     var veil = el("div", "coach-veil");
     var c = el("div", "coach"); c.setAttribute("role", "dialog"); c.setAttribute("aria-modal", "true"); c.setAttribute("aria-labelledby", "coach-title");
-    c.innerHTML = '<h4>Quick start</h4><h3 id="coach-title">Welcome to the box lab</h3><ul>' +
-      '<li><span class="em" aria-hidden="true">🖐️</span><span>Drag empty space to <b>rotate</b> the box. Or click the box, then use the <b>arrow keys</b>.</span></li>' +
-      '<li><span class="em" aria-hidden="true">👆</span><span>Click a face to edit it. Drag any element to move it, the green corner to <b>resize</b>.</span></li>' +
-      '<li><span class="em" aria-hidden="true">⌨️</span><span>Double-click text on the box to type. Press the <b>?</b> button up top for all shortcuts.</span></li>' +
-      '</ul>';
-    function dismiss() {
+    function done() {
       try { localStorage.setItem("giiift-lab-coached", "1"); } catch (e) {}
-      document.removeEventListener("keydown", onEsc, true);
+      document.removeEventListener("keydown", onKey, true);
       veil.remove(); c.remove(); if (stage) stage.focus();
     }
-    function onEsc(e) { if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); dismiss(); } }
-    var go = el("button", "btn acc"); go.type = "button"; go.style.width = "100%"; go.textContent = "Start designing";
-    go.addEventListener("click", dismiss);
-    veil.addEventListener("pointerdown", function (e) { e.stopPropagation(); dismiss(); });
-    document.addEventListener("keydown", onEsc, true);
-    c.appendChild(go); stage.appendChild(veil); stage.appendChild(c);
-    setTimeout(function () { go.focus(); }, 0);
+    function step(n) { if (i + n > BEATS.length - 1) { done(); return; } i = Math.max(0, i + n); render(); }
+    function onKey(e) {
+      if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); done(); }
+      else if (e.key === "Enter" || e.key === "ArrowRight") { e.preventDefault(); step(1); }
+    }
+    function render() {
+      var b = BEATS[i], last = i === BEATS.length - 1;
+      var dots = '<div style="display:flex;gap:7px;margin:18px 0 0" aria-hidden="true">' +
+        BEATS.map(function (_x, k) { return '<span style="width:8px;height:8px;border-radius:50%;background:' + (k === i ? "#34d399" : "rgba(255,255,255,.22)") + '"></span>'; }).join("") + '</div>';
+      c.innerHTML = '<h4>Quick start · ' + (i + 1) + ' of ' + BEATS.length + '</h4>' +
+        '<h3 id="coach-title" style="display:flex;align-items:center;gap:14px"><span class="em" aria-hidden="true" style="font-size:34px;flex:0 0 auto">' + b.em + '</span>' + b.t + '</h3>' +
+        '<p style="font-size:17px;color:#e7e9ee;line-height:1.55;margin:0">' + b.d + '</p>' + dots;
+      var row = el("div"); row.style.cssText = "display:flex;gap:10px;align-items:center;margin-top:24px";
+      if (!last) { var skip = el("button", "btn"); skip.type = "button"; skip.textContent = "Skip"; skip.style.flex = "0 0 auto"; skip.addEventListener("click", done); row.appendChild(skip); }
+      var next = el("button", "btn acc"); next.type = "button"; next.style.flex = "1"; next.textContent = last ? "Start designing" : "Next";
+      next.addEventListener("click", function () { step(1); });
+      row.appendChild(next); c.appendChild(row);
+      setTimeout(function () { next.focus(); }, 0);
+    }
+    veil.addEventListener("pointerdown", function (e) { e.stopPropagation(); done(); });
+    document.addEventListener("keydown", onKey, true);
+    stage.appendChild(veil); stage.appendChild(c);
+    render();
   }
 
   /* ---------------- admin: in-browser panel authoring (?admin) ---------------- */
@@ -2972,6 +3200,11 @@
             : '<linearGradient id="' + tgid + '" gradientTransform="rotate(' + r2(L.fillAngle != null ? L.fillAngle : 135) + ' .5 .5)">' + tstops + '</linearGradient>';
           fillAttr = "url(#" + tgid + ")";
         }
+        if (!curved && L.fillKind === "halftone") {            // halftone-dot fill -> userSpaceOnUse pattern of dots in `color` (mirrors the live background-clip dots)
+          var htid = idSafe + "Ht" + (gradN++), hd = Math.max(1.2, r2(size * 0.16));
+          extraDefs += '<pattern id="' + htid + '" width="' + hd + '" height="' + hd + '" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><circle cx="' + r2(hd / 2) + '" cy="' + r2(hd / 2) + '" r="' + r2(hd * 0.3) + '" fill="' + (L.color || "#111111") + '"/></pattern>';
+          fillAttr = "url(#" + htid + ")";
+        }
         if (!curved && L.finish && L.finish !== "none" && FOIL_STOPS[L.finish]) {   // metallic foil -> namespaced multi-stop gradient (wins over colour/gradient, like the live render)
           var fgid = idSafe + "Foil" + (gradN++);
           extraDefs += '<linearGradient id="' + fgid + '" gradientTransform="rotate(' + (L.finish === "holo" ? 115 : 105) + ' .5 .5)">'
@@ -2997,6 +3230,7 @@
           var nc = L.effectColor || "#34f5c5";
           styleBits.push("filter:drop-shadow(0 0 " + r2(size * 0.08) + "px " + nc + ") drop-shadow(0 0 " + r2(size * 0.22) + "px " + nc + ") drop-shadow(0 0 " + r2(size * 0.5) + "px " + nc + ")");
         }
+        else if (L.effect === "chromatic") styleBits.push("filter:drop-shadow(-" + r2(size * 0.045) + "px 0 #00e5ff) drop-shadow(" + r2(size * 0.045) + "px 0 #ff00ff)");   // RGB-split: offset cyan/magenta silhouettes (text-shadow doesn't apply to SVG <text>)
         var styleAttr = styleBits.length ? ' style="' + styleBits.join(";") + '"' : "";
         // highlight: an estimated marker plate behind the text (sized from the default copy; token edits won't retrack it)
         var pre = "";
@@ -3063,6 +3297,11 @@
         svg += stf.length ? '<g transform="' + stf.join(' ') + '">' + sEl + '</g>' : sEl;
       } else if (L.t === "frame") {
         if (!L.src) { skipped++; }                             // an empty slot is a placeholder, not panel content
+        else if (L.treatment && GBX.FRAMETREATS && GBX.FRAMETREATS[L.treatment]) {   // decorative treatment: reuse the engine generator -> live/export parity by construction
+          var ftw = (L.w || .42) * 100, fth = (L.h || .42) * 100, ftx = L.x * 100 - ftw / 2, fty = L.y * 100 - fth / 2, ftg = GBX.frameTreatGeom(L);
+          var ftNest = '<svg x="' + r2(ftx) + '" y="' + r2(fty) + '" width="' + r2(ftw) + '" height="' + r2(fth) + '" viewBox="0 0 ' + ftg.W + ' ' + ftg.H + '" preserveAspectRatio="none" overflow="visible">' + GBX.frameTreatSVG(L) + '</svg>';
+          svg += L.rotate ? '<g transform="rotate(' + r2(L.rotate) + ' ' + r2(L.x * 100) + ' ' + r2(L.y * 100) + ')">' + ftNest + '</g>' : ftNest;
+        }
         else {
           var fw2 = (L.w || .42) * 100, fh2 = (L.h || .42) * 100;
           var fx3 = L.x * 100 - fw2 / 2, fy3 = L.y * 100 - fh2 / 2;
@@ -3106,10 +3345,17 @@
           svg += qtf.length ? '<g transform="' + qtf.join(' ') + '">' + qsvg + '</g>' : qsvg;
         }
       } else if (L.t) { skipped++; }
-      // per-layer blend + universal shadow ride the same wrapper <g> (filter units are viewBox px = fraction×100)
-      var wrapStyle = "";
+      // per-layer blend + universal shadow + distress ride the same wrapper <g> (filter units are viewBox px = fraction×100)
+      var wrapStyle = "", wrapFilters = [];
+      if (L.distress) {   // distress/abrasion: turbulence + displacement, applied FIRST (shadow then sits on the roughened result). Export scale is modest viewBox units (live is element-px); both read distressed.
+        var dlev = Math.min(3, Math.max(1, L.distress)), dsid = idSafe + "Ds" + (gradN++);
+        var dbf = [0.045, 0.06, 0.085][dlev - 1], dsc = [1, 2, 3][dlev - 1], doc2 = [2, 3, 3][dlev - 1];
+        extraDefs += '<filter id="' + dsid + '" x="-12%" y="-12%" width="124%" height="124%"><feTurbulence type="fractalNoise" baseFrequency="' + dbf + '" numOctaves="' + doc2 + '" seed="7" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="' + dsc + '" xChannelSelector="R" yChannelSelector="G"/></filter>';
+        wrapFilters.push("url(#" + dsid + ")");
+      }
       if (L.blend && /^[a-z-]+$/.test(L.blend)) wrapStyle += "mix-blend-mode:" + L.blend + ";";
-      if (L.shadow) { var sn = parseInt(String(L.shadow.color || "#000000").slice(1), 16); wrapStyle += "filter:drop-shadow(" + r2((L.shadow.x || 0) * 100) + "px " + r2((L.shadow.y || 0) * 100) + "px " + r2((L.shadow.blur || 0) * 100) + "px rgba(" + ((sn >> 16) & 255) + "," + ((sn >> 8) & 255) + "," + (sn & 255) + "," + (L.shadow.opacity != null ? L.shadow.opacity : 0.45) + "));"; }
+      if (L.shadow) { var sn = parseInt(String(L.shadow.color || "#000000").slice(1), 16); wrapFilters.push("drop-shadow(" + r2((L.shadow.x || 0) * 100) + "px " + r2((L.shadow.y || 0) * 100) + "px " + r2((L.shadow.blur || 0) * 100) + "px rgba(" + ((sn >> 16) & 255) + "," + ((sn >> 8) & 255) + "," + (sn & 255) + "," + (L.shadow.opacity != null ? L.shadow.opacity : 0.45) + "))"); }
+      if (wrapFilters.length) wrapStyle += "filter:" + wrapFilters.join(" ") + ";";
       if (wrapStyle && svg.length > _bStart) svg = svg.slice(0, _bStart) + '<g style="' + wrapStyle + '">' + svg.slice(_bStart) + '</g>';
     });
     if (extraDefs) svg = svg.replace("</defs>", extraDefs + "</defs>");
