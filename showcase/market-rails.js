@@ -97,45 +97,57 @@
     execute: function (order, leg, items, hooks) {
       hooks = hooks || {}; var self = this;
       var live = self.live();
+      var persist = hooks.persist || function () {};
       // only the rows that actually sit on the balance leg (credit-priced goods are
       // the credit rail's steps, not ours)
       items = (items || []).filter(function (row) { return !(row.item.price.credit != null && !row.item.price.usd); });
       return items.reduce(function (p, row) {
         return p.then(function () {
           var route = self.routeLine(row.item);
+          // M9 2.3: the per-line settlement ledger — a line whose id already carries a
+          // ref is SETTLED; resume/replay walks skip it instead of re-buying with real
+          // money. Every ref is persisted the moment it exists (before the next line).
+          if ((order.refs || []).some(function (r) { return r.id === row.item.id; })) {
+            (hooks.onStep || function () {})({ rail: "balance", label: route.label, state: "done" });
+            return Promise.resolve();
+          }
           (hooks.onStep || function () {})({ rail: "balance", label: route.label, state: "doing" });
           if (live && route.kind === "onchain" && !route.cross && typeof global.giiiftBuyNft === "function" && global.giiiftIsBuyable && global.giiiftIsBuyable(row.item.fulfillmentRef)) {
             return global.giiiftBuyNft(row.item.fulfillmentRef, { qty: row.qty })
-              .then(function (res) { (order.refs = order.refs || []).push({ id: row.item.id, tx: res && res.hash }); });
+              .then(function (res) { (order.refs = order.refs || []).push({ id: row.item.id, tx: res && res.hash }); persist(order); });
           }
           if (live && route.kind === "onchain" && route.cross && typeof global.giiiftRouteQuote === "function") {
             return global.giiiftRouteQuote({ fromChain: "Base", fromToken: "USDC", toChain: route.cross, toToken: row.item.fulfillmentRef.toToken || "USDC", amountUSD: row.item.price.usd * row.qty, wallet: wallet() })
               .then(function (q) {
                 if (q && q.executable && typeof global.giiiftRouteExecute === "function") {
-                  return global.giiiftRouteExecute(q, wallet()).then(function (res) { (order.refs = order.refs || []).push({ id: row.item.id, bridge: q.provider, tx: res && res.hash }); });
+                  return global.giiiftRouteExecute(q, wallet()).then(function (res) { (order.refs = order.refs || []).push({ id: row.item.id, bridge: q.provider, tx: res && res.hash }); persist(order); });
                 }
-                (order.refs = order.refs || []).push({ id: row.item.id, bridge: q && q.provider, quoted: true });
+                (order.refs = order.refs || []).push({ id: row.item.id, bridge: q && q.provider, quoted: true }); persist(order);
                 return sleep(600);   // quote-only scaffold: walk it
               });
           }
-          if (route.kind === "shopify" && row.item.fulfillmentRef && row.item.fulfillmentRef.shopifyDomain && row.item.fulfillmentRef.variantId) {
-            // the retail lane's cart-permalink handoff (reuse, do not fork): the user's
-            // wallet pays on the merchant's own USDC checkout, via /wc when external
-            var href = "https://" + row.item.fulfillmentRef.shopifyDomain + "/cart/" + row.item.fulfillmentRef.variantId + ":" + (row.qty || 1);
-            (order.refs = order.refs || []).push({ id: row.item.id, handoff: href });
+          if (route.kind === "shopify" && row.item.fulfillmentRef && shopifyDomainOk(row.item.fulfillmentRef.shopifyDomain) && row.item.fulfillmentRef.variantId) {
+            // the retail lane's cart-permalink handoff (reuse, do not fork). M9 2.6: the
+            // domain must BE a myshopify.com shop and the segments are encoded — a
+            // malicious catalog item can't steer this money-flow click anywhere else.
+            var href = "https://" + String(row.item.fulfillmentRef.shopifyDomain).toLowerCase() + "/cart/" +
+              encodeURIComponent(String(row.item.fulfillmentRef.variantId)) + ":" + (Math.max(1, row.qty | 0) || 1);
+            (order.refs = order.refs || []).push({ id: row.item.id, handoff: href }); persist(order);
             if (live) { try { global.open(href, "_blank", "noopener"); } catch (e) {} }
             return sleep(500);
           }
           if (route.kind === "partner" && route.url) {
-            (order.refs = order.refs || []).push({ id: row.item.id, partner: route.url });
+            (order.refs = order.refs || []).push({ id: row.item.id, partner: route.url }); persist(order);
             if (live) { try { global.open(route.url, "_blank", "noopener"); } catch (e) {} }
             return sleep(500);
           }
-          return sleep(600);   // demo settle
+          return sleep(600).then(function () { (order.refs = order.refs || []).push({ id: row.item.id, demo: true }); persist(order); });   // demo settle leaves a ledger row too
         }).then(function () { (hooks.onStep || function () {})({ rail: "balance", label: self.routeLine(row.item).label, state: "done" }); });
       }, Promise.resolve());
     },
   };
+  // M9 2.6: exact-shape merchant domains only (mirrors the partner-redirect allowlist posture)
+  function shopifyDomainOk(d) { return /^[a-z0-9][a-z0-9-]{0,60}\.myshopify\.com$/i.test(String(d || "")); }
 
   // credit: internal grants; live spends are server-side (credit_ledger), demo mirrors.
   var creditRail = {
@@ -178,12 +190,49 @@
       var label = "Top up " + GM.money(step.amountUsd) + (p ? " · " + p.label : " · demo top-up");
       (hooks && hooks.onStep || function () {})({ rail: "onramp", label: label, state: "doing" });
       return onrampRail.topup(step.amountUsd, { orderId: order.id }).then(function (res) {
-        (order.refs = order.refs || []).push({ topup: step.amountUsd, provider: res.provider });
-        (hooks && hooks.onStep || function () {})({ rail: "onramp", label: label, state: "done" });
-        return res;
+        // M9 2.4: a LIVE top-up actually WAITS for the funds — the widget opening is not
+        // arrival. We resolve on (a) the wallet balance seam reporting the increase, or
+        // (b) the user's explicit "I've topped up" confirm; 10 minutes without either
+        // throws, parking the order recoverable instead of firing the balance leg short.
+        if (!res.live) {
+          (order.refs = order.refs || []).push({ topup: step.amountUsd, provider: res.provider });
+          (hooks && hooks.onStep || function () {})({ rail: "onramp", label: label, state: "done" });
+          return res;
+        }
+        (hooks && hooks.onStep || function () {})({ rail: "onramp", label: label, state: "await" });
+        return waitForFunds(step.amountUsd, 10 * 60_000).then(function (how) {
+          (order.refs = order.refs || []).push({ topup: step.amountUsd, provider: res.provider, arrival: how });
+          (hooks && hooks.onStep || function () {})({ rail: "onramp", label: label, state: "done" });
+          return res;
+        });
       });
     },
   };
+
+  // M9 2.4: live-funds arrival detector. Polls the optional `giiiftUsdcBalance` seam
+  // (a host-provided () => Promise<number>) for the increase, and listens for the
+  // checkout's explicit confirm event. Rejects after the deadline (recoverable park).
+  function waitForFunds(amountUsd, timeoutMs) {
+    return new Promise(function (resolve, reject) {
+      var done = false, t0 = Date.now(), base = null;
+      function finish(how) { if (done) return; done = true; global.removeEventListener("giiift:topup-confirmed", onConfirm); resolve(how); }
+      function onConfirm() { finish("confirmed"); }
+      global.addEventListener("giiift:topup-confirmed", onConfirm);
+      (function tick() {
+        if (done) return;
+        if (Date.now() - t0 > timeoutMs) { done = true; global.removeEventListener("giiift:topup-confirmed", onConfirm); reject(new Error("top-up not seen")); return; }
+        var read = typeof global.giiiftUsdcBalance === "function" ? global.giiiftUsdcBalance() : null;
+        if (read && read.then) {
+          read.then(function (n) {
+            if (done) return;
+            if (base == null) base = Number(n) || 0;
+            else if (Number(n) >= base + amountUsd * 0.95) { finish("balance"); return; }   // 5% provider-fee tolerance
+            setTimeout(tick, 5000);
+          }).catch(function () { setTimeout(tick, 5000); });
+        } else setTimeout(tick, 5000);
+      })();
+    });
+  }
 
   // external-wallet: the shipped GIIIFT Pay WalletConnect bridge owns this surface.
   var externalRail = {

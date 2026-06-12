@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<script>/* public showcase mirror: always demo mode */try{localStorage.setItem("giiift-demo","1");localStorage.setItem("giiift-authed","1");}catch(e){}window.GIIIFT_CAPS={intents:false,oauth:false,telemetry:false};</script>
+<script>/* public showcase mirror: always demo mode */try{localStorage.setItem("giiift-demo","1");localStorage.setItem("giiift-authed","1");}catch(e){}window.GIIIFT_CAPS={intents:false,oauth:false,telemetry:false,payments:false};</script>
 <meta name="robots" content="noindex, nofollow, noarchive">
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -27,6 +27,7 @@
   <script src="/showcase/asset-visuals.js"></script><!-- kind-aware asset shapes: digital card / art frame / booster pack -->
   <script src="/showcase/wrap-flow.js"></script><!-- sender-wizard flow engine: steps as modules, order as data (docs/WRAP_FLOW_ENGINE.md) -->
   <script src="/showcase/stage-box.js"></script><!-- the 3D preview as a component: paints/poses/drops via the flow store (spec §2.4) -->
+  <script src="/showcase/market-wrap-picker.js"></script><!-- marketplace M6: the "From the shop" fill tab + pick-one composer (lazy engine deps; W5 wire-up) -->
   <script defer src="/showcase/brand.js"></script>
   <script defer src="/showcase/site-nav.js"></script>
   <script defer src="/showcase/intent-client.js"></script><!-- link-gifting: invitation-link delivery mode -->
@@ -931,6 +932,15 @@
     .order-fee summary { cursor: pointer; list-style: none; display: inline; }
     .order-fee summary::-webkit-details-marker { display: none; }
     .order-fee .fee-why { font-size: 11.5px; color: var(--muted); line-height: 1.5; margin-top: 5px; max-width: 42ch; }
+    /* W6: rails state line (quoted → executing → fulfilled/failed) */
+    .order-state { margin-top: 8px; font-family: var(--font-mono); font-size: 12.8px; letter-spacing: .02em; color: var(--muted); display: flex; align-items: center; gap: 7px; }
+    .order-state .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--muted-2); flex: none; }
+    .order-state.is-doing .dot { background: #7bdfff; animation: ostate-pulse 1.1s infinite ease-in-out; }
+    .order-state.is-done { color: var(--accent-ui); }
+    .order-state.is-done .dot { background: var(--accent-ui); box-shadow: 0 0 7px rgba(0,255,157,.5); }
+    .order-state.is-fail { color: #ff6b6b; }
+    .order-state.is-fail .dot { background: #ff6b6b; }
+    @keyframes ostate-pulse { 0%, 100% { opacity: 1; } 50% { opacity: .35; } }
     .order-free .ofree { color: var(--accent-ui, #00FF9D); font-weight: 800; letter-spacing: 0.04em; }
     .order-total { border-bottom: 0; margin-top: 4px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.16);
       font-size: 15px; font-weight: 800; }
@@ -955,6 +965,22 @@
     .pick-grid.retail { grid-template-columns: repeat(2, 1fr); }
     .pick .pr { font-size: 9.5px; text-align: center; color: var(--ink); opacity: .55; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .retail-fund { margin-top: 7px; font-family: "VT323", monospace; font-size: 12.8px; line-height: 1.45; color: var(--accent, #fde68a); opacity: .92; }
+    /* W4 challenge step: "earn the open" game picker */
+    .ch-toggle { margin-top: 4px; }
+    .ch-explain { font-size: 12px; color: var(--muted-2); line-height: 1.55; margin: 13px 0 14px; }
+    .ch-explain b { color: var(--ink); }
+    .ch-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+    .ch-card { display: flex; flex-direction: column; gap: 4px; padding: 11px 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--panel-2); cursor: pointer; text-align: left; color: var(--ink); font-family: inherit; transition: border-color .18s, transform .15s; }
+    .ch-card:hover { border-color: var(--line-strong); transform: translateY(-1px); }
+    .ch-card.sel { border-color: var(--accent-ui); box-shadow: 0 0 0 1px var(--accent-ui) inset; }
+    .ch-card .ch-emoji { font-size: 20px; }
+    .ch-card .ch-name { font-size: 13px; font-weight: 800; }
+    .ch-card .ch-desc { font-size: 12px; color: var(--muted-2); line-height: 1.4; }
+    .ch-row { display: flex; align-items: center; gap: 10px; margin: 16px 0 6px; }
+    .ch-label { font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted-2); }
+    .ch-try { display: inline-flex; align-items: center; justify-content: center; gap: 6px; margin-top: 12px; padding: 10px 16px; min-height: 40px; border-radius: 10px; border: 1px solid var(--accent-ui); background: color-mix(in srgb, var(--accent-ui) 14%, transparent); color: var(--ink); font-weight: 700; font-size: 13px; cursor: pointer; font-family: inherit; }
+    .ch-try:hover { background: color-mix(in srgb, var(--accent-ui) 22%, transparent); }
+    .ch-try[disabled] { opacity: .5; cursor: default; }
   </style>
 </head>
 <body>
@@ -968,6 +994,7 @@
 
       <!-- STEP 3 - fill (value first, then the asset rail, then what's inside) -->
       <div class="pane" id="pane-fill" hidden></div>
+      <div class="pane" id="pane-challenge" hidden></div>
       <div class="pane" id="pane-order" hidden></div>
       <template data-step-pane data-host="#pane-fill" id="tpl-step-fill">
         <div class="card-head">
@@ -987,6 +1014,7 @@
           <button type="button" data-fill="art">Art</button>
           <button type="button" data-fill="packs">Packs</button>
           <button type="button" data-fill="retail">Real thing</button>
+          <button type="button" data-fill="shop">From the shop</button>
         </div>
 
         <div id="fill-assets">
@@ -1031,6 +1059,9 @@
           <div class="retail-fund" id="retail-fund" hidden></div>
         </div>
 
+        <!-- W5: the marketplace picker, embedded (add-to-gift + let-them-pick-one) -->
+        <div id="fill-shop" hidden><div id="shop-embed"></div></div>
+
         <button class="add-btn" id="add-asset">Drop it in <span class="ab-arrow">↓</span></button>
 
         <div>
@@ -1048,9 +1079,43 @@
         <div class="order-lines" id="order-lines"></div>
         <div class="order-row order-free"><span>Sending the box</span><span class="ofree">FREE - always</span></div>
         <div class="order-row order-total"><span>Total today</span><span id="order-total">$0.00</span></div>
-        <div class="tfield-hint" id="order-note">No charge today - payment options are on the way. Sending is free, always.</div>
+        <div class="order-state" id="order-state" hidden></div>
+        <div class="tfield-hint" id="order-note">Nothing to charge today. Sending is free, always.</div>
       </template>
-    
+
+      <!-- STEP 4 - challenge (W4): optional "earn the open" game before the box opens -->
+      <template data-step-pane data-host="#pane-challenge" id="tpl-step-challenge">
+        <div class="card-head">
+          <div class="eyebrow">// step 4 · challenge</div>
+          <h2>Make them earn it?</h2>
+          <p>Add a quick game they play before the box opens. Totally optional - off by default.</p>
+        </div>
+        <label class="surprise-row ch-toggle"><input type="checkbox" id="ch-on">
+          <span><b>Add an unlock challenge</b> - they solve a ~60-second game before it opens</span></label>
+        <div id="ch-body" hidden>
+          <div class="ch-explain">A playful puzzle on open: defuse a bomb, crack a safe, tune a radio, or wire a circuit.
+            <b>They can never lose the gift</b> - a miss just re-arms it.
+            <details class="bi-more"><summary aria-label="How the challenge works">ⓘ</summary>
+              <div class="bi-pop">The challenge is a delight layer, not a lock on the value. A wrong move just re-arms the
+              puzzle, and reloading the link always lets them try the same one again. What's inside is never at risk.</div>
+            </details>
+          </div>
+          <div class="ch-grid" id="ch-games"></div>
+          <div id="ch-config" hidden>
+            <div class="ch-row">
+              <span class="ch-label">Difficulty</span>
+              <div class="vchip-row" id="ch-tier">
+                <button type="button" class="vchip sel" data-tier="normal">Normal</button>
+                <button type="button" class="vchip" data-tier="oneshot">One shot</button>
+              </div>
+            </div>
+            <div class="tfield-hint" id="ch-tier-hint">Normal is forgiving - they keep trying. One shot locks the round on a miss (reloading re-arms it; the gift is still safe).</div>
+            <button type="button" class="ch-try" id="ch-try">▶ Try this game</button>
+            <div class="tfield-hint" id="ch-preview-note" hidden></div>
+          </div>
+        </div>
+      </template>
+
       <!-- DESIGN-LAB (M4, behind ?flow=lab; M4.5 also a hatch detour from the gallery) -->
       <div class="pane" id="pane-design-lab" hidden>
         <div class="card-head">
@@ -1539,13 +1604,16 @@
     (function buildFillTabs() {
       const tabs = document.getElementById('fill-tabs');
       if (!tabs) return;
-      const panels = { assets: document.getElementById('fill-assets'), art: document.getElementById('fill-art'), packs: document.getElementById('fill-packs'), retail: document.getElementById('fill-retail') };
+      const panels = { assets: document.getElementById('fill-assets'), art: document.getElementById('fill-art'), packs: document.getElementById('fill-packs'), retail: document.getElementById('fill-retail'), shop: document.getElementById('fill-shop') };
       tabs.addEventListener('click', (e) => {
         const b = e.target.closest('[data-fill]'); if (!b) return;
         fillMode = b.dataset.fill;
         [...tabs.children].forEach(x => x.classList.toggle('on', x === b));
         for (const k in panels) if (panels[k]) panels[k].hidden = k !== fillMode;
         if (fillMode === 'retail') initRetailShelf(); // lazy: the menu fetch happens on first open
+        if (fillMode === 'shop') initShopPicker();    // lazy: the picker embeds + loads engine deps on first open
+        const addBtn = document.getElementById('add-asset');
+        if (addBtn) addBtn.hidden = fillMode === 'shop';   // shop items add with one tap inside the embed
       });
       const mkGrid = (gridId, items, isPack, getSel, setSel) => {
         const grid = document.getElementById(gridId); if (!grid) return;
@@ -1649,6 +1717,7 @@
         fill:   { sel: '#pane-fill .card-head .eyebrow',  tag: vtxt('fillTag',   null, 'gift') },
         text:   { sel: '#sub-text .card-head .eyebrow',   tag: vtxt('textTag',   null, 'personalize') },
         order:  { sel: '#pane-order .card-head .eyebrow',  tag: vtxt('orderTag',  null, 'order') },
+        challenge: { sel: '#pane-challenge .card-head .eyebrow', tag: vtxt('challengeTag', null, 'challenge') },
       };
       Object.keys(EB).forEach(k => {
         const el = document.querySelector(EB[k].sel);
@@ -2158,13 +2227,15 @@
 
     function renderContents() {
       updateRunTotal();
+      const mtRows = marketTotals();   // W5: shop adds + pick-one render as rows too
       const counter = document.getElementById('inside-count');
+      const itemCount = contents.length + (mtRows ? mtRows.adds.length : 0);
       if (counter) {
-        counter.hidden = contents.length === 0;
-        counter.textContent = contents.length + ' item' + (contents.length === 1 ? '' : 's');
+        counter.hidden = itemCount === 0;
+        counter.textContent = itemCount + ' item' + (itemCount === 1 ? '' : 's');
       }
       contentsEl.innerHTML = '';
-      if (!contents.length) {
+      if (!contents.length && !mtRows) {
         const en = document.createElement('div');
         en.className = 'empty-note';
         en.textContent = vtxt('emptyNote', null, 'empty, drop something in');
@@ -2187,6 +2258,40 @@
         row.appendChild(rm);
         contentsEl.appendChild(row);
       });
+      // W5: shop adds + the pick-one shortlist live in the picker's store; render
+      // them as first-class rows here (✕ routes through the picker so its foot,
+      // store and onChange stay in sync).
+      const mt = mtRows;
+      if (mt) {
+        mt.adds.forEach(a => {
+          const row = document.createElement('div');
+          row.className = 'content-row';
+          const ic = document.createElement('span'); ic.className = 'coin sm no-logo'; ic.textContent = '🛍'; ic.style.background = 'rgba(255,255,255,0.08)';
+          row.appendChild(ic);
+          const meta = document.createElement('div'); meta.className = 'meta';
+          meta.innerHTML = `<div class="a"></div><div class="b"></div>`;
+          meta.querySelector('.a').textContent = '$' + (Number(a.usd) || 0).toFixed(2);
+          meta.querySelector('.b').textContent = a.title || 'Shop item';
+          row.appendChild(meta);
+          const rm = document.createElement('button');
+          rm.className = 'rm'; rm.title = 'remove'; rm.textContent = '✕';
+          rm.addEventListener('click', () => GIIIFTMarketPicker.removeAdd(a.id));
+          row.appendChild(rm);
+          contentsEl.appendChild(row);
+        });
+        if (mt.pickOneIds.length) {
+          const row = document.createElement('div');
+          row.className = 'content-row';
+          const ic = document.createElement('span'); ic.className = 'coin sm no-logo'; ic.textContent = '🤲'; ic.style.background = 'rgba(255,255,255,0.08)';
+          row.appendChild(ic);
+          const meta = document.createElement('div'); meta.className = 'meta';
+          meta.innerHTML = `<div class="a"></div><div class="b"></div>`;
+          meta.querySelector('.a').textContent = 'They pick one of ' + mt.pickOneIds.length;
+          meta.querySelector('.b').textContent = mt.priced ? 'funds $' + mt.pickOneFundUsd.toFixed(2) + ' · their choice' : 'their choice';
+          row.appendChild(meta);
+          contentsEl.appendChild(row);
+        }
+      }
     }
 
     // the deposit drop animation lives in stage-box.js; announcing the addition
@@ -2259,12 +2364,14 @@
     const controlCard = document.getElementById('control-card');
     const paneFill = document.getElementById('pane-fill');
     const paneOrder = document.getElementById('pane-order');
+    const paneChallenge = document.getElementById('pane-challenge');
+    const challenge = { on: false, game: null, tier: 'normal' };   // W4: optional unlock game
     const paneCustomize = document.getElementById('pane-customize');
     const stepsEl = document.getElementById('steps');
     // (the stage element is owned by GIIIFTStageBox since M2)
 
     function showPane(which) {
-      const map = { fill: paneFill, order: paneOrder, customize: paneCustomize };
+      const map = { fill: paneFill, challenge: paneChallenge, order: paneOrder, customize: paneCustomize };
       const shown = map[which] || paneCustomize;
       Object.values(map).forEach(el => { if (el) el.hidden = el !== shown; });
       shown.classList.remove('pane-enter'); void shown.offsetWidth; shown.classList.add('pane-enter');
@@ -2283,8 +2390,15 @@
         hint.textContent = vtxt('designHint', null, 'Pick a box design or your own colours, then make it personal.');
       } else if (stage === 'text') {
         primary.disabled = false;
-        primary.textContent = vtxt('textBtn', null, 'Pick the gift →');
-        hint.textContent = vtxt('textHint', null, 'Make it personal, then pick what goes inside.');
+        primary.textContent = vtxt('textBtn', null, 'Add a challenge →');
+        hint.textContent = vtxt('textHint', null, 'Make it personal, then choose whether they earn the open.');
+      } else if (stage === 'challenge') {
+        primary.disabled = false;
+        primary.textContent = vtxt('challengeBtn', null, 'Pick the gift →');
+        hint.textContent = !challenge.on
+          ? vtxt('challengeHint', null, 'Add a quick game they play before opening - or skip it.')
+          : (challenge.game ? vtxt('challengeHintReady', null, 'They’ll play this before the box opens. Next: what goes inside.')
+                            : vtxt('challengeHintPick', null, 'Pick a game, or switch the challenge off.'));
       } else if (stage === 'fill') {
         primary.disabled = contents.length === 0;
         primary.textContent = vtxt('sealBtn', null, 'Seal the box →');
@@ -2292,9 +2406,14 @@
           ? vtxt('sealHintReady', { count: contents.length, s: contents.length > 1 ? 's' : '' }, `${contents.length} item${contents.length>1?'s':''} inside · ready to seal`)
           : vtxt('sealHintEmpty', null, 'Add at least one asset to seal.');
       } else if (stage === 'order') {
-        primary.disabled = false;
-        primary.textContent = vtxt('orderBtn', null, 'Confirm & send →');
-        hint.textContent = vtxt('orderHint', null, 'Check the box one last time - then we wrap it for the road.');
+        const payable = orderPayable();   // W6: USD value in the box + payments capable
+        primary.disabled = orderPaying;
+        primary.textContent = orderPaying ? vtxt('orderPayingBtn', null, 'Paying…')
+          : payable ? vtxt('orderPayBtn', null, 'Pay & send →')
+          : vtxt('orderBtn', null, 'Confirm & send →');
+        hint.textContent = payable
+          ? vtxt('orderPayHint', null, 'One charge, right now - then we wrap it for the road.')
+          : vtxt('orderHint', null, 'Check the box one last time - then we wrap it for the road.');
       }
     }
 
@@ -2311,6 +2430,97 @@
     function stepFill() {
       stage = 'fill';
       showPane('fill');
+      updatePrimary();
+    }
+
+    /* ---- W4: the optional "earn the open" challenge step ------------------ */
+    const CH_GAMES = [
+      { id: 'defuse',      emoji: '💣', name: 'Defuse',      desc: 'Cut the wire where two colours cross, before the timer.' },
+      { id: 'safecracker', emoji: '🔐', name: 'Safecracker', desc: 'Crack a brass dial by feel - the combo is on a paper card.' },
+      { id: 'decoder',     emoji: '📻', name: 'Decoder',     desc: 'Tune a field radio onto each hidden signal to decode it.' },
+      { id: 'circuit',     emoji: '🔌', name: 'Circuit',     desc: 'Rotate tiles to route power around burnt cells to the gift.' },
+    ];
+    function loadScriptOnce(src) {
+      return new Promise((resolve, reject) => {
+        if (document.querySelector('script[data-src="' + src + '"]')) return resolve();
+        const s = document.createElement('script'); s.src = src; s.dataset.src = src; s.async = true;
+        s.onload = () => resolve(); s.onerror = () => reject(new Error('load ' + src));
+        document.head.appendChild(s);
+      });
+    }
+    // lazy-load the unlock kit (+ the chosen game + the author helper) for the live "Try it"
+    function loadUnlockKit(game) {
+      return loadScriptOnce('/unlock-kit/giiift-unlock.js').then(() => Promise.all([
+        loadScriptOnce('/unlock-kit/giiift-unlock-' + game + '.js'),
+        loadScriptOnce('/unlock-kit/giiift-unlock-author.js'),
+      ]));
+    }
+    function renderChGames() {
+      const host = document.getElementById('ch-games'); if (!host) return;
+      host.innerHTML = '';
+      CH_GAMES.forEach(g => {
+        const b = document.createElement('button');
+        b.type = 'button'; b.className = 'ch-card' + (challenge.game === g.id ? ' sel' : '');
+        const e = document.createElement('div'); e.className = 'ch-emoji'; e.textContent = g.emoji;
+        const n = document.createElement('div'); n.className = 'ch-name'; n.textContent = g.name;
+        const d = document.createElement('div'); d.className = 'ch-desc'; d.textContent = g.desc;
+        b.appendChild(e); b.appendChild(n); b.appendChild(d);
+        b.addEventListener('click', () => { challenge.game = g.id; renderChGames(); syncChConfig(); updatePrimary(); });
+        host.appendChild(b);
+      });
+    }
+    function syncChConfig() {
+      const box = document.getElementById('ch-config'); if (box) box.hidden = !challenge.game;
+    }
+    let chDemoGate = null;
+    function chTryPreview() {
+      if (!challenge.game) return;
+      const btn = document.getElementById('ch-try');
+      const note = document.getElementById('ch-preview-note');
+      btn.disabled = true; btn.textContent = 'Loading the game…';
+      loadUnlockKit(challenge.game).then(() => {
+        const A = window.GIIIFTUnlockAuthor, U = window.GIIIFTUnlock;
+        if (!A || !U) throw new Error('kit missing');
+        const v = A.validate(challenge.game, { tier: challenge.tier });
+        const feats = A.features(challenge.game, (v && v.clean) || {});
+        btn.disabled = false; btn.textContent = '▶ Try this game';
+        if (note) note.hidden = true;
+        const done = () => { try { chDemoGate && chDemoGate.destroy && chDemoGate.destroy(); } catch (e) {} chDemoGate = null; };
+        chDemoGate = U.mount(document.body, feats, {
+          seed: 'wrap-try-' + challenge.game, accent: cfg.accent, overlay: true,
+          exitLabel: 'Back to wrapping', onUnlock: done, onClose: done,
+        });
+      }).catch(() => {
+        btn.disabled = false; btn.textContent = '▶ Try this game';
+        if (note) { note.hidden = false; note.textContent = 'Preview unavailable right now - the game still works on the gift itself.'; }
+      });
+    }
+    function stepChallenge() {
+      stage = 'challenge';
+      showPane('challenge');
+      const on = document.getElementById('ch-on');
+      const body = document.getElementById('ch-body');
+      if (on && !on.dataset.wired) {
+        on.dataset.wired = '1';
+        on.addEventListener('change', () => {
+          challenge.on = on.checked;
+          if (body) body.hidden = !on.checked;
+          if (on.checked) renderChGames();
+          updatePrimary();
+        });
+        document.querySelectorAll('#ch-tier .vchip').forEach(btn => {
+          btn.addEventListener('click', () => {
+            challenge.tier = btn.dataset.tier;
+            document.querySelectorAll('#ch-tier .vchip').forEach(x => x.classList.toggle('sel', x === btn));
+          });
+        });
+        const tryBtn = document.getElementById('ch-try');
+        if (tryBtn) tryBtn.addEventListener('click', chTryPreview);
+      }
+      if (on) on.checked = challenge.on;
+      if (body) body.hidden = !challenge.on;
+      if (challenge.on) renderChGames();
+      syncChConfig();
       updatePrimary();
     }
 
@@ -2365,6 +2575,28 @@
       .then(j => { if (j && j.marketplacePct) FEE_PCTS = j.marketplacePct; updateRunTotal(); })
       .catch(() => {});
 
+    // ---------- W5: the marketplace picker (the "From the shop" tab) ----------
+    // The picker (marketplace M6) owns browsing, adds and the pick-one shortlist in
+    // its own store keys; this bridge folds its totals into ours (one running total,
+    // one order page, one payable amount for the W6 rails) and renders its rows in
+    // the contents list. Money model: goods VALUE rides as USDC credit in the gift,
+    // pick-one ids ride `p1` (their receive shelf renders the choice).
+    let shopPickerMounted = false;
+    function initShopPicker() {
+      if (shopPickerMounted || !window.GIIIFTMarketPicker) return;
+      shopPickerMounted = true;
+      GIIIFTMarketPicker.embed('#shop-embed', {
+        onChange: () => { renderContents(); updateRunTotal(); updatePrimary(); },
+      });
+    }
+    function marketTotals() {
+      try {
+        if (!window.GIIIFTMarketPicker) return null;
+        const t = GIIIFTMarketPicker.totals(window.GIIIFTFlow ? GIIIFTFlow.ctx() : null);
+        return (t && (t.adds.length || t.pickOneIds.length)) ? t : null;
+      } catch (e) { return null; }
+    }
+
     function computeTotals() {
       let usd = 0, feeBase = 0; const nonUsd = [];
       contents.forEach(it => {
@@ -2374,8 +2606,11 @@
         else if (amt) nonUsd.push(amt + ' ' + it.ticker);
       });
       const pct = Number(FEE_PCTS.default) || 0;
-      const fee = feeBase * pct / 100;
-      return { usd, fee, pct, total: usd + fee, nonUsd };
+      let fee = feeBase * pct / 100;
+      // shop goods: value + per-type fee from the picker's own math (ONE pricing config)
+      const mt = marketTotals();
+      if (mt) { usd += mt.goodsUsd; fee += mt.feeUsd; }
+      return { usd, fee, pct, total: usd + fee, nonUsd, market: mt };
     }
 
     function updateRunTotal() {
@@ -2408,14 +2643,87 @@
         else row((it.amount + ' ' + it.ticker).trim(), it.ticker === 'USDC' || it.ticker === 'USDT' ? '$' + (parseFloat(it.amount) || 0).toFixed(2) : '—', '', it.name);
       });
       const t = computeTotals();
-      if (contents.some(c => c.retail)) {   // fee transparency: the row shows whenever picked goods are in the box, even at 0%
-        const fr = row('Marketplace fee (' + t.pct + '%)', '$' + t.fee.toFixed(2), 'order-fee');
+      if (t.market) {
+        t.market.adds.forEach(a => row(a.title || 'Shop item', '$' + (Number(a.usd) || 0).toFixed(2), '', 'from the shop'));
+        if (t.market.pickOneIds.length) row('They pick one of ' + t.market.pickOneIds.length,
+          t.market.priced ? '$' + t.market.pickOneFundUsd.toFixed(2) : '—', '', 'your shortlist · their choice');
+      }
+      if (contents.some(c => c.retail) || t.market) {   // fee transparency: the row shows whenever picked goods are in the box, even at 0%
+        const fr = row('Marketplace fee', '$' + t.fee.toFixed(2), 'order-fee');
         const det = document.createElement('details');
         det.innerHTML = '<summary> ⓘ</summary><div class="fee-why">The fee covers checkout rails and curation on picked goods. Cash and asset gifts transfer free - that part is never charged.</div>';
         fr.firstChild.appendChild(det);
       }
       const totalEl = document.getElementById('order-total');
       if (totalEl) totalEl.textContent = [t.total > 0 ? '$' + t.total.toFixed(2) : (t.nonUsd.length ? '' : '$0.00'), t.nonUsd.join(' + ')].filter(Boolean).join(' + ');
+      const note = document.getElementById('order-note');
+      if (note) {
+        note.textContent = demoOrder() && t.total > 0
+          ? 'Demo order - nothing is charged.'
+          : (orderPayable()
+            ? 'One charge when you hit Pay & send. Sending the box is free, always.'
+            : 'Nothing to charge today. Sending is free, always.');
+      }
+    }
+
+    // ---------- W6: the pay CTA, wired into market-rails (dark/demo-safe) ----------
+    // Payable when the box carries USD value (computeTotals already folds the goods
+    // fee in). The mirror ships GIIIFT_CAPS.payments:false → the order renders as a
+    // demo and payment is skipped; the dark product walks the rails' demo path (same
+    // states, same receipts) until provider keys exist. Rails stack lazy-loads on
+    // first pay so the wizard never carries the marketplace weight up front.
+    let orderPaid = false, orderPaying = false;
+    function demoOrder() {
+      if ((window.GIIIFT_CAPS || {}).payments === false) return true;
+      try { return localStorage.getItem('giiift-demo') === '1'; } catch (e) { return false; }
+    }
+    function orderPayable() { return !orderPaid && !demoOrder() && computeTotals().total > 0; }
+    const railScripts = {};
+    function loadOnce(src) {
+      if (!railScripts[src]) railScripts[src] = new Promise((res, rej) => {
+        const s = document.createElement('script');
+        s.src = src; s.onload = res; s.onerror = () => rej(new Error('failed to load ' + src));
+        document.head.appendChild(s);
+      });
+      return railScripts[src];
+    }
+    function paintOrderState(state, label) {
+      const el = document.getElementById('order-state');
+      if (!el) return;
+      el.hidden = false;
+      el.className = 'order-state' + (state === 'fulfilled' ? ' is-done' : state === 'failed' ? ' is-fail' : ' is-doing');
+      el.innerHTML = '';
+      const dot = document.createElement('span'); dot.className = 'dot';
+      el.appendChild(dot); el.appendChild(document.createTextNode(label));
+    }
+    async function startOrderPay() {
+      if (orderPaying || !orderPayable()) return;
+      orderPaying = true; updatePrimary();
+      paintOrderState('quoted', 'Preparing your order…');
+      try {
+        if (!window.GIIIFTMarketRails) { await loadOnce('/showcase/market-engine.js'); await loadOnce('/showcase/market-rails.js'); }
+        const total = +computeTotals().total.toFixed(2);
+        const q = { legs: [{ rail: 'balance', total: total }] };
+        const order = { id: 'wrap-' + Math.random().toString(36).slice(2, 9), live: false, balanceUsd: total };
+        const COPY = {
+          quoted: 'Quoting your order…',
+          'awaiting-funds': 'Topping up…',
+          executing: 'Paying $' + total.toFixed(2) + '…',
+          fulfilled: 'Paid · sending your box',
+          failed: "Payment didn't go through",
+        };
+        await window.GIIIFTMarketRails.execute(order, q, [], { onState: (o, state, extra) => {
+          if (state === 'failed') paintOrderState('failed', COPY.failed + (extra && extra.reason ? ' · ' + extra.reason : ''));
+          else paintOrderState(state, COPY[state] || state);
+          if (state === 'fulfilled') {
+            orderPaid = true;
+            setTimeout(() => GIIIFTFlow.next(), 750);   // a beat on the receipt, then the finalize transition
+          }
+        } });
+      } catch (e) {
+        paintOrderState('failed', "Payment didn't go through · " + ((e && e.message) || 'try again'));
+      }
+      orderPaying = false; updatePrimary();
     }
 
     function stepOrder() {
@@ -2494,6 +2802,10 @@
           d.av = avKey;
         } catch (e) { console.warn('[GIIIFT] voice note too large to stash, sending without:', e); }
       }
+      // W4: the optional unlock challenge rides as its own compact key {g,t} (NEVER through
+      // engine-doc features, which M5 cleanDoc strips by design). box.html rebuilds the game
+      // from {g,t} and gates the open. Off-by-default → no key → today's flow byte-identical.
+      if (challenge.on && challenge.game) d.ch = { g: challenge.game, t: challenge.tier };
       // M5: a lab-crafted CUSTOM doc survives to the recipient. Far too big for
       // the ?g= token (CDN URL limits), it rides (a) the Supabase short-link /
       // intent payloads as `cd` and (b) a same-device localStorage key (`d.cdk`,
@@ -2527,6 +2839,14 @@
         i: contents.map(it => [it.ticker, it.amount]),
       };
       if (Object.keys(d).length) compact.d = d;
+      // W5: pick-one ids ride p1 (the receive shelf renders the choice); shop goods
+      // VALUE rides as USDC credit so the receiver is never short-changed before
+      // live fulfillment exists (the marketplace lane's claim/checkout rails).
+      if (window.GIIIFTMarketPicker) {
+        try { Object.assign(compact, GIIIFTMarketPicker.payloadFields(window.GIIIFTFlow ? GIIIFTFlow.ctx() : null)); } catch (e) {}
+        const mt = marketTotals();
+        if (mt && mt.goodsUsd > 0) compact.i.push(['USDC', String(mt.goodsUsd)]);
+      }
       if (cfg.noName) compact.t = '';   // Surprise mode: the box stays nameless on the receive side too
       ['t', 'f', 'm', 'n'].forEach(k => { if (!compact[k]) delete compact[k]; });
       // a chosen "real thing" rides as r:{p} (receive side: box.html hook → retail-claim.js);
@@ -2829,16 +3149,18 @@
     })();
 
     GIIIFTFlow.register({ key: 'fill',   rail: { label: 'Gift' },   enter: stepFill,
-      valid: () => contents.length > 0 || vtxt('sealHintEmpty', null, 'Add at least one asset to seal.') });
+      valid: () => contents.length > 0 || !!marketTotals() || vtxt('sealHintEmpty', null, 'Add at least one asset to seal.') });
     GIIIFTFlow.register({ key: 'seal',   rail: false,               enter: stepSeal });
     GIIIFTFlow.register({ key: 'text',   rail: { label: 'Personalize' },   enter: stepText });
+    GIIIFTFlow.register({ key: 'challenge', rail: { label: 'Challenge' }, enter: stepChallenge,
+      valid: () => (!challenge.on || !!challenge.game) ? true : vtxt('challengeHintPick', null, 'Pick a game, or switch the challenge off.') });
     GIIIFTFlow.register({ key: 'order',  rail: { label: 'Order' },  enter: stepOrder });
     GIIIFTFlow.register({ key: 'send',   rail: { label: 'Send' },   enter: stepSend });
     GIIIFTFlow.register({ key: 'design-lab', rail: { label: 'Design' }, enter: stepDesignLab, exit: exitDesignLab });
     const FLOW_LAB = (() => { try { return new URLSearchParams(location.search).get('flow') === 'lab'; } catch (e) { return false; } })();
-    const STEPS_CANON = ['name', 'design', 'text', 'fill', 'seal', 'order', 'send'];
+    const STEPS_CANON = ['name', 'design', 'text', 'challenge', 'fill', 'seal', 'order', 'send'];
     GIIIFTFlow.start({
-      steps: FLOW_LAB ? ['name', 'design-lab', 'text', 'fill', 'seal', 'order', 'send'] : STEPS_CANON,
+      steps: FLOW_LAB ? ['name', 'design-lab', 'text', 'challenge', 'fill', 'seal', 'order', 'send'] : STEPS_CANON,
       rail: '#steps',
       initial: 'name',
       runEnter: false,   // boot matches the markup-initial name step (no autofocus on load)
@@ -2848,7 +3170,10 @@
     // contents:add → drop animation, flow:seal → lid + tape (spec §2.4)
     GIIIFTStageBox.mount({ box: '#box', stage: '.box-stage', ctx: GIIIFTFlow.ctx(), deps: { faceBg, logoUrl } });
     paintEyebrows();   // step numbers derive from the order above (vertical tags ride vtxt)
-    primary.addEventListener('click', () => GIIIFTFlow.next());
+    primary.addEventListener('click', () => {
+      if (stage === 'order' && orderPayable()) { startOrderPay(); return; }   // W6: pay before advancing
+      GIIIFTFlow.next();
+    });
     document.getElementById('to-text').addEventListener('click', () => GIIIFTFlow.go('name'));   // "← Back to name" on the design step
 
     document.getElementById('copy-link').addEventListener('click', async (e) => {
@@ -3365,6 +3690,11 @@
       if (to) cfg.labelTo = 'To: ' + to;
       const occ = (q.get('occasion') || '').trim();
       if (occ) setOccasion(occ.slice(0, 24));
+      // wishlist "gift one" links arrive as /wrap?...&p1=<ids> (marketplace M7);
+      // validated like the picker does, seeded into its store key
+      const p1 = (q.get('p1') || '').split(',').map(x => x.trim())
+        .filter(x => /^[a-z0-9][a-z0-9:_-]{2,47}$/i.test(x)).slice(0, 3);
+      if (p1.length && window.GIIIFTFlow) try { GIIIFTFlow.ctx().set('market.pickOne', p1); } catch (e) {}
     })();
     if (window.__seedToName) window.__seedToName();   // ?to= / reciprocity seeds land in the step-1 field
     renderContents();

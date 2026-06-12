@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<script>/* public showcase mirror: always demo mode */try{localStorage.setItem("giiift-demo","1");localStorage.setItem("giiift-authed","1");}catch(e){}window.GIIIFT_CAPS={intents:false,oauth:false,telemetry:false};</script>
+<script>/* public showcase mirror: always demo mode */try{localStorage.setItem("giiift-demo","1");localStorage.setItem("giiift-authed","1");}catch(e){}window.GIIIFT_CAPS={intents:false,oauth:false,telemetry:false,payments:false};</script>
 <meta name="robots" content="noindex, nofollow, noarchive">
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -879,6 +879,12 @@
           // {a: dataURL, m: mime, s: secs} under giiift-av:<key>). Key only —
           // the audio itself never rides the token (URL limits).
           av: (typeof d.av === "string" && /^[a-z0-9]{4,24}$/i.test(d.av)) ? d.av : "",
+          // unlock challenge (W4): a compact {g,t} (game + tier) gated at open. g must be one of
+          // the four mature gates, t one of the two tiers; anything else is ignored and the box
+          // opens normally. The game + its validator are unlock-kit-owned (lazy-loaded on open).
+          ch: (d.ch && typeof d.ch === "object" && !Array.isArray(d.ch)
+            && /^(defuse|safecracker|decoder|circuit)$/.test(d.ch.g)
+            && /^(normal|oneshot)$/.test(d.ch.t)) ? { g: d.ch.g, t: d.ch.t } : null,
           // custom engine doc (M5): the full object rides short-link / intent
           // payloads as `cd`; `d.cdk` is the same-device localStorage key (the
           // photos precedent). Both attacker-controllable -> cleanDoc (engine
@@ -1472,10 +1478,152 @@
           + (res.total > 0 ? "&pack=" + res.total : "")
           + (viaCode ? "&via=" + encodeURIComponent(viaCode) : "");
         tail.insertAdjacentElement("afterend", r);
+        tail = r;
+
+        // ---------- reaction back (receive-flow lane) ----------
+        // Let the recipient send the sender a reaction to opening the gift — the
+        // emotional payoff of the loop. V1 = a PHOTO, captured opt-in at the open
+        // moment (never auto-recorded), compressed client-side, stashed locally,
+        // and shared as a same-device demo "reaction link" (/reaction?rx=<key>,
+        // mirrors the giiift-photos:/giiift-av: stash pattern). Automatic delivery
+        // to the sender is backend-gated (see docs/RECEIVE_FLOW.md) — labelled honestly.
+        mountReactionBack(tail, sender);
       }
     }
-    // Invitation links route the tap through the handshake first; everything else opens directly.
-    const tapOpen = () => { if (intentGate()) return; openGift(); };
+
+    function mountReactionBack(after, sender) {
+      if (!after || typeof FileReader === "undefined") return;
+      const esc = (s) => String(s == null ? "" : s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+      const rst = document.createElement("style");
+      rst.textContent =
+        ".rx-back{margin:14px auto 0;max-width:390px;border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:12px 13px;background:linear-gradient(180deg,rgba(255,255,255,0.045),rgba(255,255,255,0.012));text-align:center}" +
+        ".rx-back .rx-h{font-weight:700;font-size:12.5px;color:var(--ink,#f3f4f2)}" +
+        ".rx-back .rx-sub{font-size:10.5px;line-height:1.5;color:rgba(243,244,242,0.5);margin-top:4px}" +
+        ".rx-btn{margin-top:10px;display:inline-block;background:var(--accent-ui,#00FF9D);color:#04130c;font-weight:700;font-size:12.5px;border:none;border-radius:10px;padding:10px 18px;cursor:pointer;font-family:inherit}" +
+        ".rx-btn.ghost{background:transparent;color:rgba(243,244,242,0.7);border:1px solid rgba(255,255,255,0.18)}" +
+        ".rx-actions{display:flex;gap:8px;justify-content:center;margin-top:10px;flex-wrap:wrap}" +
+        ".rx-prev{margin:10px auto 0;width:128px;height:128px;border-radius:12px;object-fit:cover;display:block;border:1px solid rgba(255,255,255,0.14)}" +
+        ".rx-link{margin-top:10px;display:flex;gap:6px}" +
+        ".rx-link input{flex:1;min-width:0;background:rgba(0,0,0,0.35);border:1px solid rgba(255,255,255,0.14);border-radius:8px;color:#fff;font:11px monospace;padding:8px 10px}" +
+        ".rx-demo{font-size:9px;color:rgba(243,244,242,0.4);margin-top:8px;line-height:1.5}";
+      document.head.appendChild(rst);
+
+      const box = document.createElement("div");
+      box.className = "rx-back";
+      box.innerHTML =
+        '<div class="rx-h">' + esc(vtxt("reactionTitle", { from: sender }, "Let " + sender + " see you open it")) + "</div>" +
+        '<div class="rx-sub">Snap a quick reaction to send back. Only if you want to — nothing is recorded automatically.</div>' +
+        '<button type="button" class="rx-btn" id="rx-start">📸 React back</button>';
+      after.insertAdjacentElement("afterend", box);
+
+      // native capture / file pick — robust, no getUserMedia/Permissions-Policy dance,
+      // opens the selfie camera on mobile via capture="user"
+      const input = document.createElement("input");
+      input.type = "file"; input.accept = "image/*"; input.setAttribute("capture", "user");
+      input.style.display = "none";
+      box.appendChild(input);
+
+      const start = box.querySelector("#rx-start");
+      start.addEventListener("click", () => input.click());
+
+      input.addEventListener("change", () => {
+        const file = input.files && input.files[0];
+        if (!file || !/^image\//.test(file.type)) return;
+        const fr = new FileReader();
+        fr.onload = () => compress(String(fr.result), 720, 0.82, showPreview);
+        fr.onerror = () => { box.querySelector(".rx-sub").textContent = "Couldn't read that photo — try again."; };
+        fr.readAsDataURL(file);
+      });
+
+      // downscale to a small JPEG so it fits localStorage + a future host comfortably
+      function compress(dataUrl, max, q, done) {
+        const img = new Image();
+        img.onload = () => {
+          const scale = Math.min(1, max / Math.max(img.width || max, img.height || max));
+          const w = Math.max(1, Math.round((img.width || max) * scale));
+          const h = Math.max(1, Math.round((img.height || max) * scale));
+          const cv = document.createElement("canvas"); cv.width = w; cv.height = h;
+          try { cv.getContext("2d").drawImage(img, 0, 0, w, h); done(cv.toDataURL("image/jpeg", q)); }
+          catch (e) { done(dataUrl); }
+        };
+        img.onerror = () => done(dataUrl);
+        img.src = dataUrl;
+      }
+
+      function showPreview(dataUrl) {
+        box.innerHTML =
+          '<div class="rx-h">Looking good 👀</div>' +
+          '<img class="rx-prev" alt="your reaction" src="' + dataUrl + '">' +
+          '<div class="rx-actions"><button type="button" class="rx-btn ghost" id="rx-redo">Retake</button>' +
+          '<button type="button" class="rx-btn" id="rx-use">Use this →</button></div>';
+        box.appendChild(input);
+        box.querySelector("#rx-redo").addEventListener("click", () => input.click());
+        box.querySelector("#rx-use").addEventListener("click", () => finish(dataUrl));
+      }
+
+      function finish(dataUrl) {
+        let key = "";
+        try {
+          key = Math.random().toString(36).slice(2, 10);
+          writeJson("giiift-reaction:" + key, { img: dataUrl, at: Date.now() });
+        } catch (e) { /* quota — fall back to no-link */ }
+        if (window.giiift && window.giiift.track) window.giiift.track("reaction_captured", {});
+        const link = key ? (location.origin + "/reaction?rx=" + key) : "";
+        box.innerHTML =
+          '<div class="rx-h">Reaction ready 🎁</div>' +
+          '<div class="rx-sub">Send this back to ' + esc(sender) + " so they can see your face when it landed.</div>" +
+          (link
+            ? '<div class="rx-link"><input id="rx-url" readonly value="' + esc(link) + '"><button type="button" class="rx-btn" id="rx-copy">Copy</button></div>'
+            : '<div class="rx-sub">Saved on this device.</div>') +
+          '<div class="rx-demo">Preview: opens on this device. Automatic delivery to ' + esc(sender) + " arrives once the backend is live.</div>";
+        const copy = box.querySelector("#rx-copy");
+        if (copy) copy.addEventListener("click", () => {
+          const u = box.querySelector("#rx-url"); if (u) { u.select(); }
+          try { navigator.clipboard.writeText(link); copy.textContent = "Copied ✓"; }
+          catch (e) { copy.textContent = "Copied ✓"; }
+          if (window.giiift && window.giiift.track) window.giiift.track("reaction_link_copied", {});
+          setTimeout(() => { copy.textContent = "Copy"; }, 1800);
+        });
+      }
+    }
+    // W4: an optional "earn the open" game gates the reveal. The unlock kit is lazy-loaded ONLY
+    // when a gift actually carries d.ch; on any load/validate failure we open normally (the gift
+    // is never trapped). The gate itself also never loses the gift (a miss re-arms, kit §13.2).
+    let chSolved = false, chMounting = false;
+    function challengeGate() {
+      const ch = gift && gift.ch;
+      if (!ch || chSolved || chMounting) return !!(ch && !chSolved);   // intercept until solved
+      chMounting = true;
+      const files = [
+        "/unlock-kit/giiift-unlock.js",
+        "/unlock-kit/giiift-unlock-" + ch.g + ".js",
+        "/unlock-kit/giiift-unlock-author.js",
+      ];
+      const load = (src) => new Promise((res, rej) => {
+        if (document.querySelector('script[data-src="' + src + '"]')) return res();
+        const s = document.createElement("script"); s.src = src; s.dataset.src = src; s.async = true;
+        s.onload = () => res(); s.onerror = () => rej(new Error("load " + src));
+        document.head.appendChild(s);
+      });
+      load(files[0]).then(() => Promise.all([load(files[1]), load(files[2])])).then(() => {
+        const A = window.GIIIFTUnlockAuthor, U = window.GIIIFTUnlock;
+        if (!A || !U) throw new Error("kit missing");
+        const v = A.validate(ch.g, { tier: ch.t });
+        const feats = A.features(ch.g, (v && v.clean) || {});
+        chMounting = false;
+        U.mount(document.body, feats, {
+          seed: giftKey,                                   // stable puzzle per gift link
+          accent: (gift.design && gift.design.accent) || undefined,
+          overlay: true,
+          onUnlock: () => { chSolved = true; openGift(); },
+          onClose: () => {},                               // dismissed unsolved: tap again to retry
+        });
+      }).catch(() => { chMounting = false; chSolved = true; openGift(); });   // kit failed -> never trap the gift
+      return true;   // intercept this tap; the gate (or the fallback open) takes over
+    }
+    // Invitation links route the tap through the handshake first; the challenge gate (if any)
+    // comes next; everything else opens directly.
+    const tapOpen = () => { if (intentGate()) return; if (challengeGate()) return; openGift(); };
     cta.addEventListener("click", tapOpen);
     box.addEventListener("click", tapOpen);
 

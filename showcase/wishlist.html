@@ -7,7 +7,7 @@
      that stays dark until the 🧵 lane honors it; pick-one funding uses the M6 field. -->
 <html lang="en" data-theme="dark">
 <head>
-<script>/* public showcase mirror: always demo mode */try{localStorage.setItem("giiift-demo","1");localStorage.setItem("giiift-authed","1");}catch(e){}window.GIIIFT_CAPS={intents:false,oauth:false,telemetry:false};</script>
+<script>/* public showcase mirror: always demo mode */try{localStorage.setItem("giiift-demo","1");localStorage.setItem("giiift-authed","1");}catch(e){}window.GIIIFT_CAPS={intents:false,oauth:false,telemetry:false,payments:false};</script>
 <meta name="robots" content="noindex, nofollow, noarchive">
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -116,8 +116,8 @@
       if (mode !== 'fund') return;
       var go = $('fundgo');
       $('fundnote').innerHTML = picks.length
-        ? '<b>' + picks.length + '</b>/' + PICK_MAX + ' picked · funds <b>' + GM.money(fundPrice()) + '</b> · ' + (name || 'they') + ' choose' + (name ? 's' : '') + ' ONE'
-        : 'Pick up to ' + PICK_MAX + ' — ' + (name || 'they') + ' choose' + (name ? 's' : '') + ' one at the reveal';
+        ? '<b>' + picks.length + '</b>/' + PICK_MAX + ' picked · funds <b>' + GM.money(fundPrice()) + '</b> · ' + GM.esc(name || 'they') + ' choose' + (name ? 's' : '') + ' ONE'
+        : 'Pick up to ' + PICK_MAX + ' — ' + GM.esc(name || 'they') + ' choose' + (name ? 's' : '') + ' one at the reveal';
       go.disabled = !picks.length;
     }
     $('fundgo').addEventListener('click', function () {

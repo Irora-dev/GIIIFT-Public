@@ -47,7 +47,9 @@
     var ids = (opts.pickOne || []).slice(0, 3);
     var key = ids.slice().sort().join("|");
     var chosen = pickStore()[key] || null;
-    var from = (opts && opts.from) || "they";
+    // Part 3 3.6: the sender name is payload-controlled — escape happens downstream,
+    // but cap the LENGTH here so a hostile 10k-char name can't wreck the layout
+    var from = String((opts && opts.from) || "they").slice(0, 40);
 
     var host = document.createElement("div");
     host.style.marginTop = "26px";
@@ -111,7 +113,7 @@
       mountEl.appendChild(host);
 
       if (doc) {
-        var from = (opts && opts.from) || doc.name || doc.handle;
+        var from = String((opts && opts.from) || doc.name || doc.handle).slice(0, 40);   // Part 3 3.6
         GM.track("receive_shelf", { handle: doc.handle, demo: !!doc.demo });
         GM.mount(host, Object.assign(SF.viewConfig(doc, {
           eyebrow: from + " picked these",

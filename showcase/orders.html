@@ -4,7 +4,7 @@
      Demo mode lists localStorage giiift-orders; live mode (M4) reads /api/market/order. -->
 <html lang="en" data-theme="dark">
 <head>
-<script>/* public showcase mirror: always demo mode */try{localStorage.setItem("giiift-demo","1");localStorage.setItem("giiift-authed","1");}catch(e){}window.GIIIFT_CAPS={intents:false,oauth:false,telemetry:false};</script>
+<script>/* public showcase mirror: always demo mode */try{localStorage.setItem("giiift-demo","1");localStorage.setItem("giiift-authed","1");}catch(e){}window.GIIIFT_CAPS={intents:false,oauth:false,telemetry:false,payments:false};</script>
 <meta name="robots" content="noindex, nofollow, noarchive">
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -77,6 +77,7 @@
       if (!all.length) { list.innerHTML = '<div class="empty">No orders yet. <a href="/showcase/shop.html">Find something at the shop →</a></div>'; return; }
       list.innerHTML = '';
       all.forEach(function (o) {
+        try {   // M9 2.15: a corrupt row renders a placeholder, never blanks the page
         var d = document.createElement('div'); d.className = 'order';
         d.innerHTML = '<div class="order-h"><span class="oid">' + GM.esc(o.id) + '</span>' +
           '<span class="mk-state mk-state-' + GM.esc(o.state) + '">' + GM.esc(o.state) + '</span>' +
@@ -85,10 +86,20 @@
           '<div class="order-b">' + MC.receiptHtml(o) +
           ((o.state === 'awaiting-funds' || o.state === 'failed') ? '<button type="button" class="btn resume" data-id="' + GM.esc(o.id) + '">Resume order</button>' : '') +
           '</div>';
-        d.querySelector('.order-h').addEventListener('click', function () { d.classList.toggle('open'); });
+        var h = d.querySelector('.order-h');
+        // Part 3 3.5: keyboard-operable expandable rows (were click-only divs)
+        h.setAttribute('role', 'button'); h.setAttribute('tabindex', '0'); h.setAttribute('aria-expanded', 'false');
+        function toggleRow() { d.classList.toggle('open'); h.setAttribute('aria-expanded', String(d.classList.contains('open'))); }
+        h.addEventListener('click', toggleRow);
+        h.addEventListener('keydown', function (e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleRow(); } });
         var r = d.querySelector('.resume');
         if (r) r.addEventListener('click', function (e) { e.stopPropagation(); r.disabled = true; MC.resume(o.id, function () { paint(); }); });
         list.appendChild(d);
+        } catch (e) {
+          var ph = document.createElement('div'); ph.className = 'order';
+          ph.innerHTML = '<div class="order-h"><span class="oid">' + GM.esc(String((o || {}).id || 'order')) + '</span><span class="mk-state mk-state-failed">unreadable</span></div>';
+          list.appendChild(ph);
+        }
       });
     }
     // demo orders resolve item ids against the catalog: load it, then paint

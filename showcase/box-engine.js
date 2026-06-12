@@ -88,10 +88,11 @@
     smokum: { name: "Smokum", gf: "Smokum", cat: "dark", vibe: ["western", "vintage"] },
   };
   var ALIGN = { left: 1, center: 1, right: 1 };
-  var EFFECTS = { none: 1, shadow: 1, lift: 1, neon: 1, highlight: 1 };   // wave 2: one-click text effects
-  var FILLKINDS = { solid: 1, linear: 1, radial: 1 };   // shape gradient fill (incl. fade to transparent)
+  var EFFECTS = { none: 1, shadow: 1, lift: 1, neon: 1, highlight: 1, chromatic: 1 };   // wave 2: one-click text effects (chromatic = RGB-split)
+  var FILLKINDS = { solid: 1, linear: 1, radial: 1, halftone: 1 };   // gradient fill (incl. fade to transparent); halftone = dot fill (text)
   var ELSHAPES = { rect: 1, ellipse: 1, line: 1, triangle: 1, star: 1, diamond: 1, heart: 1, arrow: 1, bubble: 1, burst: 1, ribbon: 1 }; // `shape` element sub-kinds (distinct from the box SHAPES above)
   var FRAMES = { rect: 1, rounded: 1, circle: 1, heart: 1, star: 1, triangle: 1, hexagon: 1, blob: 1 };   // `frame` photo-clip shapes
+  var FRAMETREATS = { polaroid: 1, tape: 1, torn: 1, film: 1 };   // decorative `frame` treatments (gifting/scrapbook), independent of the clip shape
   var ANIMS = { pop: 1, fade: 1, rise: 1, spin: 1, float: 1 };   // per-element reveal animations (fire on box open)
   var BLENDS = { normal: 1, multiply: 1, screen: 1, overlay: 1, darken: 1, lighten: 1, "color-dodge": 1, "color-burn": 1, "hard-light": 1, "soft-light": 1, difference: 1, exclusion: 1, hue: 1, saturation: 1, color: 1, luminosity: 1 };   // per-layer mix-blend-mode (composite with what's behind)
   var STROKESTYLES = { solid: 1, dashed: 1, dotted: 1 };       // shape border style
@@ -196,7 +197,7 @@
   var STICKERS = (typeof window !== "undefined" && window.GIIIFTBoxStickers) || {};
   // full-face panel/wrap library (defined in box-panels.js, loaded before this file)
   var PANELS = (typeof window !== "undefined" && window.GIIIFTBoxPanels) || {};
-  var MAX_LAYERS = 16;     // per face
+  var MAX_LAYERS = 32;     // per face (raised from 16 so a template's decomposed artwork can land as individual editable layers)
   var MAX_TEXT = 160;
   // art sources: https URLs, ipfs, or our own generative svg data-uri
   var ART_OK = /^(https:\/\/[^\s"'<>]+|ipfs:\/\/[^\s"'<>]+)$/i;
@@ -354,6 +355,10 @@
         base.radius = num(e.radius, 0.16, 0, 0.5);       // corner radius for the `rounded` frame
         base.w = num(e.w, 0.42, 0.05, 1); base.h = num(e.h, 0.42, 0.05, 1);
         base.opacity = num(e.opacity, 1, 0, 1);
+        if (e.treatment && e.treatment !== "none" && FRAMETREATS[e.treatment]) {   // decorative treatment (additive; absent = the plain clip frame, existing docs byte-identical)
+          base.treatment = e.treatment;
+          if (e.treatment === "polaroid" && e.caption != null) base.caption = str(e.caption, 40);
+        }
         break;
       case "qr":                                         // scannable QR (claim link / IRL gifting)
         base.value = str(e.value, 512);
@@ -368,6 +373,8 @@
       var sx = num(e.shadow.x, 0, -0.12, 0.12), sy = num(e.shadow.y, 0.012, -0.12, 0.12), sb = num(e.shadow.blur, 0.02, 0, 0.2), so = num(e.shadow.opacity, 0.45, 0, 1);
       if (sb > 0 || sx !== 0 || sy !== 0) base.shadow = { x: +sx.toFixed(4), y: +sy.toFixed(4), blur: +sb.toFixed(4), color: hex(e.shadow.color, "#000000"), opacity: +so.toFixed(3) };
     }
+    var dlv = Math.round(num(e.distress, 0, 0, 3));            // universal distress/abrasion level (0 = off; SVG turbulence + displacement)
+    if (dlv > 0) base.distress = dlv;
     return base;
   }
   // universal shadow -> a --gbx-size-scaled drop-shadow() filter token (alpha-aware: shadows the silhouette of text/svg/transparent art alike)
@@ -531,6 +538,7 @@
     ".gbx-fx-shadow{text-shadow:0.045em 0.07em 0 rgba(0,0,0,0.55)}",
     ".gbx-fx-lift{text-shadow:0 0.085em 0.16em rgba(0,0,0,0.55)}",
     ".gbx-fx-neon{text-shadow:0 0 0.08em var(--fx-c,#34f5c5),0 0 0.22em var(--fx-c,#34f5c5),0 0 0.5em var(--fx-c,#34f5c5)}",
+    ".gbx-fx-chromatic{text-shadow:-0.045em 0 var(--fx-c1,#00e5ff),0.045em 0 var(--fx-c2,#ff00ff)}",
     ".gbx-fx-highlight{text-shadow:none}",
     ".gbx-fx-highlight .gbx-hl{background:var(--fx-c,#ffe066);padding:0.02em 0.2em;border-radius:0.1em;-webkit-box-decoration-break:clone;box-decoration-break:clone}",
     ".gbx-stamp{border:calc(var(--gbx-size)*0.006) solid currentColor;border-radius:6px;padding:.28em .5em;font-family:var(--font-mono,'VT323',monospace);text-transform:uppercase;letter-spacing:.08em;font-weight:700;line-height:1;text-align:center}",
@@ -611,10 +619,19 @@
     "@media(prefers-reduced-motion:reduce){.gbx-box,.gbx-flap,.gbx-tape{transition:none}.gbx-a-spin,.gbx-a-breathe,.gbx-a-pulse,.gbx-a-bob,[class*=gbx-anim-]{animation:none}}"
   ].join("");
 
+  // distress/abrasion: SVG turbulence + displacement filters, one per level, injected once
+  var DISTRESS_DEFS = '<filter id="gbx-distress-1" x="-8%" y="-8%" width="116%" height="116%"><feTurbulence type="fractalNoise" baseFrequency="0.045" numOctaves="2" seed="7" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="3" xChannelSelector="R" yChannelSelector="G"/></filter><filter id="gbx-distress-2" x="-10%" y="-10%" width="120%" height="120%"><feTurbulence type="fractalNoise" baseFrequency="0.06" numOctaves="3" seed="7" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="5" xChannelSelector="R" yChannelSelector="G"/></filter><filter id="gbx-distress-3" x="-12%" y="-12%" width="124%" height="124%"><feTurbulence type="fractalNoise" baseFrequency="0.085" numOctaves="3" seed="7" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="8" xChannelSelector="R" yChannelSelector="G"/></filter>';
+
   function injectCss() {
     if (document.getElementById("gbx-css")) return;
     var st = document.createElement("style"); st.id = "gbx-css"; st.textContent = CSS;
     document.head.appendChild(st);
+    if (!document.getElementById("gbx-fx-defs")) {   // distress/abrasion SVG filter defs (live render reads them via filter:url())
+      var fd = document.createElementNS("http://www.w3.org/2000/svg", "svg"); fd.id = "gbx-fx-defs";
+      fd.setAttribute("aria-hidden", "true"); fd.style.cssText = "position:absolute;width:0;height:0;overflow:hidden";
+      fd.innerHTML = DISTRESS_DEFS;
+      (document.body || document.documentElement).appendChild(fd);
+    }
     // Panel-only display fonts (manga family). Loaded once, non-blocking; JP falls back to system Hiragino/Yu Gothic.
     if (!document.getElementById("gbx-panel-fonts")) {
       var lk = document.createElement("link"); lk.id = "gbx-panel-fonts"; lk.rel = "stylesheet";
@@ -673,6 +690,7 @@
     if (e.anim) node.classList.add("gbx-anim-" + e.anim);   // reveal animation (plays on box open)
     if (e.blend) node.style.mixBlendMode = e.blend;         // composite this layer with what's behind it
     if (e.shadow) { var sf = shadowFilter(e.shadow); node.style.filter = node.style.filter ? node.style.filter + " " + sf : sf; }   // universal shadow/glow, appended after any per-type filter
+    if (e.distress) { var dref = "url(#gbx-distress-" + e.distress + ")"; node.style.filter = node.style.filter ? dref + " " + node.style.filter : dref; }   // distress displaces first, so any shadow/effect sits on the roughened result
   }
   var CLIP_ID = 1;
   function shapeSvgPath(shape, attrs) {   // inner SVG for polygon/path shapes in a 0..100 viewBox
@@ -690,6 +708,54 @@
       default:         return '<rect x="1" y="1" width="98" height="98"' + attrs + '/>';
     }
   }
+
+  // ---- Decorative photo-frame treatments (polaroid / tape / torn / film) --------------
+  // ONE generator, shared by the live render below AND engine-lab's exportFaceAsPanel (via the
+  // GIIIFTBox export), so a saved panel always matches the box: no live/export mirror to drift.
+  // Drawn in a viewBox proportional to the layer (short side = 100 units) and dropped into a
+  // nested <svg preserveAspectRatio="none">, so the aspect matches the layer and nothing skews.
+  function frameTreatGeom(e) {
+    var w = e.w || 0.42, h = e.h || 0.42, m = Math.min(w, h) || 0.42;
+    return { W: Math.round(w / m * 100), H: Math.round(h / m * 100), u: 100 };
+  }
+  function tornEdgePath(W, H, inset, jag) {   // jagged inset rectangle (the torn inner edge); deterministic so live === export
+    var s = 0x9e3779b1; function rnd() { s = (s * 1103515245 + 12345) & 0x7fffffff; return s / 0x7fffffff; }
+    function rr(v) { return Math.round(v * 100) / 100; }
+    function edge(x0, y0, x1, y1, n) {
+      var out = "", dx = (x1 - x0) / n, dy = (y1 - y0) / n, len = Math.hypot(x1 - x0, y1 - y0) || 1, nx = (y1 - y0) / len, ny = -(x1 - x0) / len;
+      for (var i = 1; i <= n; i++) { var j = (i === n) ? 0 : (rnd() - 0.5) * 2 * jag; out += "L" + rr(x0 + dx * i + nx * j) + " " + rr(y0 + dy * i + ny * j) + " "; }
+      return out;
+    }
+    var Lf = inset, Rt = W - inset, Tp = inset, Bt = H - inset, nW = Math.max(5, Math.round(W / 12)), nH = Math.max(5, Math.round(H / 12));
+    return "M" + rr(Lf) + " " + rr(Tp) + " " + edge(Lf, Tp, Rt, Tp, nW) + edge(Rt, Tp, Rt, Bt, nH) + edge(Rt, Bt, Lf, Bt, nW) + edge(Lf, Bt, Lf, Tp, nH) + "Z";
+  }
+  function frameTreatSVG(e) {
+    var g = frameTreatGeom(e), W = g.W, H = g.H, u = g.u, href = esc(e.src);
+    function R(v) { return Math.round(v * 100) / 100; }
+    function img(x, y, w, h) { return '<image href="' + href + '" x="' + R(x) + '" y="' + R(y) + '" width="' + R(w) + '" height="' + R(h) + '" preserveAspectRatio="xMidYMid slice"/>'; }
+    if (e.treatment === "polaroid") {                    // white card, even border + a thick caption strip at the bottom
+      var pb = u * 0.07, ps = u * 0.24;
+      var cap = e.caption ? '<text x="' + R(W / 2) + '" y="' + R(H - ps * 0.46) + '" text-anchor="middle" dominant-baseline="middle" font-family="cursive, system-ui, sans-serif" font-size="' + R(ps * 0.4) + '" fill="#3b3a35">' + esc(e.caption) + '</text>' : '';
+      return '<rect width="' + W + '" height="' + H + '" rx="' + R(u * 0.015) + '" fill="#fcfbf6"/>' + img(pb, pb, W - 2 * pb, H - pb - ps) + cap;
+    }
+    if (e.treatment === "film") {                        // black film stock with sprocket-hole rows top + bottom
+      var fb = u * 0.15, sm = u * 0.035, hw = u * 0.075, hh = fb * 0.4, gap = u * 0.05, step = hw + gap;
+      var n = Math.max(3, Math.floor((W - gap) / step)), start = (W - (n * step - gap)) / 2, holes = "";
+      for (var i = 0; i < n; i++) { var hx = start + i * step; holes += '<rect x="' + R(hx) + '" y="' + R((fb - hh) / 2) + '" width="' + R(hw) + '" height="' + R(hh) + '" rx="' + R(hh * 0.3) + '" fill="#eceae4"/><rect x="' + R(hx) + '" y="' + R(H - fb + (fb - hh) / 2) + '" width="' + R(hw) + '" height="' + R(hh) + '" rx="' + R(hh * 0.3) + '" fill="#eceae4"/>'; }
+      return '<rect width="' + W + '" height="' + H + '" fill="#161616"/>' + img(sm, fb, W - 2 * sm, H - 2 * fb) + holes;
+    }
+    if (e.treatment === "tape") {                        // photo with translucent washi-tape strips across the corners
+      var tw = u * 0.32, th = u * 0.11;
+      function tp(cx, cy, a) { return '<g transform="translate(' + R(cx) + ' ' + R(cy) + ') rotate(' + a + ')"><rect x="' + R(-tw / 2) + '" y="' + R(-th / 2) + '" width="' + R(tw) + '" height="' + R(th) + '" rx="' + R(th * 0.12) + '" fill="rgba(233,223,150,0.62)" stroke="rgba(120,110,40,0.18)" stroke-width="0.5"/></g>'; }
+      return img(0, 0, W, H) + tp(0, 0, -42) + tp(W, 0, 42) + tp(0, H, 42) + tp(W, H, -42);
+    }
+    if (e.treatment === "torn") {                        // white deckle border: a torn inner edge (evenodd ring) over the photo
+      var hole = tornEdgePath(W, H, u * 0.055, u * 0.022);
+      return img(0, 0, W, H) + '<path d="M0 0 H' + W + ' V' + H + ' H0 Z ' + hole + '" fill="#fcfbf6" fill-rule="evenodd"/>';
+    }
+    return "";
+  }
+
   function renderElement(e, palette) {
     var n;
     switch (e.t) {
@@ -705,6 +771,9 @@
         if ((e.fillKind === "linear" || e.fillKind === "radial") && !(e.curve && Math.abs(e.curve) > 0.5)) {   // gradient text fill via background-clip (skips when curved)
           var tg2 = e.fill2 || e.color, tgr = e.fillKind === "radial" ? "radial-gradient(circle," + e.color + "," + tg2 + ")" : "linear-gradient(" + (e.fillAngle != null ? e.fillAngle : 135) + "deg," + e.color + "," + tg2 + ")";
           n.style.backgroundImage = tgr; n.style.webkitBackgroundClip = "text"; n.style.backgroundClip = "text"; n.style.color = "transparent";
+        }
+        if (e.fillKind === "halftone" && !(e.curve && Math.abs(e.curve) > 0.5)) {   // halftone-dot fill clipped into the glyphs (dots in `color`, gaps show through); scales with font size
+          n.style.backgroundImage = "radial-gradient(" + e.color + " 30%, transparent 32%)"; n.style.backgroundSize = "0.16em 0.16em"; n.style.webkitBackgroundClip = "text"; n.style.backgroundClip = "text"; n.style.color = "transparent";
         }
         if (e.finish && e.finish !== "none" && FOILS[e.finish] && !(e.curve && Math.abs(e.curve) > 0.5)) {   // metallic foil — wins over colour/gradient; skipped when curved, like gradients
           n.style.backgroundImage = FOILS[e.finish]; n.style.webkitBackgroundClip = "text"; n.style.backgroundClip = "text"; n.style.color = "transparent";
@@ -874,6 +943,13 @@
       case "frame": {
         n = document.createElement("div"); n.className = "gbx-frame";
         n.style.width = px(e.w); n.style.height = px(e.h);
+        if (e.treatment && FRAMETREATS[e.treatment] && e.src) {   // decorative treatment: the shared generator (the panel exporter reuses the very same markup)
+          var tg = frameTreatGeom(e);
+          n.style.overflow = "visible";
+          n.innerHTML = '<svg width="100%" height="100%" viewBox="0 0 ' + tg.W + ' ' + tg.H + '" preserveAspectRatio="none" style="overflow:visible">' + frameTreatSVG(e) + '</svg>';
+          if (e.opacity != null && e.opacity < 1) n.style.opacity = e.opacity;
+          break;
+        }
         var fStroke = e.stroke && e.stroke !== "none" && e.strokeW > 0;
         if (e.frame === "rect" || e.frame === "rounded" || e.frame === "circle") {   // CSS path
           n.style.boxSizing = "border-box";
@@ -1061,7 +1137,7 @@
 
   /* ------------------------------ export -------------------------------- */
   var API = {
-    FACES: FACES, PATTERNS: PATTERNS, SHAPES: SHAPES, ELSHAPES: ELSHAPES, FRAMES: FRAMES, FINISHES: FINISHES, FONTS: FONTS, FONT_META: FONT_META, STICKERS: STICKERS, PANELS: PANELS,
+    FACES: FACES, PATTERNS: PATTERNS, SHAPES: SHAPES, ELSHAPES: ELSHAPES, FRAMES: FRAMES, FRAMETREATS: FRAMETREATS, frameTreatGeom: frameTreatGeom, frameTreatSVG: frameTreatSVG, FINISHES: FINISHES, FONTS: FONTS, FONT_META: FONT_META, STICKERS: STICKERS, PANELS: PANELS,
     normalize: normalize, fromLegacy: fromLegacy, render: render,
     ensureFonts: ensureFonts, docFonts: docFonts,
     faceBackground: faceBackground, shadeHex: shadeHex, panelSVG: panelSVG, qrMatrix: QR,
